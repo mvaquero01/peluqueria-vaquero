@@ -3,7 +3,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDxc3hkR-Bc86uWdNCxleGbiFfku3JCA0Y",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "peluqueria-vaquero-c3e53.firebaseapp.com",
   projectId: "peluqueria-vaquero-c3e53",
   storageBucket: "peluqueria-vaquero-c3e53.firebasestorage.app",
