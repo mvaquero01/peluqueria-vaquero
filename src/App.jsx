@@ -25,10 +25,86 @@ STYLE.textContent = `
   .anim  { animation: fadeUp 0.5s ease both; }
   .anim-fade { animation: fadeIn 0.4s ease both; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  html,body { margin:0; padding:0; background:#F8FBFF; width:100%; }
-  #root { background:#F8FBFF; }
+  html,body { margin:0; padding:0; background:linear-gradient(160deg,#0D1F35 0%,#1B3A5C 50%,#0D1F35 100%); width:100%; min-height:100vh; background-attachment:fixed; overflow-x:hidden; }
+  #root { 
+    background:transparent;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  #root > div.cliente-wrap {
+    width:100%;
+    max-width:1200px;
+    background:#F8FBFF;
+    min-height:100vh;
+    box-shadow: none;
+    margin:0 auto;
+  }
 
-  .cliente-root  { width:100%; min-height:100vh; background:#F0F4F9; display:flex; justify-content:center; }
+  .cliente-root { 
+    width: 100%; 
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0D1F35 0%, #1B3A5C 50%, #0D1F35 100%);
+    display: flex;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cliente-root::before {
+    content: "✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO";
+    position: fixed;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.06);
+    letter-spacing: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .cliente-root::after {
+    content: "✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO";
+    position: fixed;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    transform-origin: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.06);
+    letter-spacing: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .lateral-text {
+    position: fixed;
+    top: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.06);
+    letter-spacing: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .lateral-left {
+    left: -20px;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: center;
+  }
+  .lateral-right {
+    right: -20px;
+    transform: translateY(-50%) rotate(90deg);
+    transform-origin: center;
+  }
+
   .cliente-inner { width:100%; max-width:560px; min-height:100vh; background:#F8FBFF; box-shadow:0 0 60px rgba(0,0,0,.10); }
   @media(min-width:900px)  { .cliente-inner { max-width:680px; } }
   @media(min-width:1200px) { .cliente-inner { max-width:760px; } }
@@ -61,18 +137,19 @@ STYLE.textContent = `
   }
   /* ★ STICKY: cabeceras de día fijas al hacer scroll vertical */
   .cal-day-header {
-    height:52px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    border-bottom:1px solid #CED9E8;
-    flex-shrink:0;
-    padding:4px 8px;
-    gap:3px;
-    position:sticky;
-    top:0;
-    z-index:6;
+    height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #CED9E8;
+    flex-shrink: 0;
+    padding: 4px 8px;
+    gap: 3px;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: #F0F4F9;
   }
   /* Eje horas: spacer sticky para alinearse con las cabeceras */
   .cal-hour-header {
@@ -549,9 +626,9 @@ function CalendarioGrid({dias,citas,peluqueroFiltroId}){
         return(
           <div key={i} className="cal-day-col">
             {/* ★ STICKY header */}
-            <div className="cal-day-header" style={{background:esHoy?`${A}30`:CR}}>
-              <span style={{fontSize:9,fontWeight:700,color:esHoy?A:TX2,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{DIAS_ES[d.getDay()]}</span>
-              <span style={{fontSize:12,fontWeight:700,color:esHoy?A:TX,whiteSpace:"nowrap"}}>{d.getDate()} {MESES_ES[d.getMonth()]}</span>
+            <div className="cal-day-header" style={{background:esHoy?`#1B4F8A`:CR3}}>
+              <span style={{fontSize:9,fontWeight:700,color:esHoy?"#fff":TX2,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{DIAS_ES[d.getDay()]}</span>
+            <span style={{fontSize:12,fontWeight:700,color:esHoy?"#fff":TX,whiteSpace:"nowrap"}}>{d.getDate()} {MESES_ES[d.getMonth()]}</span>
             </div>
             {/* cuerpo */}
             <div style={{position:"relative",height:GRID_H,flexShrink:0}}>
@@ -650,7 +727,7 @@ function LoginPage(){
     setError(true); setTimeout(()=>setError(false),2500);
   };
   return(
-    <div style={{minHeight:"100vh",background:`linear-gradient(160deg,#0D1F35 0%,#1B3A5C 60%,#0D1F35 100%)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT}}>
+    <div className="cliente-wrap" style={{minHeight:"100vh",background:`linear-gradient(160deg,#0D1F35 0%,#1B3A5C 60%,#0D1F35 100%)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT}}>
       <div style={{background:WH,borderRadius:20,padding:"40px 36px",width:"100%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
         <div style={{width:56,height:56,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,margin:"0 auto 20px"}}>🔐</div>
         <h2 style={{textAlign:"center",fontSize:22,fontWeight:700,color:TX,marginBottom:4}}>Acceso privado</h2>
@@ -795,7 +872,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
   // ── HOME ──
   useScrollReveal();
   if(paso===0) return(
-    <div style={{fontFamily:FONT,background:WH,minHeight:"100vh",color:TX}}>
+    <div className="cliente-wrap" style={{fontFamily:FONT,background:WH,minHeight:"100vh",color:TX}}>
       <div style={cs.header}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:34,height:34,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>✂️</div>
@@ -914,7 +991,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
   };
 
   return(
-    <div style={{fontFamily:FONT,background:WH,minHeight:"100vh",color:TX}}>
+    <div className="cliente-wrap" style={{fontFamily:FONT,background:WH,minHeight:"100vh",color:TX}}>
       <div style={cs.header}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:34,height:34,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>✂️</div>
@@ -2077,7 +2154,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const tabs=[["citas","📅","Citas"],["clientes","👥","Clientes"],["caja","💰","Caja"],["stats","📊","Estadísticas"],["disponibilidad","🗓️","Disponibilidad"],["config","⚙️","Config"],["comunicacion","💬","WhatsApp"]];
 
   return(
-    <div style={as.root}>
+    <div className="cliente-wrap" style={as.root}>
       <div style={as.header} ref={el=>{if(el) document.documentElement.style.setProperty('--header-h',el.offsetHeight+'px')}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:32,height:32,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>✂️</div>
@@ -2151,7 +2228,7 @@ function AppData(){
   },[cargando]);
 
   if(cargando) return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F0F4F9",fontFamily:FONT}}>
+    <div className="cliente-wrap" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FBFF",fontFamily:FONT}}>
       <div style={{textAlign:"center"}}>
         <div style={{fontSize:40,marginBottom:16}}>✂️</div>
         <div style={{fontSize:16,fontWeight:700,color:"#0D1F35"}}>Cargando...</div>
