@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -50,20 +52,22 @@
   }
 }
 
-body {
-  margin: 0;
-}
-
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden; /* Esto evita que la web se mueva de lado a lado */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
 h1,
@@ -109,3 +113,4 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+

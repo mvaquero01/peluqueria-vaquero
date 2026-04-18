@@ -14,6 +14,7 @@ import {
   collection, onSnapshot, addDoc, deleteDoc, doc,
   query, where, getDocs, updateDoc, getDoc, setDoc
 } from "firebase/firestore";
+import { CONFIG } from "./config.js";
 
 // ─────────────────────────────────────────────
 // CSS GLOBAL
@@ -25,23 +26,49 @@ STYLE.textContent = `
   .anim  { animation: fadeUp 0.5s ease both; }
   .anim-fade { animation: fadeIn 0.4s ease both; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  html,body { margin:0; padding:0; background:linear-gradient(160deg,#0D1F35 0%,#1B3A5C 50%,#0D1F35 100%); width:100%; min-height:100vh; background-attachment:fixed; overflow-x:hidden; }
-  #root { 
-    background:transparent;
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    min-height:100vh;
-    overflow-x:hidden;
+  
+  html, body, #root { 
+    margin: 0; 
+    padding: 0; 
+    width: 100%; 
+    min-height: 100vh; 
+    background: #0D1F35; 
+    overflow-x: hidden;
   }
+
+  /* Contenedor principal: eliminamos el max-width de 1200px */
   #root > div.cliente-wrap {
-    width:100%;
-    max-width:1200px;
-    background:#F8FBFF;
-    min-height:100vh;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important; /* Quitamos el padding de aquí */
+    background: #F8FBFF;
+    min-height: 100vh;
     box-shadow: none;
-    margin:0 auto;
   }
+
+  /* Contenedor interno: eliminamos el max-width de 560px/760px */
+  .cliente-inner { 
+    width: 100% !important; 
+    max-width: 100% !important; 
+    margin: 0 !important;
+    min-height: 100vh; 
+    background: #F8FBFF; 
+  }
+
+  .cliente-header-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 0;
+    background: #F8FBFF;
+    border-bottom: 1px solid #CED9E8;
+    box-shadow: 0 1px 8px rgba(0,0,0,.05);
+    width: 50%;
+  }
+
+  /* Eliminamos cualquier restricción en pantallas grandes */
+  @media(min-width:900px)  { .cliente-inner { max-width: 100% !important; } }
+  @media(min-width:1200px) { .cliente-inner { max-width: 100% !important; } }
 
   .cliente-root { 
     width: 100%; 
@@ -52,62 +79,7 @@ STYLE.textContent = `
     position: relative;
     overflow: hidden;
   }
-  .cliente-root::before {
-    content: "✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO";
-    position: fixed;
-    left: -20px;
-    top: 50%;
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.06);
-    letter-spacing: 8px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .cliente-root::after {
-    content: "✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO ✂ PELUQUERÍA VAQUERO";
-    position: fixed;
-    right: -20px;
-    top: 50%;
-    transform: translateY(-50%) rotate(90deg);
-    transform-origin: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.06);
-    letter-spacing: 8px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 0;
-  }
 
-  .lateral-text {
-    position: fixed;
-    top: 50%;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.06);
-    letter-spacing: 8px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .lateral-left {
-    left: -20px;
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center;
-  }
-  .lateral-right {
-    right: -20px;
-    transform: translateY(-50%) rotate(90deg);
-    transform-origin: center;
-  }
-
-  .cliente-inner { width:100%; max-width:560px; min-height:100vh; background:#F8FBFF; box-shadow:0 0 60px rgba(0,0,0,.10); }
-  @media(min-width:900px)  { .cliente-inner { max-width:680px; } }
-  @media(min-width:1200px) { .cliente-inner { max-width:760px; } }
 
   @media(max-width:640px) {
     .admin-kpi-grid { grid-template-columns:repeat(2,1fr) !important; }
@@ -263,54 +235,6 @@ STYLE.textContent = `
   }
 `;
 document.head.appendChild(STYLE);
-
-// ─────────────────────────────────────────────
-// CONFIG
-// ─────────────────────────────────────────────
-const CONFIG = {
-  nombre:"Peluquería Vaquero",
-  slogan:"El detalle marca la diferencia",
-  direccion:"Av. Diagonal 647, Barcelona",
-  telefono:"999 123 456",
-  whatsapp:"34999123456",
-  color:"#B8860B",
-  adminUser:"admin",
-  adminPass:"admin123",
-  semanasSinVisita:5,
-  googleMapsUrl:"https://www.google.com/maps/search/?api=1&query=Av.+Diagonal+647+Barcelona",
-  categorias:[
-    {id:1,nombre:"Corte",       emoji:"✂️",servicioIds:[1,4]},
-    {id:2,nombre:"Barba",       emoji:"🪒",servicioIds:[2,3]},
-    {id:3,nombre:"Color",       emoji:"🎨",servicioIds:[5,6,7]},
-    {id:4,nombre:"Tratamientos",emoji:"💆",servicioIds:[8,9]},
-    {id:5,nombre:"Extras",      emoji:"✨",servicioIds:[10]},
-  ],
-  horarioGeneral:{
-    1:{apertura:"09:00",cierre:"20:00"},2:{apertura:"09:00",cierre:"20:00"},
-    3:{apertura:"09:00",cierre:"20:00"},4:{apertura:"09:00",cierre:"20:00"},
-    5:{apertura:"09:00",cierre:"20:30"},6:{apertura:"09:00",cierre:"15:00"},
-  },
-  serviciosDefault:[
-    {id:1, nombre:"Corte de cabello",   desc:"Lavado, corte personalizado y secado a tu estilo",            duracionMin:30, precio:15,emoji:"✂️"},
-    {id:2, nombre:"Corte + Barba",      desc:"Corte completo más arreglo y perfilado de barba",             duracionMin:50, precio:22,emoji:"🪒"},
-    {id:3, nombre:"Arreglo de barba",   desc:"Perfilado, recorte y afeitado con cuchilla caliente",         duracionMin:20, precio:10,emoji:"🧔"},
-    {id:4, nombre:"Fade / Degradado",   desc:"Degradado progresivo con máquina y acabado a tijera",         duracionMin:40, precio:18,emoji:"💈"},
-    {id:5, nombre:"Coloración completa",desc:"Tinte de raíz a puntas con producto profesional",             duracionMin:90, precio:45,emoji:"🎨"},
-    {id:6, nombre:"Mechas / Highlights",desc:"Mechas balayage o californiana para un look natural",         duracionMin:120,precio:65,emoji:"✨"},
-    {id:7, nombre:"Alisado keratina",   desc:"Alisado duradero que elimina el frizz hasta 4 meses",         duracionMin:150,precio:80,emoji:"💆"},
-    {id:8, nombre:"Lavado + Secado",    desc:"Lavado con mascarilla nutritiva y secado profesional",         duracionMin:25, precio:8, emoji:"🚿"},
-    {id:9, nombre:"Tratamiento capilar",desc:"Tratamiento hidratante o reparador según el tipo de cabello", duracionMin:45, precio:25,emoji:"🌿"},
-    {id:10,nombre:"Diseño de cejas",    desc:"Depilación, perfilado y diseño adaptado a tu rostro",         duracionMin:20, precio:12,emoji:"👁️"},
-  ],
-  peluqueros:[
-    {id:1,nombre:"Clara",   especialidad:"Corte clásico & Barba",    emoji:"✂️",color:"#E63946",password:"clara123",
-     horario:{1:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},2:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},3:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},4:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},5:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}}}},
-    {id:2,nombre:"Fernando",especialidad:"Fade & Degradados",         emoji:"🪒",color:"#2A9D8F",password:"fernando123",
-     horario:{1:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},2:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},3:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},4:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},5:{entrada:"12:00",salida:"20:30",descanso:null},6:{entrada:"09:00",salida:"15:00",descanso:null}}},
-    {id:3,nombre:"Marta",   especialidad:"Coloración & Tendencias",  emoji:"🎨",color:"#E9C46A",password:"marta123",
-     horario:{2:{entrada:"09:00",salida:"17:00",descanso:{inicio:"13:30",fin:"14:30"}},3:{entrada:"09:00",salida:"17:00",descanso:{inicio:"13:30",fin:"14:30"}},4:{entrada:"09:00",salida:"17:00",descanso:{inicio:"13:30",fin:"14:30"}},5:{entrada:"09:00",salida:"20:30",descanso:{inicio:"14:00",fin:"15:00"}},6:{entrada:"09:00",salida:"15:00",descanso:null}}},
-  ],
-};
 
 // ─────────────────────────────────────────────
 // UTILS
@@ -737,7 +661,6 @@ function LoginPage(){
         <div style={{marginBottom:20}}><Lbl>Contraseña</Lbl><Inp type="password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••"/></div>
         <Btn ok style={{width:"100%"}} onClick={handleLogin}>ENTRAR</Btn>
         <button style={{width:"100%",background:"none",border:"none",color:TX2,cursor:"pointer",fontSize:12,marginTop:14}} onClick={()=>navigate("/")}>← Volver a la web</button>
-        <div style={{marginTop:16,background:CR,borderRadius:8,padding:"10px",fontSize:11,color:TX2,textAlign:"center"}}>Demo: <strong>admin</strong> / admin123 · <strong>clara</strong> / clara123</div>
       </div>
     </div>
   );
@@ -841,18 +764,64 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
   };
 
   const cs={
-    header:{background:WH,borderBottom:`1px solid ${CR3}`,padding:"13px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,boxShadow:"0 1px 8px rgba(0,0,0,.05)"},
-    hero:{background:`linear-gradient(160deg,#0D1F35 0%,#1B3A5C 55%,#142D48 100%)`,padding:"48px 20px 36px",textAlign:"center",position:"relative",overflow:"hidden"},
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "10px 4%",
+      background: "#F8FBFF", // Fuerza el color exacto de tu fondo
+      borderBottom: `1px solid ${CR3}`,
+      width: "100%",
+      boxSizing: "border-box",
+      height: "60px",
+      zIndex: 1000 // Asegúrate de que este número sea el más alto de la página
+    },
+    hero: {
+      backgroundImage: `linear-gradient(rgba(13, 31, 53, 0.7), rgba(13, 31, 53, 0.7)), url('https://i.postimg.cc/8CbxPT8S/salon-belleza-vs-peluqueria.jpg')`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      padding: "60px 20px", 
+      marginTop: "0px", 
+      textAlign: "center",
+      position: "relative",
+      overflow: "hidden",
+      width: "100%",
+      color: WH
+    },
     heroGlow:{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:300,height:300,background:`radial-gradient(circle,${A}22 0%,transparent 70%)`,pointerEvents:"none"},
     btnPpal:{background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:12,padding:"15px 40px",fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:1,boxShadow:`0 6px 24px ${A}55`},
-    section:{padding:"18px"},
-    sTitle:{fontSize:11,color:A,letterSpacing:3,textTransform:"uppercase",marginBottom:14,fontWeight:700},
-    cat:{background:WH,border:`1px solid ${CR3}`,borderRadius:13,marginBottom:8,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,.04)"},
+    section: { 
+      padding: "100px 20px", // Espaciado masivo de 100px arriba y abajo
+      maxWidth: "100%", 
+      margin: "0 auto",
+      minHeight: "600px", // Reserva un espacio fijo para que lo de abajo no se mueva tanto
+      display: "flex",
+      flexDirection: "column"
+    },
+    sTitle: { 
+      fontSize: "22px", 
+      color: A, 
+      letterSpacing: "6px", 
+      textTransform: "uppercase", 
+      marginTop: "10px",    /* Muy poco espacio con la línea de ARRIBA */
+      marginBottom: "30px", /* Espacio con los servicios de ABAJO */
+      fontWeight: 900,
+      textAlign: "center",
+      display: "block"
+    },
+    cat: { 
+      background: WH, 
+      border: `1px solid ${CR3}`, 
+      borderRadius: 13, 
+      marginBottom: "0", 
+      overflow: "hidden", 
+      boxShadow: "0 1px 4px rgba(0,0,0,.04)",
+      transition: "all 0.3s ease" // Para que el despliegue sea fluido
+    },
     catHeader:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",cursor:"pointer"},
     catLeft:{display:"flex",alignItems:"center",gap:10},
     catIcon:{width:38,height:38,background:CR2,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18},
-    svcRow:sel=>({display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,padding:"11px 16px 11px 64px",cursor:"pointer",background:sel?`${A}08`:CR,borderTop:`1px solid ${CR2}`,transition:"background .15s"}),
-    horasGrid:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7},
+    svcRow: sel => ({ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: "12px 16px", cursor: "pointer", background: sel ? `${A}08` : CR, borderTop: `1px solid ${CR2}`, transition: "background .15s", width: "100%" }),
     horaBtn:a=>({background:a?`linear-gradient(135deg,${A},#133A6A)`:WH,border:`1px solid ${a?A:CR3}`,borderRadius:8,padding:"10px 0",cursor:"pointer",textAlign:"center",fontSize:13,color:a?WH:TX,fontWeight:a?700:400}),
     card:sel=>({background:sel?`${A}0D`:WH,border:`1px solid ${sel?A:CR3}`,borderRadius:13,padding:"13px 16px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}),
     cardLeft:{display:"flex",alignItems:"center",gap:12},
@@ -867,45 +836,126 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
     successIcon:{width:72,height:72,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,margin:"0 auto 20px"},
     infoBar:{display:"flex",background:WH,borderBottom:`1px solid ${CR3}`},
     infoItem:{flex:1,textAlign:"center",padding:"13px 6px",borderRight:`1px solid ${CR3}`},
+    sectionServicios: { 
+      /* 0px arriba, 4% lados, 100px abajo para reservar el hueco del desplegable */
+      padding: "0px 4% 0px 4%", 
+      maxWidth: "100%", 
+      margin: "0 auto",
+      minHeight: "500px", 
+      display: "flex",
+      flexDirection: "column",
+      boxSizing: "border-box"
+      
+    },
+    sectionCompacta: { 
+      /* 0px arriba, 10% lados, 60px abajo */
+      padding: "0px 10% 0px 10%", 
+      maxWidth: "100%", 
+      margin: "0 auto",
+      display: "flex",
+      flexDirection: "column",
+      boxSizing: "border-box"
+    },
   };
 
   // ── HOME ──
   useScrollReveal();
+  const scrollTo=id=>{
+    const el=document.getElementById(id);
+    if(el){
+      const headerH=document.querySelector('.cliente-header-sticky')?.offsetHeight||50;
+      const top=el.getBoundingClientRect().top+window.scrollY-headerH-50;
+      window.scrollTo({top,behavior:"smooth"});
+    }
+  };
   if(paso===0) return(
-    <div className="cliente-wrap" style={{fontFamily:FONT,background:WH,minHeight:"100vh",color:TX}}>
-      <div style={cs.header}>
+    <div className="cliente-wrap" style={{ 
+      fontFamily: FONT, 
+      background: WH, 
+      minHeight: "100vh",
+      paddingTop: "60px" // Exactamente lo mismo que mide tu header
+    }}>
+      {/* HEADER FIJO */}
+      <div style={{ 
+        position: "fixed", 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        height: "70px", 
+        background: WH, 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        padding: "0 4%", 
+        zIndex: 2000, 
+        borderBottom: `1px solid ${CR3}`,
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.05)"
+      }}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:34,height:34,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>✂️</div>
+          <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
+            <img 
+              src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
+              alt="Logo Peluquería" 
+              style={{
+                width: "100%", 
+                height: "100%", 
+                objectFit: "contain" // Esto evita que la imagen se deforme
+              }} 
+            />
+          </div>
           <span style={{fontSize:17,fontWeight:700,color:TX}}>{CONFIG.nombre}</span>
         </div>
+        <div className="hide-mobile" style={{position:"absolute",left:"50%",transform:"translateX(-50%)",display:"flex",gap:4}}>
+          {[["servicios","Servicios"],["equipo","Equipo"],["opiniones","Opiniones"],["ubicacion","Contacto"]].map(([id,label])=>(
+            <button key={id} style={{background:"transparent",border:"none",color:TX2,cursor:"pointer",fontSize:12,fontWeight:600,padding:"10px 20px",borderRadius:8,transition:"background .15s"}} onClick={()=>scrollTo(id)}
+              onMouseEnter={e=>e.target.style.background=CR2}
+              onMouseLeave={e=>e.target.style.background="transparent"}>
+              {label}
+            </button>
+          ))}
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <button style={{background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:9,padding:"9px 22px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}} onClick={()=>navigate("/reservar")}>RESERVAR</button>
+          <button style={{background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:100,padding:"9px 30px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}} onClick={()=>navigate("/reservar")}>RESERVAR</button>
           <button style={{background:"transparent",border:"none",color:CR3,cursor:"pointer",fontSize:13,padding:0}} onClick={()=>navigate("/login")}>⚙</button>
         </div>
       </div>
-      <a href={`https://wa.me/${CONFIG.whatsapp}?text=Hola, me gustaría pedir más información`} target="_blank" rel="noreferrer" className="wa-fab"><WhatsAppIcon/></a>
+      <a href={`https://wa.me/${CONFIG.whatsapp}?text=Som l'Espanyol, i això és la nostra vida!!`} target="_blank" rel="noreferrer" className="wa-fab"><WhatsAppIcon/></a>
       <div className="anim" style={cs.hero}>
         <div style={cs.heroGlow}/>
-        <div className="hero-emoji" style={{fontSize:48,marginBottom:10}}>💈</div>
+        <div className="hero-emoji" style={{ 
+          paddingTop: "70px",
+          marginBottom: 20, 
+          display: "flex", 
+          justifyContent: "center", 
+          width: "100%" 
+        }}>
+          <img 
+            src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
+            alt="Logo" 
+            style={{
+              width: "60px",      // Ajusta el tamaño a tu gusto
+              height: "auto",      // Para que no se deforme
+              borderRadius: "0",   // Quita lo circular
+              border: "none",      // Quita el borde
+              objectFit: "contain" // Asegura que se vea la imagen completa
+            }} 
+          />
+        </div>
         <h1 className="hero-title" style={{fontSize:32,fontWeight:700,color:WH,marginBottom:6,letterSpacing:1}}>{CONFIG.nombre}</h1>
-        <p className="hero-slogan" style={{fontSize:15,color:"#7AADD4",marginBottom:4,fontStyle:"italic"}}>"{CONFIG.slogan}"</p>
-        <p className="hero-dir" style={{fontSize:12,color:"#4A7AAA",marginBottom:28}}>📍 {CONFIG.direccion} · 📞 {CONFIG.telefono}</p>
+        <p className="hero-slogan" style={{fontSize:15,color:"#9ec3e8",marginBottom:4,fontStyle:"italic"}}>"{CONFIG.slogan}"</p>
+        <p className="hero-dir" style={{fontSize:12,color:"#9ec3e8",marginBottom:28}}>📍 {CONFIG.direccion} · 📞 {CONFIG.telefono}</p>
         <button className="hero-btn btn-pulse" style={cs.btnPpal} onClick={()=>navigate("/reservar")}>RESERVAR CITA</button>
       </div>
-      <div style={cs.infoBar}>
-        {[["⭐","4.9","valoración"],["✂️",CONFIG.peluqueros.length,"profesionales"],["💼",servicios.length,"servicios"],["🕐","24/7","reservas"]].map(([ic,v,l],i)=>(
-          <div key={i} style={cs.infoItem}><div style={{fontSize:18}}>{ic}</div><div style={{fontSize:14,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
-        ))}
-      </div>
-      <div style={{padding:"0 18px",marginTop:18}}>
+      
+      <div style={{ padding: "0 4% 0px 4%", marginTop: 20, marginBottom: "30px" }}>
         <div style={{background:WH,border:`1px solid ${CR3}`,borderRadius:14,padding:"16px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <span style={{fontSize:12,fontWeight:700,color:TX,letterSpacing:1,textTransform:"uppercase"}}>Horario</span>
+            <span style={{fontSize:14,fontWeight:700,color:TX,letterSpacing:1,textTransform:"uppercase"}}>Horario</span>
             <Bdg color={CONFIG.horarioGeneral[HOY.getDay()]?OK:ER}>{CONFIG.horarioGeneral[HOY.getDay()]?"Abierto hoy":"Cerrado hoy"}</Bdg>
           </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:20}}>
             {horarioResumido().map(({rango,horas},i)=>(
-              <div key={i} style={{background:`${A}12`,border:`1px solid ${A}33`,borderRadius:20,padding:"5px 12px",fontSize:12}}>
+              <div key={i} style={{background:`${A}12`,border:`1px solid ${A}33`,borderRadius:20,padding:"5px 20px",fontSize:12}}>
                 <span style={{fontWeight:700,color:TX}}>{rango}</span><span style={{color:TX2,marginLeft:5}}>{horas}</span>
               </div>
             ))}
@@ -913,70 +963,412 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
           </div>
         </div>
       </div>
-      <div className="reveal" style={cs.section}>
-        <div style={cs.sTitle}>✦ Servicios</div>
-        {CONFIG.categorias.map(cat=>{
-          const svcs=servicios.filter(s=>cat.servicioIds.includes(s.id));
-          const abierta=catAbierta===cat.id;
-          return(
-            <div key={cat.id} className="card-hover" style={cs.cat}>
-              <div style={cs.catHeader} onClick={()=>setCatAbierta(abierta?null:cat.id)}>
-                <div style={cs.catLeft}>
-                  <div style={cs.catIcon}>{cat.emoji}</div>
-                  <div><div style={{fontSize:14,fontWeight:700,color:TX}}>{cat.nombre}</div><div style={{fontSize:11,color:TX2}}>{svcs.length} servicio{svcs.length>1?"s":""} · desde €{Math.min(...svcs.map(s=>s.precio))}</div></div>
-                </div>
-                <span style={{color:TX2,fontSize:18,transform:abierta?"rotate(180deg)":"rotate(0deg)",transition:".2s"}}>▾</span>
-              </div>
-              {abierta&&<div className="cat-content">{svcs.map(s=>(
-                <div key={s.id} className="card-hover" style={{...cs.svcRow(false),cursor:"default"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",width:"100%",alignItems:"center"}}>
-                    <div><span style={{fontSize:13,color:TX,fontWeight:600}}>{s.nombre}</span><span style={{fontSize:11,color:TX2,marginLeft:8}}>⏱ {s.duracionMin} min</span></div>
-                    <span style={{fontSize:14,fontWeight:700,color:A}}>€{s.precio}</span>
+      
+
+      {/* --- SECCIÓN 1: SERVICIOS (ESTILO EXACTO PASO 1) --- */}
+      <div id="servicios" className="reveal" style={cs.sectionServicios}>
+        <div style={cs.sTitle}>✦ Nuestros Servicios</div>
+        
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "15px",
+          alignItems: "start"
+        }}>
+          {CONFIG.categorias.map(cat => {
+            const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
+            const abierta = catAbierta === cat.id;
+            
+            return (
+              <div key={cat.id} className="card-hover" style={{
+                background: WH,
+                border: `1px solid ${CR3}`,
+                borderRadius: 13,
+                overflow: "hidden",
+                height: "fit-content"
+              }}>
+                {/* Cabecera de la categoría */}
+                <div style={{...cs.catHeader, borderBottom: abierta ? `1px solid ${CR3}` : "none"}} 
+                    onClick={() => setCatAbierta(abierta ? null : cat.id)}>
+                  <div style={cs.catLeft}>
+                    <div style={cs.catIcon}>{cat.emoji}</div>
+                    <div>
+                      <div style={{fontSize: 14, fontWeight: 700, color: TX}}>{cat.nombre}</div>
+                      <div style={{fontSize: 11, color: TX2}}>{svcs.length} servicios</div>
+                    </div>
                   </div>
-                  {s.desc&&<div style={{fontSize:11,color:TX2,marginTop:2}}>{s.desc}</div>}
+                  <span style={{
+                    color: TX2, 
+                    fontSize: 18, 
+                    transform: abierta ? "rotate(180deg)" : "rotate(0deg)", 
+                    transition: ".2s"
+                  }}>▾</span>
                 </div>
-              ))}</div>}
-          </div>
-          );
-        })}
-      </div>
-      <div className="reveal" style={cs.section}>
-        <div style={cs.sTitle}>✦ El equipo</div>
-        {CONFIG.peluqueros.map(p=>(
-          <div key={p.id} className="card-hover" style={{...cs.card(false),cursor:"default"}}>
-            <div style={cs.cardLeft}><div style={cs.cardEmoji}>{p.emoji}</div><div><div style={{fontSize:14,fontWeight:700,color:TX}}>{p.nombre}</div><div style={{fontSize:11,color:TX2}}>{p.especialidad}</div></div></div>
-            <div style={{width:10,height:10,borderRadius:"50%",background:p.color}}/>
-          </div>
-        ))}
-      </div>
-      {valoraciones.length>0&&(
-        <div className="reveal" style={{...cs.section,paddingTop:0}}>
-          <div style={cs.sTitle}>✦ Opiniones</div>
-          {valoraciones.map(v=>(
-            <div key={v.id} style={{background:WH,border:`1px solid ${CR3}`,borderRadius:13,padding:"14px 16px",marginBottom:8}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                <div><div style={{fontSize:13,fontWeight:700,color:TX}}>{v.nombre}</div><div style={{fontSize:11,color:TX2}}>{v.servicio}</div></div>
-                <div style={{display:"flex",gap:1}}>{Array.from({length:5}).map((_,i)=><span key={i} style={{fontSize:13,color:i<v.estrellas?"#F59E0B":"#D1D5DB"}}>★</span>)}</div>
+
+                {/* Contenido desplegable */}
+                {abierta && (
+                  <div style={{ background: WH }}>
+                    {svcs.map(s => (
+                      <div key={s.id} style={cs.svcRow(false)}>
+                        
+                        {/* 1. Este es el bloque de arriba (Nombre, tiempo y precio) */}
+                        <div style={{display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center"}}>
+                          <div>
+                            <span style={{fontSize: 13, color: TX, fontWeight: 600}}>{s.nombre}</span>
+                            <span style={{fontSize: 11, color: TX2, marginLeft: 8}}>⏱ {s.duracionMin} min</span>
+                          </div>
+                          <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                            <span style={{fontSize: 14, fontWeight: 700, color: A}}>€{s.precio}</span>
+                          </div>
+                        </div>
+                        
+                        {/* 2. AQUÍ ES DONDE DEBES PEGAR EL CÓDIGO DE LA DESCRIPCIÓN */}
+                        {s.desc && (
+                          <div style={{
+                            fontSize: 11, 
+                            color: TX2, 
+                            marginTop: 2, 
+                            lineHeight: "1.4",
+                            textAlign: "left", // Esto es lo que arregla el centrado
+                            width: "100%"
+                          }}>
+                            {s.desc}
+                          </div>
+                        )}
+
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <p style={{fontSize:12,color:TX2,margin:0,lineHeight:1.6,fontStyle:"italic"}}>"{v.comentario}"</p>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        
+        {/* IMAGEN DE RELLENO - Solo aparece si no hay categorías abiertas */}
+        <div style={{ position: "relative", width: "100%", marginTop: "40px" }}>
+          
+          {/* 1. LA IMAGEN DE FONDO (No se mueve, los servicios flotan sobre ella) */}
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "400px", // Altura fija del fondo
+            borderRadius: "20px",
+            overflow: "hidden",
+            zIndex: 0
+          }}>
+            <img 
+              src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
+              alt="Fondo"
+              style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }}
+            />
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(to top, rgba(248,251,255,1), transparent)",
+            }} />
+          </div>
+
+          {/* 3. ESPACIADOR (Para que la siguiente sección no se pegue) */}
+          <div style={{ height: "200px" }}></div>
+
+        </div>
+      </div>
+
+      <hr style={{ 
+        border: "none", 
+        height: "1px", 
+        background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
+        margin: "100px auto 30px auto", /* 100px de la sección anterior, solo 30px para el siguiente título */
+        maxWidth: "100%"
+      }} />
+
+      {/* --- SECCIÓN EQUIPO DIVIDIDA (IMAGEN IZQ, LISTA DER) --- */}
+      <div id="equipo" className="reveal" style={{
+        ...cs.sectionEquipo,
+        padding: 0, // Quitamos padding lateral para que la imagen pegue al borde si quieres
+        overflow: "hidden"
+      }}>
+        
+        <div style={{
+          display: "flex",
+          flexDirection: window.innerWidth > 768 ? "row" : "column",
+          /* --- ESTA LÍNEA ES LA QUE CENTRA EL CONTENIDO DE LA DERECHA CON LA IMAGEN --- */
+          alignItems: "center", 
+          justifyContent: "center", // Centra el conjunto en el medio si la sección es muy ancha
+          gap: "40px",              // Espacio entre la imagen y los nombres
+          background: WH,
+          padding: "0px"           // Un poco de aire alrededor
+        }}>
+          
+          {/* 1. LADO IZQUIERDO: IMAGEN GRANDE */}
+          <div style={{
+            flex: "0 0 40%", // Ocupa exactamente el 50%
+            position: "relative",
+            minHeight: "300px"
+          }}>
+            <img 
+              src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" // Cambia esto por la foto de tu local o equipo
+              alt="Nuestro Equipo"
+              style={{
+                width: "100%",
+                height: "auto",
+                objectFit: "cover", // Esto hace que la imagen rellene todo el espacio sin deformarse
+                display: "block"
+              }}
+            />
+          </div>
+
+          {/* 2. LADO DERECHO: LISTA DE INTEGRANTES */}
+          <div style={{
+            flex: "1",
+            padding: window.innerWidth > 768 ? "0px 0px" : "0px 0px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center", // Centra las cajas verticalmente
+            gap: "30px"
+          }}>
+            <div style={{...cs.sTitle, textAlign: "left", marginBottom: "0px"}}>✦ Profesionales</div>
+            
+            {CONFIG.peluqueros.map(p => (
+              <div key={p.id} className="card-hover" style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "15px",
+                background: WH,
+                padding: "15px",
+                borderRadius: "20px",
+                border: `1px solid ${CR3}`,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+              }}>
+                {/* Avatar pequeño dentro de la lista */}
+                <div style={{ width: 50, height: 50, borderRadius: "50%", background: CR2, flexShrink: 0, overflow: 'hidden' }}>
+                  <img src={p.foto || "https://i.postimg.cc/4xxWbVq0/postepelu.webp"} style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                </div>
+                
+                <div>
+                  <div style={{ fontWeight: 700, color: TX, fontSize: "16px", textAlign: "left"}}>{p.nombre}</div>
+                  <div style={{ fontSize: "12px", color: A, fontWeight: 600, textAlign: "left" }}>{p.especialidad || "Estilista"}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </div>
+
+      <hr style={{ 
+        border: "none", 
+        height: "1px", 
+        background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
+        margin: "80px auto 30px auto", /* 80px de la sección anterior, solo 30px para el siguiente título */
+        maxWidth: "100%"
+      }} />
+
+      {/* --- SECCIÓN 3: OPINIONES --- */}
+      {valoraciones && valoraciones.length > 0 && (
+        <div id="opiniones" className="reveal" style={cs.sectionCompacta}>
+          <div style={cs.sTitle}>✦ Opiniones</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
+            {valoraciones.map(v => (
+              <div key={v.id} style={{background: WH, border: `1px solid ${CR3}`, borderRadius: 13, padding: "20px"}}>
+                <div style={{display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems:"center"}}>
+                  <span style={{fontSize: 13, fontWeight: 700}}>{v.nombre}</span>
+                  <div style={{display: "flex", gap: 1}}>
+                    {[1,2,3,4,5].map(i => <span key={i} style={{fontSize: 12, color: i <= v.estrellas ? "#F59E0B" : "#D1D5DB"}}>★</span>)}
+                  </div>
+                </div>
+                <p style={{fontSize: 12, color: TX2, fontStyle: "italic", lineHeight: "1.5"}}>"{v.comentario}"</p>
+                <div style={{fontSize: 10, color: A, fontWeight: 700, marginTop: 10}}>{v.servicio}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      <div className="reveal" style={{...cs.section,paddingTop:0}}>
-        <div style={cs.sTitle}>✦ Cómo llegar</div>
-        <div style={{background:WH,border:`1px solid ${CR3}`,borderRadius:14,overflow:"hidden"}}>
-          <iframe src={`https://maps.google.com/maps?q=${encodeURIComponent(CONFIG.direccion)}&output=embed`} width="100%" height="200" style={{border:0,display:"block"}} allowFullScreen loading="lazy" title="Mapa"/>
-          <div style={{padding:"14px 16px"}}>
-            <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:4}}>📍 {CONFIG.direccion}</div>
-            <div style={{fontSize:12,color:TX2,marginBottom:12}}>📞 {CONFIG.telefono}</div>
-            <a href={CONFIG.googleMapsUrl} target="_blank" rel="noreferrer" style={{display:"block",background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,borderRadius:10,padding:"11px",textAlign:"center",fontSize:13,fontWeight:700,textDecoration:"none"}}>🗺️ Cómo llegar — Abrir GPS</a>
+
+      <hr style={{ 
+        border: "none", 
+        height: "1px", 
+        background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
+        margin: "80px auto 30px auto", /* 80px de la sección anterior, solo 30px para el siguiente título */
+        maxWidth: "1400px"
+      }} />
+
+      {/* --- SECCIÓN 4: UBICACIÓN Y CONTACTO --- */}
+      <div id="ubicacion" className="reveal" style={cs.sectionCompacta}>
+        
+        {/* 1. ESTE ES EL NUEVO DIV PARA CONTROLAR EL ANCHO AL 80% */}
+        <div style={{
+          width: window.innerWidth > 768 ? "80%" : "100%", 
+          margin: "0 auto", 
+        }}>
+          
+          <div style={cs.sTitle}>✦ Contacto</div>
+
+          <div style={{
+            display: "flex",
+            flexDirection: window.innerWidth > 768 ? "row" : "column",
+            gap: "40px",
+            alignItems: "center",
+            marginTop: "0px"
+          }}>
+            
+            {/* BLOQUE IZQUIERDO: TEXTOS */}
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <h2 style={{ fontSize: 30, fontWeight: 700, color: TX, marginBottom: 10 }}>Peluquería Vaquero</h2>
+              <p style={{ color: TX2, fontSize: 15, marginBottom: 25 }}>El detalle marca la diferencia</p>
+
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: TX, marginBottom: 8 }}>Contacto</h3>
+                <div style={{ fontSize: 14, color: TX2, lineHeight: "1.6" }}>
+                  <div><strong>Dirección:</strong> Av. Diagonal 647, Barcelona</div>
+                  <div><strong>Teléfono:</strong> <span style={{ color: A, fontWeight: 700 }}>711 212 526</span></div>
+                  <div><strong>Email:</strong> mario.vaquero.ia@gmail.com</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 30 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: TX, marginBottom: 8 }}>Horario</h3>
+                <div style={{ fontSize: 14, color: TX2, lineHeight: "1.6" }}>
+                  <div>Lunes a Jueves: 9:00 - 20:00</div>
+                  <div>Viernes: 9:00 - 20:30</div>
+                  <div>Sábado: 9:00 - 15:00</div>
+                </div>
+              </div>
+
+              {/* BUSCA DONDE ESTÁ TU BOTÓN ACTUAL Y SUSTITÚYELO POR ESTO */}
+              <div style={{ 
+                display: "flex", 
+                gap: "20px", 
+                alignItems: "center", 
+                marginTop: "25px" 
+              }}>
+                
+                {/* BOTÓN PRINCIPAL CON ALTURA FIJA */}
+                <button 
+                  onClick={() => window.location.href = '/reservar'}
+                  style={{
+                    height: "50px", // <-- IGUALAMOS LA ALTURA AL BOTÓN DE INSTA
+                    padding: "0 25px", // Quitamos el padding vertical (12px) y dejamos solo el horizontal
+                    display: "flex", // Añadimos flex para centrar el texto verticalmente
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: A,
+                    color: WH,
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    flex: window.innerWidth > 768 ? "0 1 auto" : "1",
+                    transition: "all 0.3s ease", // <-- ESTO HACE QUE SEA SUAVE
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.08)"}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                >
+                  PEDIR CITA AHORA
+                </button>
+
+                {/* BOTÓN INSTAGRAM CON DEGRADADO COMPLETO */}
+                <a 
+                  href="https://www.instagram.com/_mvaquero01" // Pon aquí tu link real
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "50px",
+                    height: "50px",
+                    /* EL DEGRADADO DE INSTAGRAM */
+                    background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
+                    borderRadius: "8px",
+                    textDecoration: "none",
+                    flexShrink: 0,
+                    boxShadow: "0 4px 10px rgba(220, 39, 67, 0.2)",
+                    transition: "transform 0.2s ease",
+                    transition: "all 0.3s ease", // <-- ESTO HACE QUE SEA SUAVE
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.08)"}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                >
+                  {/* Icono en blanco para que resalte sobre el degradado */}
+                  <svg 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="#FFFFFF" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    style={{ width: "27px", height: "27px" }}
+                  >
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            {/* BLOQUE DERECHO: MAPA SIN ERRORES DE API */}
+            <div style={{ flex: 1, width: "100%" }}>
+              <div style={{ 
+                width: "100%", 
+                height: "380px", 
+                borderRadius: 13, 
+                overflow: "hidden", 
+                border: `1px solid ${CR3}`,
+                boxShadow: "0 4px 15px rgba(0,0,0,0.05)"
+              }}>
+                <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2993.438515321355!2d2.115367676579222!3d41.38627059604164!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12a4986487e3d81d%3A0x330058e578f1496a!2sAv.%20Diagonal%2C%20647%2C%20Les%20Corts%2C%2008028%20Barcelona!5e0!3m2!1ses!2ses!4v1715600000000!5m2!1ses!2ses" 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen="" 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              </div>
+
+              {/* BOTÓN VER EN GOOGLE MAPS */}
+              <div style={{ textAlign: "center", marginTop: "15px" }}>
+                <a 
+                  href="https://maps.app.goo.gl/ANdrx2wzSvmpSZJL6"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: A,
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    background: `${A}10`,
+                    border: `1px solid ${A}30`
+                  }}
+                >
+                  <span>🗺️ Ver en Google Maps</span>
+                </a>
+              </div>
+            </div>
           </div>
-        </div>
+        </div> {/* 2. CIERRE DEL DIV DEL 80% */}
       </div>
       <div style={{height:80}}/>
     </div>
   );
+
+
 
   // ── FLUJO RESERVA (pasos 1-5) ──
   // ★ Botón CONTINUAR fijo en la parte inferior
@@ -991,10 +1383,20 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
   };
 
   return(
-    <div className="cliente-wrap" style={{fontFamily:FONT,background:WH,minHeight:"100vh",color:TX}}>
-      <div style={cs.header}>
+    <div className="cliente-wrap" style={{ fontFamily: FONT, background: WH, minHeight: "100vh", paddingTop: "60px" }}>
+      <div className="cliente-header-sticky" style={{ ...cs.header, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4%", background: WH, borderBottom: `1px solid ${CR3}`, width: "100%", boxSizing: "border-box", height: "70px", position: "fixed", top: 0, left: 0, zIndex:2000 }}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:34,height:34,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>✂️</div>
+          <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
+            <img 
+              src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
+              alt="Logo Peluquería" 
+              style={{
+                width: "100%", 
+                height: "100%", 
+                objectFit: "contain" // Esto evita que la imagen se deforme
+              }} 
+            />
+          </div>
           <span style={{fontSize:17,fontWeight:700,color:TX}}>{CONFIG.nombre}</span>
         </div>
       </div>
@@ -1009,48 +1411,105 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
       {/* ── contenido con padding-bottom para que no tape el botón fijo ── */}
       <div key={paso} className="slide-in" style={{paddingBottom: paso>=1&&paso<=4?90:0}}>
 
-        {paso===1&&(
+        {paso === 1 && (
           <div style={cs.section}>
             <button style={cs.backBtn} onClick={reset}>← Inicio</button>
             <div style={cs.sTitle}>✦ ¿Qué servicio necesitas?</div>
-            {CONFIG.categorias.map(cat=>{
-              const svcs=servicios.filter(s=>cat.servicioIds.includes(s.id));
-              const abierta=catAbierta===cat.id;
-              return(
-                <div key={cat.id} className="card-hover" style={cs.cat}>
-                  <div style={cs.catHeader} onClick={()=>setCatAbierta(abierta?null:cat.id)}>
-                    <div style={cs.catLeft}>
-                      <div style={cs.catIcon}>{cat.emoji}</div>
-                      <div><div style={{fontSize:14,fontWeight:700,color:TX}}>{cat.nombre}</div><div style={{fontSize:11,color:TX2}}>{svcs.length} servicio{svcs.length>1?"s":""}</div></div>
-                    </div>
-                    <span style={{color:TX2,fontSize:18,transform:abierta?"rotate(180deg)":"rotate(0deg)",transition:".2s"}}>▾</span>
-                  </div>
-                  {abierta&&<div className="cat-content">{svcs.map(s=>(
-                    <div key={s.id} style={cs.svcRow(selServicio?.id===s.id)} onClick={()=>setSelServicio(s)}>
-                      <div style={{display:"flex",justifyContent:"space-between",width:"100%",alignItems:"center"}}>
-                        <div><span style={{fontSize:13,color:TX,fontWeight:600}}>{s.nombre}</span><span style={{fontSize:11,color:TX2,marginLeft:8}}>⏱ {s.duracionMin} min</span></div>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:14,fontWeight:700,color:A}}>€{s.precio}</span>{selServicio?.id===s.id&&<span style={{color:A}}>✓</span>}</div>
+            
+            {/* Contenedor en Grid para ponerlos uno al lado del otro */}
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
+              gap: "15px",
+              alignItems: "start" 
+            }}>
+              {CONFIG.categorias.map(cat => {
+                const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
+                const abierta = catAbierta === cat.id;
+                
+                return (
+                  <div key={cat.id} className="card-hover" style={{
+                    background: WH,
+                    border: `1px solid ${CR3}`,
+                    borderRadius: 13,
+                    overflow: "hidden", // Para que el contenido no se salga de las esquinas redondeadas
+                    height: "fit-content"
+                  }}>
+                    {/* Cabecera de la categoría */}
+                    <div style={{...cs.catHeader, borderBottom: abierta ? `1px solid ${CR3}` : "none"}} 
+                        onClick={() => setCatAbierta(abierta ? null : cat.id)}>
+                      <div style={cs.catLeft}>
+                        <div style={cs.catIcon}>{cat.emoji}</div>
+                        <div>
+                          <div style={{fontSize: 14, fontWeight: 700, color: TX}}>{cat.nombre}</div>
+                          <div style={{fontSize: 11, color: TX2}}>{svcs.length} servicio{svcs.length > 1 ? "s" : ""}</div>
+                        </div>
                       </div>
-                      {s.desc&&<div style={{fontSize:11,color:TX2,marginTop:2}}>{s.desc}</div>}
+                      <span style={{
+                        color: TX2, 
+                        fontSize: 18, 
+                        transform: abierta ? "rotate(180deg)" : "rotate(0deg)", 
+                        transition: ".2s",
+                        display: "inline-block"
+                      }}>▾</span>
                     </div>
-                  ))}</div>}
-                </div>
-              );
-            })}
+
+                    {/* Contenido desplegable (Sin position absolute para que funcione bien) */}
+                    {abierta && (
+                      <div style={{ background: WH }}>
+                        {svcs.map(s => (
+                          <div key={s.id} 
+                              style={cs.svcRow(selServicio?.id === s.id)} 
+                              onClick={() => setSelServicio(s)}>
+                            <div style={{display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center"}}>
+                              <div>
+                                <span style={{fontSize: 13, color: TX, fontWeight: 600}}>{s.nombre}</span>
+                                <span style={{fontSize: 11, color: TX2, marginLeft: 8}}>⏱ {s.duracionMin} min</span>
+                              </div>
+                              <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <span style={{fontSize: 14, fontWeight: 700, color: A}}>€{s.precio}</span>
+                                {selServicio?.id === s.id && <span style={{color: A}}>✓</span>}
+                              </div>
+                            </div>
+                            {s.desc && <div style={{fontSize: 11, color: TX2, marginTop: 2}}>{s.desc}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {paso===2&&(
+        {paso === 2 && (
           <div style={cs.section}>
-            <button style={cs.backBtn} onClick={()=>{irAPaso(1);setSelPeluquero(null);}}>← Cambiar servicio</button>
+            <button style={cs.backBtn} onClick={() => { irAPaso(1); setSelPeluquero(null); }}>← Cambiar servicio</button>
             <div style={cs.sTitle}>✦ Elige tu profesional</div>
-            <div style={{background:CR2,borderRadius:10,padding:"9px 14px",marginBottom:14,fontSize:12,color:TX2}}>{selServicio?.emoji} {selServicio?.nombre} · ⏱ {selServicio?.duracionMin} min · <span style={{color:A,fontWeight:700}}>€{selServicio?.precio}</span></div>
-            {CONFIG.peluqueros.map(p=>(
-              <div key={p.id} className="card-hover" style={cs.card(selPeluquero?.id===p.id)} onClick={()=>setSelPeluquero(p)}>
-                <div style={cs.cardLeft}><div style={cs.cardEmoji}>{p.emoji}</div><div><div style={{fontSize:14,fontWeight:700,color:TX}}>{p.nombre}</div><div style={{fontSize:11,color:TX2}}>{p.especialidad}</div></div></div>
-                {selPeluquero?.id===p.id?<span style={{color:A,fontSize:18}}>✓</span>:<div style={{width:10,height:10,borderRadius:"50%",background:p.color}}/>}
-              </div>
-            ))}
+            <div style={{background: CR2, borderRadius: 10, padding: "9px 14px", marginBottom: 14, fontSize: 12, color: TX2}}>
+              {selServicio?.emoji} {selServicio?.nombre} · ⏱ {selServicio?.duracionMin} min · <span style={{color: A, fontWeight: 700}}>€{selServicio?.precio}</span>
+            </div>
+
+            {/* Grid horizontal para selección de peluquero */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "20px"
+            }}>
+              {CONFIG.peluqueros.map(p => (
+                <div key={p.id} className="card-hover" style={{...cs.card(selPeluquero?.id === p.id), marginBottom: 0}} onClick={() => setSelPeluquero(p)}>
+                  <div style={cs.cardLeft}>
+                    <div style={cs.cardEmoji}>{p.emoji}</div>
+                    <div>
+                      <div style={{fontSize: 14, fontWeight: 700, color: TX}}>{p.nombre}</div>
+                      <div style={{fontSize: 11, color: TX2}}>{p.especialidad}</div>
+                    </div>
+                  </div>
+                  {selPeluquero?.id === p.id ? <span style={{color: A, fontSize: 18}}>✓</span> : <div style={{width: 10, height: 10, borderRadius: "50%", background: p.color}} />}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1061,7 +1520,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
             <div style={{background:CR2,borderRadius:10,padding:"9px 14px",marginBottom:16,fontSize:12,color:TX2}}>{selPeluquero?.emoji} {selPeluquero?.nombre} · {selServicio?.nombre} · <span style={{color:A,fontWeight:700}}>€{selServicio?.precio}</span></div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:4}}>
               {["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].map(d=>(
-                <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:d==="Dom"?ER+"99":TX2,textTransform:"uppercase",letterSpacing:.5,padding:"3px 0"}}>{d}</div>
+                <div key={d} style={{textAlign:"center",fontSize:12,fontWeight:700,color:d==="Dom"?ER+"99":TX2,textTransform:"uppercase",letterSpacing:.5,padding:"3px 0"}}>{d}</div>
               ))}
             </div>
             {getCalendarWeeks().map((sem,si)=>(
@@ -1074,23 +1533,58 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
                   const a=selDia?.toDateString()===d.toDateString();
                   return(
                     <button key={di} style={{background:a?`linear-gradient(135deg,${A},#133A6A)`:disp?WH:CR,border:`1px solid ${a?A:esDom||esPasado||esFest||estaBloqueado?"transparent":disp?CR3:CR3}`,borderRadius:9,padding:"6px 2px",cursor:disp?"pointer":"default",textAlign:"center",opacity:esPasado?.25:esFest||estaBloqueado?.35:1}} disabled={!disp} onClick={()=>{if(disp){setSelDia(d);setSelHora(null);}}}>
-                      <span style={{fontSize:12,fontWeight:700,color:a?WH:esDom?ER+"88":esFest||estaBloqueado?ER+"66":disp?TX:TX2,display:"block"}}>{d.getDate()}</span>
-                      <span style={{fontSize:8,color:a?"#FFE4A0":TX2,display:"block"}}>{MESES_ES[d.getMonth()]}</span>
+                      <span style={{fontSize:15,fontWeight:700,color:a?WH:esDom?ER+"88":esFest||estaBloqueado?ER+"66":disp?TX:TX2,display:"block"}}>{d.getDate()}</span>
+                      <span style={{fontSize:12,color:a?"#FFE4A0":TX2,display:"block"}}>{MESES_ES[d.getMonth()]}</span>
                     </button>
                   );
                 })}
               </div>
             ))}
-            {selDia&&(
+            {/* 1. Primero verás la condición del día seleccionado */}
+            {selDia && (
               <>
-                <div style={{height:16}}/>
-                <div style={{...cs.sTitle,marginTop:4}}>Horas disponibles — {fmtLarga(selDia)}</div>
-                {slots.length>0
-                  ?<div style={cs.horasGrid}>{slots.map((h,i)=><button key={h} className="slot-btn" style={{...cs.horaBtn(selHora===h),animationDelay:`${i*0.03}s`}} onClick={()=>setSelHora(h)}>{h}</button>)}</div>
-                  :<div style={{textAlign:"center",padding:"20px",color:TX2,fontSize:13,background:CR2,borderRadius:12}}>Sin disponibilidad este día</div>
-                }
+                <div style={{ height: 0 }} />
+                <div style={{ ...cs.sTitle, marginTop: 50}}>
+                  Horas disponibles — {fmtLarga(selDia)}
+                </div>
+
+                {/* 2. AQUÍ ESTÁ EL CONTENEDOR QUE BUSCAS */}
+                {slots.length > 0 ? (
+                  <div style={{
+                    display: "flex",          // Cambia el estilo aquí
+                    flexWrap: "wrap",
+                    justifyContent: "center", 
+                    gap: "20px",
+                    marginTop: "15px",
+                    width: "90%",
+                    maxWidth: "90%",
+                    margin: "0 auto"
+                  }}>
+                    {/* 3. Y aquí dentro está el mapeo de los botones */}
+                    {slots.map((h, i) => (
+                      <button 
+                        key={h} 
+                        className="slot-btn" 
+                        style={{
+                          ...cs.horaBtn(selHora === h),
+                          flex: "0 1 85px", 
+                          minWidth: "15px",
+                          textAlign: "center",
+                          padding: "10px 5px"
+                        }} 
+                        onClick={() => setSelHora(h)}
+                      >
+                        {h}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  /* El div de "Sin disponibilidad" */
+                  <div style={{ textAlign: "center", padding: "10px", color: TX2, fontSize: 15, background: CR2, borderRadius: 12 }}>Sin disponibilidad este día</div>
+                )}
               </>
-            )}
+
+          )}
           </div>
         )}
 
@@ -1294,25 +1788,76 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
   const festivosSet=useMemo(()=>new Set(festivos.map(f=>f.fecha)),[festivos]);
 
-  const as={
-    root:{minHeight:"100vh",background:CR,fontFamily:FONT,color:TX},
-    header:{background:WH,borderBottom:`1px solid ${CR3}`,padding:"11px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:20,boxShadow:"0 1px 8px rgba(0,0,0,.06)"},
-    tabBar:{display:"flex",background:WH,borderBottom:`1px solid ${CR3}`,overflowX:"auto",padding:"0 12px",position:"sticky",top:"var(--header-h,64px)",zIndex:19},
-    tabBtn:a=>({padding:"11px 14px",fontSize:12,fontWeight:a?700:400,color:a?A:TX2,borderBottom:a?`2px solid ${A}`:"2px solid transparent",cursor:"pointer",background:"none",border:"none",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}),
-    body:{padding:"18px",maxWidth:1100,margin:"0 auto"},
-    card:{background:WH,border:`1px solid ${CR3}`,borderRadius:14,padding:"18px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.04)"},
-    cardTitle:{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14},
-    kpiGrid:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16},
-    kpi:{background:WH,border:`1px solid ${CR3}`,borderRadius:12,padding:"14px"},
-    kpiVal:{fontSize:24,fontWeight:700,color:A,marginBottom:2},
-    kpiLbl:{fontSize:10,color:TX2,textTransform:"uppercase",letterSpacing:1},
-    table:{width:"100%",borderCollapse:"collapse"},
-    th:{textAlign:"left",fontSize:10,color:TX2,textTransform:"uppercase",letterSpacing:1,padding:"7px 10px",borderBottom:`1px solid ${CR2}`,background:CR},
-    td:{padding:"10px 10px",fontSize:12,color:TX,borderBottom:`1px solid ${CR2}`},
-    actBtn:c=>({background:c+"15",border:`1px solid ${c}33`,color:c,borderRadius:6,padding:"4px 9px",fontSize:11,fontWeight:700,cursor:"pointer",marginRight:4}),
-    twoCol:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14},
-    chartH:{height:180,marginTop:8},
-    row:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${CR2}`},
+  const as = {
+    root: { 
+      minHeight: "100vh", 
+      background: CR, 
+      fontFamily: FONT, 
+      color: TX, 
+      width: "100%", 
+      margin: 0 
+    },
+    header: { 
+      background: WH, 
+      borderBottom: `1px solid ${CR3}`, 
+      padding: "11px 18px", 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "space-between", 
+      position: "sticky", 
+      top: 0, 
+      zIndex: 20, 
+      width: "100%" 
+    },
+    tabBar: { 
+      display: "flex", 
+      background: WH, 
+      borderBottom: `1px solid ${CR3}`, 
+      overflowX: "auto", 
+      padding: "0 12px", 
+      position: "sticky", 
+      top: "var(--header-h,64px)", 
+      zIndex: 19, 
+      width: "100%" 
+    },
+    body: { 
+      padding: "18px", 
+      width: "90%", 
+      maxWidth: "90%", 
+      margin: 0 
+    },
+    card: { 
+      background: WH, 
+      border: `1px solid ${CR3}`, 
+      borderRadius: 14, 
+      padding: "18px", 
+      marginBottom: 14, 
+      width: "100%" 
+    },
+    kpiGrid: { 
+      display: "grid", 
+      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+      gap: 10, 
+      marginBottom: 16, 
+      width: "100%" 
+    },
+    twoCol: { 
+      display: "grid", 
+      gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", 
+      gap: 14, 
+      width: "100%" 
+    },
+    table: { width: "100%", borderCollapse: "collapse" },
+    th: { textAlign: "left", fontSize: 10, color: TX2, textTransform: "uppercase", padding: "7px 10px", borderBottom: `1px solid ${CR2}`, background: CR },
+    td: { padding: "10px 10px", fontSize: 12, color: TX, borderBottom: `1px solid ${CR2}` },
+    actBtn: c => ({ background: c + "15", border: `1px solid ${c}33`, color: c, borderRadius: 6, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginRight: 4 }),
+    row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${CR2}` },
+    tabBtn: a => ({ padding: "11px 14px", fontSize: 12, fontWeight: a ? 700 : 400, color: a ? A : TX2, borderBottom: a ? `2px solid ${A}` : "2px solid transparent", cursor: "pointer", background: "none", border: "none", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }),
+    kpi: { background: WH, border: `1px solid ${CR3}`, borderRadius: 12, padding: "14px", boxShadow: "0 1px 4px rgba(0,0,0,.04)" },
+    kpiVal: { fontSize: 24, fontWeight: 700, color: A, marginBottom: 2 },
+    kpiLbl: { fontSize: 10, color: TX2, textTransform: "uppercase", letterSpacing: 1 },
+    cardTitle: { fontSize: 11, fontWeight: 700, color: TX2, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 14 },
+    chartH: { height: 180, marginTop: 8, width: "100%" },
   };
 
   // ──────────────────────
@@ -1813,9 +2358,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   // ──────────────────────
   const TabDisponibilidad=()=>{
     const [showFF,setShowFF]=useState(false),[showBF,setShowBF]=useState(false);
-    const [festForm,setFestForm]=useState({fecha:"",motivo:""});
+    const [festForm,setFestForm]=useState({fecha:"",hasta:"",motivo:"",tipo:"dia"});
     const [bloqForm,setBloqForm]=useState({peluqueroId:"",tipo:"dia",desde:"",hasta:"",motivo:""});
-    const [showFestCal,setShowFestCal]=useState(false),[showBloqDesdeCal,setShowBloqDesdeCal]=useState(false),[showBloqHastaCal,setShowBloqHastaCal]=useState(false);
+    const [showFestCal,setShowFestCal]=useState(false);
+    const [showFestHastaCal,setShowFestHastaCal]=useState(false),[showBloqDesdeCal,setShowBloqDesdeCal]=useState(false),[showBloqHastaCal,setShowBloqHastaCal]=useState(false);
     return(
       <div style={as.twoCol}>
         <div>
@@ -1825,15 +2371,40 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
           {showFF&&(
             <div style={{...as.card,marginBottom:12}}>
-              <div style={{marginBottom:8,position:"relative"}}>
-                <Lbl>Fecha</Lbl>
-                <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:festForm.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFestCal(v=>!v)}>
-                  <span>{festForm.fecha||"Seleccionar fecha..."}</span><span>📅</span>
-                </button>
-                {showFestCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={festForm.fecha} onChange={iso=>{setFestForm(f=>({...f,fecha:iso}));setShowFestCal(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+              <div style={{marginBottom:8}}><Lbl>Tipo</Lbl>
+                <Sel value={festForm.tipo} onChange={e=>setFestForm(f=>({...f,tipo:e.target.value}))}>
+                  <option value="dia">Día suelto</option>
+                  <option value="rango">Rango de días</option>
+                </Sel>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:festForm.tipo==="rango"?"1fr 1fr":"1fr",gap:8,marginBottom:8}}>
+                <div style={{position:"relative"}}>
+                  <Lbl>{festForm.tipo==="rango"?"Fecha inicio":"Fecha"}</Lbl>
+                  <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:festForm.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFestCal(v=>!v)}>
+                    <span>{festForm.fecha||"Seleccionar fecha..."}</span><span>📅</span>
+                  </button>
+                  {showFestCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={festForm.fecha} onChange={iso=>{setFestForm(f=>({...f,fecha:iso}));setShowFestCal(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+                </div>
+                {festForm.tipo==="rango"&&(
+                  <div style={{position:"relative"}}>
+                    <Lbl>Fecha fin</Lbl>
+                    <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:festForm.hasta?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFestHastaCal(v=>!v)}>
+                      <span>{festForm.hasta||"Seleccionar fecha..."}</span><span>📅</span>
+                    </button>
+                    {showFestHastaCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={festForm.hasta} onChange={iso=>{setFestForm(f=>({...f,hasta:iso}));setShowFestHastaCal(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+                  </div>
+                )}
               </div>
               <div style={{marginBottom:10}}><Lbl>Motivo</Lbl><Inp value={festForm.motivo} onChange={e=>setFestForm(f=>({...f,motivo:e.target.value}))} placeholder="Ej: Navidad"/></div>
-              <div style={{display:"flex",gap:6}}><Btn ok={false} sm onClick={()=>setShowFF(false)}>Cancelar</Btn><Btn sm onClick={async()=>{if(!festForm.fecha||!festForm.motivo)return;await crearFestivo(festForm);setFestForm({fecha:"",motivo:""});setShowFF(false);}}>Guardar</Btn></div>
+              <div style={{display:"flex",gap:6}}>
+                <Btn ok={false} sm onClick={()=>setShowFF(false)}>Cancelar</Btn>
+                <Btn sm onClick={async()=>{
+                  if(!festForm.fecha||!festForm.motivo) return;
+                  await crearFestivo({...festForm, hasta: festForm.tipo==="dia" ? festForm.fecha : festForm.hasta});
+                  setFestForm({fecha:"",hasta:"",motivo:"",tipo:"dia"});
+                  setShowFF(false);
+                }}>Guardar</Btn>
+              </div>
             </div>
           )}
           {festivos.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(f=>(
@@ -1993,7 +2564,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     return(
       <div>
         <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-          {[["servicios","Servicios"],["valoraciones","Opiniones"],["accesos","Accesos"],["horarios","Horarios"]].map(([v,l])=>(
+          {[["servicios","Servicios"],["valoraciones","Opiniones"],["horarios","Horarios"]].map(([v,l])=>(
             // ★ usa setConfigSubTab del padre
             <button key={v} style={{background:configSubTab===v?A:CR2,color:configSubTab===v?WH:TX,border:`1px solid ${configSubTab===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setConfigSubTab(v)}>{l}</button>
           ))}
@@ -2095,14 +2666,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {configSubTab==="accesos"&&(
-          <div style={as.card}>
-            <div style={as.cardTitle}>Niveles de acceso</div>
-            <div style={{background:CR,borderRadius:10,padding:"12px 14px",marginBottom:14,fontSize:12,color:TX2}}>🔐 <strong>Dueño:</strong> Acceso completo · Usuario: <code style={{background:CR2,padding:"1px 6px",borderRadius:4}}>{CONFIG.adminUser}</code></div>
-            {CONFIG.peluqueros.map(p=>(<div key={p.id} style={as.row}><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>{p.emoji}</span><div><div style={{fontSize:13,fontWeight:700,color:TX}}>{p.nombre}</div><div style={{fontSize:11,color:TX2}}>Usuario: <code style={{background:CR2,padding:"1px 6px",borderRadius:4}}>{normalize(p.nombre)}</code></div></div></div><Bdg color={TX2}>Solo mi agenda</Bdg></div>))}
-          </div>
-        )}
-
         {configSubTab==="horarios"&&(
           <div>{CONFIG.peluqueros.map(p=>(
             <div key={p.id} style={{...as.card,marginBottom:12}}>
@@ -2153,17 +2716,27 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
   const tabs=[["citas","📅","Citas"],["clientes","👥","Clientes"],["caja","💰","Caja"],["stats","📊","Estadísticas"],["disponibilidad","🗓️","Disponibilidad"],["config","⚙️","Config"],["comunicacion","💬","WhatsApp"]];
 
-  return(
-    <div className="cliente-wrap" style={as.root}>
+  return (
+    <div style={as.root}>
       <div style={as.header} ref={el=>{if(el) document.documentElement.style.setProperty('--header-h',el.offsetHeight+'px')}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,background:`linear-gradient(135deg,${A},#133A6A)`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>✂️</div>
-          <div><div style={{fontSize:15,fontWeight:700,color:TX}}>{CONFIG.nombre} — Panel de gestión</div><div style={{fontSize:11,color:TX2}}>{fmtLarga(HOY)}</div></div>
+          <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
+            <img 
+              src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
+              alt="Logo Peluquería" 
+              style={{
+                width: "100%", 
+                height: "100%", 
+                objectFit: "contain" // Esto evita que la imagen se deforme
+              }} 
+            />
+          </div>
+          <div><div style={{fontSize:14,fontWeight:700,color:TX}}>{CONFIG.nombre} — ADMINISTRADOR</div><div style={{fontSize:11,color:TX2}}>{fmtLarga(HOY)}</div></div>
         </div>
         <button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:8,padding:"6px 14px",fontSize:12,color:TX2,cursor:"pointer"}} onClick={handleLogout}>Cerrar sesión →</button>
       </div>
       <div style={as.tabBar}>{tabs.map(([id,ic,l])=><button key={id} style={as.tabBtn(tab===id)} onClick={()=>setTab(id)}>{ic} {l}</button>)}</div>
-      <div className="admin-body" style={as.body}>
+      <div className="admin-body" style={{...as.body, margin:"0 auto"}}>
         {tab==="citas"&&<TabCitas/>}
         {tab==="clientes"&&<TabClientes/>}
         {tab==="caja"&&<TabCaja/>}
