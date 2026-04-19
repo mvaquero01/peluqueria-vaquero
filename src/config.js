@@ -13,11 +13,11 @@ export const CONFIG = {
   semanasSinVisita:5,
   googleMapsUrl:"https://www.google.com/maps/search/?api=1&query=Av.+Diagonal+647+Barcelona",
   categorias:[
-    {id:1,nombre:"Corte",       emoji:"✂️",servicioIds:[1,4]},
-    {id:2,nombre:"Barba",       emoji:"🪒",servicioIds:[2,3]},
-    {id:3,nombre:"Color",       emoji:"🎨",servicioIds:[5,6,7]},
-    {id:4,nombre:"Tratamientos",emoji:"💆",servicioIds:[8,9]},
-    {id:5,nombre:"Extras",      emoji:"✨",servicioIds:[10]},
+    {id:1,nombre:"Corte",       foto: "https://i.postimg.cc/5yZ5Jd0k/corte-de-pelo.webp", emoji:"✂️",servicioIds:[1,4]},
+    {id:2,nombre:"Barba",       foto: "https://i.postimg.cc/1XL0ShtC/barba.jpg", emoji:"🪒",servicioIds:[2,3]},
+    {id:3,nombre:"Color",       foto: "https://i.postimg.cc/GtZPRw26/coloracion.jpg", emoji:"🎨",servicioIds:[5,6,7]},
+    {id:4,nombre:"Tratamientos",foto: "https://i.postimg.cc/x8WGQDCt/tratamientos.jpg", emoji:"💆",servicioIds:[8,9]},
+    {id:5,nombre:"Extras",      foto: "https://i.postimg.cc/j2W6BdsF/cejas.jpg", emoji:"✨",servicioIds:[10]},
   ],
   horarioGeneral:{
     1:{apertura:"09:00",cierre:"20:00"},2:{apertura:"09:00",cierre:"20:00"},

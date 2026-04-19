@@ -350,18 +350,7 @@ function suscribirValoracionesFB(cb){
     cb(snap.docs.map(d=>({...d.data()})));
   });
 }
-async function seedValoraciones(){
-  const snap=await getDocs(collection(db,"valoraciones"));
-  if(!snap.empty) return;
-  const iniciales=[
-    {id:1,nombre:"Laura M.",  estrellas:5,comentario:"Clara es increíble, siempre me deja el pelo perfecto.",servicio:"Corte de cabello"},
-    {id:2,nombre:"Javier R.", estrellas:5,comentario:"Fernando hace los mejores degradados de Barcelona.",servicio:"Fade / Degradado"},
-    {id:3,nombre:"Marta S.",  estrellas:5,comentario:"Marta es un artista con el color.",servicio:"Mechas / Highlights"},
-  ];
-  for(const val of iniciales){
-    await guardarValoracionFB(val);
-  }
-}
+
 async function seedServicios(){
   for(const svc of CONFIG.serviciosDefault){
     const docId=svc.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_");
@@ -959,124 +948,156 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
                 <span style={{fontWeight:700,color:TX}}>{rango}</span><span style={{color:TX2,marginLeft:5}}>{horas}</span>
               </div>
             ))}
-            <div style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:20,padding:"5px 12px",fontSize:12,color:TX2}}>Dom — Cerrado</div>
+            <div style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:20,padding:"5px 20px",fontSize:12,color:TX2}}>Dom — Cerrado</div>
           </div>
         </div>
       </div>
       
 
-      {/* --- SECCIÓN 1: SERVICIOS (ESTILO EXACTO PASO 1) --- */}
-      <div id="servicios" className="reveal" style={cs.sectionServicios}>
-        <div style={cs.sTitle}>✦ Nuestros Servicios</div>
-        
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "15px",
-          alignItems: "start"
-        }}>
-          {CONFIG.categorias.map(cat => {
-            const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
-            const abierta = catAbierta === cat.id;
-            
-            return (
-              <div key={cat.id} className="card-hover" style={{
-                background: WH,
-                border: `1px solid ${CR3}`,
-                borderRadius: 13,
+      {/* --- SECCIÓN 2: SERVICIOS (ANCHO COMPLETO Y MÁRGENES AJUSTABLES) --- */}
+{(() => {
+  // --- CONFIGURA AQUÍ TUS ESPACIOS ---
+  const margenVertical = "0px";   // Espacio arriba y abajo de la sección
+  const margenHorizontal = "4%"; // Espacio a los lados de la fila de cajas
+  const separacionCajas = "20px";  // Espacio entre cada cuadrado
+  const anchoCajaPC = "20%";     // Tamaño de cada cuadrado
+  // ----------------------------------
+
+  return (
+    <div id="servicios" className="reveal" style={{ 
+      padding: `${margenVertical} 0`, 
+      backgroundColor: "#f8f9fa",
+      width: "100%",
+      overflow: "hidden" 
+    }}>
+      
+      {/* Título de la sección */}
+      <div style={cs.sTitle}>✦ Servicios</div>
+
+      {/* Fila de Cajas Centrada */}
+      <div style={{
+        display: "flex",
+        flexWrap: "nowrap",       
+        justifyContent: "center", 
+        gap: separacionCajas,
+        width: "100%",
+        padding: `0 ${margenHorizontal} 20px ${margenHorizontal}`,
+        overflowX: "auto",        
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none"    
+      }}>
+        {CONFIG.categorias.map(cat => {
+          const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
+          const abierta = catAbierta === cat.id;
+
+          return (
+            <div 
+              key={cat.id}
+              onClick={() => setCatAbierta(abierta ? null : cat.id)}
+              style={{
+                position: "relative",
+                flex: `0 0 ${anchoCajaPC}`,
+                aspectRatio: "1 / 1",
+                borderRadius: "20px",
                 overflow: "hidden",
-                height: "fit-content"
+                cursor: "pointer",
+                backgroundImage: `url(${cat.foto})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                boxShadow: abierta ? "0 15px 35px rgba(0,0,0,0.2)" : "0 10px 25px rgba(0,0,0,0.1)",
+                transition: "all 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+                transform: abierta ? "scale(1.02)" : "scale(1)"
+              }}
+            >
+              <div style={{
+                position: "absolute",
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: abierta 
+                  ? "rgba(0,0,0,0.95)" 
+                  : "linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: abierta ? "center" : "flex-end", 
+                alignItems: "center",
+                padding: abierta ? "15px" : "20px",
+                transition: "background 0.4s ease-out"
               }}>
-                {/* Cabecera de la categoría */}
-                <div style={{...cs.catHeader, borderBottom: abierta ? `1px solid ${CR3}` : "none"}} 
-                    onClick={() => setCatAbierta(abierta ? null : cat.id)}>
-                  <div style={cs.catLeft}>
-                    <div style={cs.catIcon}>{cat.emoji}</div>
-                    <div>
-                      <div style={{fontSize: 14, fontWeight: 700, color: TX}}>{cat.nombre}</div>
-                      <div style={{fontSize: 11, color: TX2}}>{svcs.length} servicios</div>
-                    </div>
+                
+                {/* Cabecera Categoría */}
+                <div style={{ textAlign: "center", marginBottom: abierta ? "15px" : "5px", width: "100%" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                    <h3 style={{ 
+                      color: "#FFF", margin: 0, 
+                      fontSize: abierta ? "18px" : "18px", 
+                      fontWeight: "800", textTransform: "uppercase" 
+                    }}>{cat.nombre}</h3>
+                    <div style={{ 
+                      color: "#FFF", fontSize: "9px", 
+                      transform: abierta ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.4s"
+                    }}>▼</div>
                   </div>
-                  <span style={{
-                    color: TX2, 
-                    fontSize: 18, 
-                    transform: abierta ? "rotate(180deg)" : "rotate(0deg)", 
-                    transition: ".2s"
-                  }}>▾</span>
                 </div>
 
-                {/* Contenido desplegable */}
-                {abierta && (
-                  <div style={{ background: WH }}>
-                    {svcs.map(s => (
-                      <div key={s.id} style={cs.svcRow(false)}>
-                        
-                        {/* 1. Este es el bloque de arriba (Nombre, tiempo y precio) */}
-                        <div style={{display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center"}}>
-                          <div>
-                            <span style={{fontSize: 13, color: TX, fontWeight: 600}}>{s.nombre}</span>
-                            <span style={{fontSize: 11, color: TX2, marginLeft: 8}}>⏱ {s.duracionMin} min</span>
-                          </div>
-                          <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                            <span style={{fontSize: 14, fontWeight: 700, color: A}}>€{s.precio}</span>
-                          </div>
+                {/* Listado de servicios */}
+                <div style={{
+                  width: "100%",
+                  maxHeight: abierta ? "90%" : "0",
+                  opacity: abierta ? 1 : 0,
+                  transform: abierta ? "translateY(0)" : "translateY(10px)",
+                  overflowY: "auto",
+                  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}>
+                  {svcs.map(s => (
+                    <div key={s.id} style={{ 
+                        padding: "10px 0", 
+                        borderBottom: "1px solid rgba(255,255,255,0.1)",
+                        display: "flex",
+                        alignItems: "center", // Centra verticalmente nombre/desc y precio
+                        justifyContent: "space-between"
+                    }}>
+                      {/* Lado Izquierdo: Nombre, Tiempo y Desc */}
+                      <div style={{ textAlign: "left", flex: 1, paddingRight: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "20px", flexWrap: "wrap" }}>
+                           <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
+                           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px", fontWeight: "400" }}>
+                             ⏱ {s.duracionMin}'
+                           </span>
                         </div>
                         
-                        {/* 2. AQUÍ ES DONDE DEBES PEGAR EL CÓDIGO DE LA DESCRIPCIÓN */}
                         {s.desc && (
-                          <div style={{
-                            fontSize: 11, 
-                            color: TX2, 
-                            marginTop: 2, 
-                            lineHeight: "1.4",
-                            textAlign: "left", // Esto es lo que arregla el centrado
-                            width: "100%"
+                          <div style={{ 
+                            color: "rgba(255,255,255,0.6)", 
+                            fontSize: "10px", 
+                            lineHeight: "1.1",
+                            marginTop: "3px" 
                           }}>
                             {s.desc}
                           </div>
                         )}
-
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      {/* Lado Derecho: Precio más grande */}
+                      <div style={{ 
+                        color: "#FFF", 
+                        fontWeight: "800", 
+                        fontSize: "15px", // Un poco más grande
+                        minWidth: "40px",
+                        textAlign: "right"
+                      }}>
+                         {s.precio}€
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            );
-          })}
-        </div>
-
-        
-        {/* IMAGEN DE RELLENO - Solo aparece si no hay categorías abiertas */}
-        <div style={{ position: "relative", width: "100%", marginTop: "40px" }}>
-          
-          {/* 1. LA IMAGEN DE FONDO (No se mueve, los servicios flotan sobre ella) */}
-          <div style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "400px", // Altura fija del fondo
-            borderRadius: "20px",
-            overflow: "hidden",
-            zIndex: 0
-          }}>
-            <img 
-              src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
-              alt="Fondo"
-              style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }}
-            />
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(to top, rgba(248,251,255,1), transparent)",
-            }} />
-          </div>
-
-          {/* 3. ESPACIADOR (Para que la siguiente sección no se pegue) */}
-          <div style={{ height: "200px" }}></div>
-
-        </div>
+            </div>
+          );
+        })}
       </div>
+    </div>
+  );
+})()}
 
       <hr style={{ 
         border: "none", 
@@ -1218,7 +1239,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
             
             {/* BLOQUE IZQUIERDO: TEXTOS */}
             <div style={{ flex: 1, textAlign: "left" }}>
-              <h2 style={{ fontSize: 30, fontWeight: 700, color: TX, marginBottom: 10 }}>Peluquería Vaquero</h2>
+              <p style={{fontSize:20,fontWeight:900, marginBottom: 5, color:TX}}>{CONFIG.nombre}</p>
               <p style={{ color: TX2, fontSize: 15, marginBottom: 25 }}>El detalle marca la diferencia</p>
 
               <div style={{ marginBottom: 20 }}>
@@ -2791,14 +2812,6 @@ function AppData(){
       seedServicios().then(()=>console.log("Servicios sembrados"));
     }
   },[cargando,citas,iniciado]);
-
-  // ★ seed valoraciones corre siempre al cargar, pero internamente
-  // solo actúa si la colección está vacía
-  useEffect(()=>{
-    if(!cargando){
-      seedValoraciones().then(()=>console.log("Valoraciones comprobadas"));
-    }
-  },[cargando]);
 
   if(cargando) return(
     <div className="cliente-wrap" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FBFF",fontFamily:FONT}}>
