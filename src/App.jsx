@@ -3085,135 +3085,197 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     );
   };
   // ──────────────────────
-// TAB CLIENTES
-  // ──────────────────────
-  const TabClientes=()=>{
-    // ★ EL TRUCO: Usamos una "memoria" global para que React no olvide el buscador al recargar
-    const [busq,setBusq]=useState(() => window._busqCache || "");
-    const [clienteBorrar,setClienteBorrar]=useState(null);
-    const [inactivos,setInactivos]=useState(() => window._inactivosCache || false);
-    const [editNota,setEditNota]=useState(false);
-    const [notaVal,setNotaVal]=useState("");
-    const semMil=CONFIG.semanasSinVisita*7*24*60*60*1000;
+// TAB CLIENTES (Versión Corregida con Márgenes para Móvil)
+  // ────────────────────────────────────────────────────────
+  const TabClientes = () => {
+    // Memoria persistente para el buscador y filtros
+    const [busq, setBusq] = useState(() => window._busqCache || "");
+    const [clienteBorrar, setClienteBorrar] = useState(null);
+    const [inactivos, setInactivos] = useState(() => window._inactivosCache || false);
+    const [editNota, setEditNota] = useState(false);
+    const [notaVal, setNotaVal] = useState("");
+    const semMil = CONFIG.semanasSinVisita * 7 * 24 * 60 * 60 * 1000;
     
-    const clientesFiltrados=useMemo(()=>{
-      let lista=clientes;
-      if(inactivos){const lim=new Date(Date.now()-semMil);lista=lista.filter(c=>new Date(c.ultimaVisita)<lim);}
-      if(!busq) return lista.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-      return lista.map(c=>({...c,score:c.telefono?.includes(busq)?90:similitud(busq,c.nombre)})).filter(c=>c.score>=60).sort((a,b)=>b.score-a.score);
-    },[busq,inactivos,clientes]);
+    const clientesFiltrados = useMemo(() => {
+      let lista = clientes;
+      if (inactivos) {
+        const lim = new Date(Date.now() - semMil);
+        lista = lista.filter(c => new Date(c.ultimaVisita) < lim);
+      }
+      if (!busq) return lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      return lista
+        .map(c => ({ ...c, score: c.telefono?.includes(busq) ? 90 : similitud(busq, c.nombre) }))
+        .filter(c => c.score >= 60)
+        .sort((a, b) => b.score - a.score);
+    }, [busq, inactivos, clientes]);
 
-    const guardarNota=async()=>{ setClientes(prev=>prev.map(c=>c.id===clienteSel.id?{...c,nota:notaVal}:c)); setClienteSel(prev=>({...prev,nota:notaVal})); setEditNota(false); try{await actualizarCliente(clienteSel.id,{nota:notaVal});}catch(e){console.error(e);} };
+    const guardarNota = async () => {
+      setClientes(prev => prev.map(c => (c.id === clienteSel.id ? { ...c, nota: notaVal } : c)));
+      setClienteSel(prev => ({ ...prev, nota: notaVal }));
+      setEditNota(false);
+      try { await actualizarCliente(clienteSel.id, { nota: notaVal }); } catch (e) { console.error(e); }
+    };
     
-    return(
-      <div style={{ width: "100%", boxSizing: "border-box" }}>
-        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center", width: "100%", boxSizing: "border-box"}}>
+    return (
+      <div style={{ width: "100%", boxSizing: "border-box", padding: "0 16px 20px 16px" }}>
+        
+        {/* BUSCADOR Y FILTROS */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center", width: "100%", boxSizing: "border-box" }}>
           <Inp 
-            style={{flex:1,minWidth:200,marginBottom:0, boxSizing: "border-box"}} 
+            style={{ flex: 1, minWidth: "200px", marginBottom: 0, boxSizing: "border-box" }} 
             value={busq} 
-            onChange={e=>{
+            onChange={e => {
               setBusq(e.target.value);
               window._busqCache = e.target.value; 
             }} 
-            placeholder="🔍 Buscar por nombre o teléfono..."
+            placeholder="🔍 Buscar nombre o móvil..."
           />
           <button 
-            style={{background:inactivos?A:CR2,color:inactivos?WH:TX,border:`1px solid ${inactivos?A:CR3}`,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap", boxSizing: "border-box"}} 
-            onClick={()=>{
-              setInactivos(v=>{
+            style={{
+              background: inactivos ? A : CR2,
+              color: inactivos ? WH : TX,
+              border: `1px solid ${inactivos ? A : CR3}`,
+              borderRadius: 8,
+              padding: "10px 14px",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              boxSizing: "border-box",
+              flex: isMobile ? "1 1 auto" : "none"
+            }} 
+            onClick={() => {
+              setInactivos(v => {
                 window._inactivosCache = !v; 
                 return !v;
               });
             }}
           >
-            {inactivos?"✓ ":""}{`+${CONFIG.semanasSinVisita}sem sin visita`}
+            {inactivos ? "✓ " : ""}{`+${CONFIG.semanasSinVisita} sem`}
           </button>
         </div>
-        <div style={{fontSize:11,color:TX2,marginBottom:10}}>{clientesFiltrados.length} cliente{clientesFiltrados.length!==1?"s":""}</div>
+
+        <div style={{ fontSize: 11, color: TX2, marginBottom: 10 }}>
+          {clientesFiltrados.length} cliente{clientesFiltrados.length !== 1 ? "s" : ""}
+        </div>
         
-        <div style={{...as.twoCol, width: "100%", boxSizing: "border-box"}}>
-          {/* CONTENEDOR FLEX INTELIGENTE (Sustituye a as.twoCol) */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", width: "100%", boxSizing: "border-box" }}>
-            
-            {/* COLUMNA 1: LA LISTA */}
-            {/* flex: "1 1 300px" hace que en PC ocupen la mitad, y en móvil el 100% */}
-            <div style={{ flex: "1 1 300px", minWidth: 0, boxSizing: "border-box" }}>
-              {clientesFiltrados.map(c=>(
-                <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer", boxSizing: "border-box", width: "100%"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start", boxSizing: "border-box"}}>
-                    <div style={{textAlign: "left", maxWidth: "60%"}}>
-                      <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:2}}>{c.nombre}</div>
-                      <div style={{fontSize:11,color:TX2}}>📞 {c.telefono}</div>
-                      <div style={{fontSize:11,color:TX2}}>Última: {c.ultimaVisita}</div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:15,fontWeight:700,color:A}}>{c.gasto} €</div>
-                      <div style={{fontSize:10,color:TX2}}>{c.visitas} visitas</div>
-                      {busq&&c.score>=60&&<div style={{marginTop:4}}><Bdg small color={c.score>=90?OK:c.score>=70?A:"#d97706"}>{c.score}%</Bdg></div>}
-                    </div>
+        {/* CONTENEDOR DE COLUMNAS (Responsive) */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", width: "100%", boxSizing: "border-box" }}>
+          
+          {/* COLUMNA 1: LISTA DE CLIENTES */}
+          <div style={{ flex: "1 1 320px", minWidth: 0, boxSizing: "border-box" }}>
+            {clientesFiltrados.map(c => (
+              <div 
+                key={c.id} 
+                style={{
+                  background: clienteSel?.id === c.id ? `${A}0D` : WH,
+                  border: `1px solid ${clienteSel?.id === c.id ? A : CR3}`,
+                  borderRadius: 12,
+                  padding: "13px 15px",
+                  marginBottom: 8,
+                  cursor: "pointer",
+                  boxSizing: "border-box",
+                  width: "100%"
+                }} 
+                onClick={() => { setClienteSel(c); setEditNota(false); }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", boxSizing: "border-box" }}>
+                  <div style={{ textAlign: "left", maxWidth: "65%" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: TX, marginBottom: 2 }}>{c.nombre}</div>
+                    <div style={{ fontSize: 11, color: TX2 }}>📞 {c.telefono}</div>
+                    <div style={{ fontSize: 11, color: TX2 }}>Última: {c.ultimaVisita}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: A }}>{c.gasto} €</div>
+                    <div style={{ fontSize: 10, color: TX2 }}>{c.visitas} visitas</div>
                   </div>
                 </div>
-              ))}
-              {clientesFiltrados.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`, boxSizing: "border-box"}}>No se encontraron clientes</div>}
-            </div>
+              </div>
+            ))}
+            {clientesFiltrados.length === 0 && (
+              <div style={{ textAlign: "center", padding: "30px", color: TX2, fontSize: 13, background: WH, borderRadius: 12, border: `1px solid ${CR3}`, boxSizing: "border-box" }}>
+                No se encontraron clientes
+              </div>
+            )}
+          </div>
 
-            {/* COLUMNA 2: LA FICHA (SIEMPRE PRESENTE) */}
-            <div style={{ flex: "1 1 300px", minWidth: 0, boxSizing: "border-box" }}>
-              {clienteSel ? (
-                <div style={{...as.card, boxSizing: "border-box", width: "100%"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-                    <div style={{fontSize:15,fontWeight:700,color:TX}}>{clienteSel.nombre}</div>
-                    <button style={{background:ER+"15",border:`1px solid ${ER}33`,color:ER,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setClienteBorrar(clienteSel)}>🗑 Eliminar</button>
-                  </div>
-                  <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14, boxSizing: "border-box"}}>
-                    {[[clienteSel.gasto + " €","Total"],[clienteSel.visitas,"Visitas"],[Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)) + " €","Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
-                      <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center", boxSizing: "border-box"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
-                    ))}
-                  </div>
-                  <Divider/>
-                  <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Nota</div>
-                  {editNota?(<div style={{boxSizing: "border-box", width: "100%"}}><Inp style={{boxSizing: "border-box", width: "100%"}} value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6, boxSizing: "border-box"}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
-                    <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer", boxSizing: "border-box"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
-                  )}
-                  <Divider/>
-                  <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Historial</div>
-                  {(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).length===0?<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin historial</div>:(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).map((h,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${CR2}`,fontSize:12}}>
-                      <div><span style={{color:TX2,marginRight:8}}>{h.fecha}</span><span style={{color:TX}}>{h.servicio}</span></div>
-                      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>{h.precio} €</span></div>
+          {/* COLUMNA 2: FICHA DETALLADA */}
+          <div style={{ flex: "1 1 320px", minWidth: 0, boxSizing: "border-box" }}>
+            {clienteSel ? (
+              <div style={{ ...as.card, boxSizing: "border-box", width: "100%", padding: isMobile ? "16px" : "20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: TX }}>{clienteSel.nombre}</div>
+                  <button style={{ background: ER + "15", border: `1px solid ${ER}33`, color: ER, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }} onClick={() => setClienteBorrar(clienteSel)}>🗑</button>
+                </div>
+                <div style={{ fontSize: 12, color: TX2, marginBottom: 14 }}>📞 {clienteSel.telefono}</div>
+                
+                {/* GRID DE ESTADÍSTICAS */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 14, boxSizing: "border-box" }}>
+                  {[[clienteSel.gasto + " €", "Gasto Total"], [clienteSel.visitas, "Visitas"], [Math.round(clienteSel.gasto / Math.max(clienteSel.visitas, 1)) + " €", "Ticket Medio"], [clienteSel.noShows || 0, "No shows"]].map(([v, l]) => (
+                    <div key={l} style={{ background: CR, borderRadius: 9, padding: "10px", textAlign: "center", boxSizing: "border-box" }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: A }}>{v}</div>
+                      <div style={{ fontSize: 9, color: TX2, textTransform: "uppercase" }}>{l}</div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                /* ESTADO VACÍO */
-                <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "200px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center", boxSizing: "border-box", width: "100%" }}>
-                  <span style={{ fontSize: 24, marginBottom: 8 }}>👈</span>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>Selecciona un cliente para ver su ficha</span>
-                </div>
-              )}
-            </div>
+
+                <Divider />
+                <div style={{ fontSize: 11, fontWeight: 700, color: TX2, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Nota interna</div>
+                {editNota ? (
+                  <div style={{ boxSizing: "border-box", width: "100%" }}>
+                    <Inp style={{ boxSizing: "border-box", width: "100%" }} value={notaVal} onChange={e => setNotaVal(e.target.value)} placeholder="Añade una nota..." />
+                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                      <Btn ok={false} sm onClick={() => setEditNota(false)}>Cancelar</Btn>
+                      <Btn sm onClick={guardarNota}>Guardar</Btn>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: CR, borderRadius: 8, padding: "12px", fontSize: 13, color: clienteSel.nota ? TX : TX2, fontStyle: clienteSel.nota ? "normal" : "italic", cursor: "pointer", boxSizing: "border-box" }} onClick={() => { setEditNota(true); setNotaVal(clienteSel.nota || ""); }}>
+                    {clienteSel.nota || "Toca para añadir una nota sobre el cliente..."}
+                  </div>
+                )}
+
+                <Divider />
+                <div style={{ fontSize: 11, fontWeight: 700, color: TX2, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Historial de servicios</div>
+                {(clienteSel.historial || []).filter(h => h.estado === "completada" || !h.estado).length === 0 ? (
+                  <div style={{ fontSize: 12, color: TX2, fontStyle: "italic" }}>Sin servicios registrados</div>
+                ) : (
+                  (clienteSel.historial || []).filter(h => h.estado === "completada" || !h.estado).map((h, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${CR2}`, fontSize: 12 }}>
+                      <div><div style={{ fontWeight: 600, color: TX }}>{h.servicio}</div><div style={{ fontSize: 10, color: TX2 }}>{h.fecha} · {h.peluquero}</div></div>
+                      <div style={{ fontWeight: 700, color: A }}>{h.precio} €</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "150px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center", boxSizing: "border-box" }}>
+                <span style={{ fontSize: 24, marginBottom: 8 }}>👤</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Selecciona un cliente para ver detalles</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {clienteBorrar&&(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20, boxSizing: "border-box"}}>
-            <div style={{background:WH,borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center", boxSizing: "border-box"}}>
-              <div style={{fontSize:40,marginBottom:16}}>🗑</div>
-              <h3 style={{fontSize:17,fontWeight:700,color:TX,marginBottom:8}}>¿Eliminar este cliente?</h3>
-              <p style={{fontSize:13,color:TX2,marginBottom:6}}>{clienteBorrar.nombre}</p>
-              <p style={{fontSize:12,color:TX2,marginBottom:24}}>📞 {clienteBorrar.telefono} · {clienteBorrar.visitas} visitas</p>
-              <div style={{display:"flex",gap:10, boxSizing: "border-box"}}>
-                <Btn ok={false} style={{flex:1}} onClick={()=>setClienteBorrar(null)}>Cancelar</Btn>
-                <button style={{flex:1,background:`linear-gradient(135deg,${ER},#b91c1c)`,color:WH,border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={async()=>{
-                  _clienteEliminadoTemp={...clienteBorrar};
-                  if(clienteSel?.id===clienteBorrar.id) setClienteSel(null);
-                  await deleteDoc(doc(db,"clientes",clienteBorrar.id));
-                  setClienteBorrar(null);
-                  setToastClienteVisible(true);
-                  if(toastClienteTimer)clearTimeout(toastClienteTimer);
-                  const t=setTimeout(()=>{setToastClienteVisible(false);_clienteEliminadoTemp=null;},6000); setToastClienteTimer(t);
-                }}>Eliminar</button>
+        {/* MODAL DE ELIMINACIÓN */}
+        {clienteBorrar && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, boxSizing: "border-box" }}>
+            <div style={{ background: WH, borderRadius: 18, padding: "30px", width: "100%", maxWidth: 350, textAlign: "center", boxSizing: "border-box" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: TX, marginBottom: 8 }}>¿Eliminar cliente?</div>
+              <div style={{ fontSize: 13, color: TX2, marginBottom: 24 }}>Esta acción no se puede deshacer. Se borrará el historial de <b>{clienteBorrar.nombre}</b>.</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Btn ok={false} style={{ flex: 1 }} onClick={() => setClienteBorrar(null)}>Volver</Btn>
+                <button 
+                  style={{ flex: 1, background: ER, color: WH, border: "none", borderRadius: 11, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+                  onClick={async () => {
+                    if (clienteSel?.id === clienteBorrar.id) setClienteSel(null);
+                    await deleteDoc(doc(db, "clientes", clienteBorrar.id));
+                    setClienteBorrar(null);
+                  }}
+                >
+                  Eliminar
+                </button>
               </div>
             </div>
           </div>
