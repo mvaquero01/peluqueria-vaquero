@@ -37,11 +37,11 @@ export const CONFIG = {
     {id:10,nombre:"Diseño de cejas",    desc:"Depilación, perfilado y diseño adaptado a tu rostro",         duracionMin:20, precio:12,emoji:"👁️"},
   ],
   peluqueros:[
-    {id:1,nombre:"Clara",   especialidad:"Corte clásico & Barba",    emoji:"✂️",color:"#E63946",password:"clara123",
+    {id:1,nombre:"Clara",   especialidad:"Corte clásico & Barba",    emoji:"✂️",color:"#E63946",password:"clara123", foto: "https://i.postimg.cc/YCCGc3KZ/peremilla(clara).webp",
      horario:{1:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},2:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},3:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},4:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}},5:{entrada:"09:00",salida:"18:00",descanso:{inicio:"14:00",fin:"15:00"}}}},
-    {id:2,nombre:"Fernando",especialidad:"Fade & Degradados",         emoji:"🪒",color:"#2A9D8F",password:"fernando123",
+    {id:2,nombre:"Fernando",especialidad:"Fade & Degradados",         emoji:"🪒",color:"#2A9D8F",password:"fernando123", foto: "https://i.postimg.cc/g22X9DF5/fernandoalonso.webp",
      horario:{1:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},2:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},3:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},4:{entrada:"12:00",salida:"20:00",descanso:{inicio:"16:00",fin:"17:00"}},5:{entrada:"12:00",salida:"20:30",descanso:null},6:{entrada:"09:00",salida:"15:00",descanso:null}}},
-    {id:3,nombre:"Marta",   especialidad:"Coloración & Tendencias",  emoji:"🎨",color:"#E9C46A",password:"marta123",
+    {id:3,nombre:"Marta",   especialidad:"Coloración & Tendencias",  emoji:"🎨",color:"#E9C46A",password:"marta123", foto: "https://i.postimg.cc/VkkryRQG/javipuado(marta).webp",
      horario:{2:{entrada:"09:00",salida:"17:00",descanso:{inicio:"13:30",fin:"14:30"}},3:{entrada:"09:00",salida:"17:00",descanso:{inicio:"13:30",fin:"14:30"}},4:{entrada:"09:00",salida:"17:00",descanso:{inicio:"13:30",fin:"14:30"}},5:{entrada:"09:00",salida:"20:30",descanso:{inicio:"14:00",fin:"15:00"}},6:{entrada:"09:00",salida:"15:00",descanso:null}}},
   ],
 };

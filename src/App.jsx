@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useLocation } from 'react-router-dom';
 import {
   BrowserRouter, Routes, Route, useNavigate, Navigate, useSearchParams
 } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db } from "./firebase.js";
-import { seedDatabase } from "./seed.js";
 import {
   suscribirCitas, suscribirClientes, suscribirValoraciones,
   crearCita, actualizarCita, crearCliente, actualizarCliente,
@@ -225,13 +225,47 @@ STYLE.textContent = `
   }
 
   /* ── Sticky bottom bar en reserva ── */
+  /* Botón flotante centrado */
   .sticky-bottom {
-    position:fixed; bottom:0; left:0; right:0;
-    background:#F8FBFF;
-    border-top:1px solid #CED9E8;
-    padding:12px 18px 16px;
-    z-index:30;
-    box-shadow:0 -4px 20px rgba(0,0,0,.08);
+    position: fixed;
+    bottom: 30px; /* Separado del borde inferior */
+    left: 50%;
+    transform: translateX(-50%); /* Centrado horizontal perfecto */
+    z-index: 2000; /* Por encima de todo */
+    display: flex;
+    justify-content: center;
+    width: auto;
+    background: transparent; /* Quitamos el fondo blanco de barra */
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  /* Efecto de Zoom y Pulsación para el botón */
+  /* Botón con sombra mucho más suave */
+  .btn-continuar-float {
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* SOMBRA SUAVE: Reducimos de 0.4 a 0.15 */
+    box-shadow: 0 4px 12px rgba(27, 79, 138, 0.15); 
+    border: none;
+    white-space: nowrap;
+  }
+
+  .btn-continuar-float:hover:not(:disabled) {
+    transform: scale(1.05); /* Zoom un poco más discreto */
+    /* SOMBRA EN HOVER: Reducimos de 0.6 a 0.25 */
+    box-shadow: 0 6px 18px rgba(27, 79, 138, 0.25);
+  }
+
+  .btn-continuar-float:active:not(:disabled) {
+    transform: scale(0.95); /* Efecto de click */
   }
 `;
 document.head.appendChild(STYLE);
@@ -312,12 +346,29 @@ function getCalendarWeeks(){
 // ─────────────────────────────────────────────
 // FIREBASE HELPERS
 // ─────────────────────────────────────────────
-function suscribirFestivos(cb){return onSnapshot(collection(db,"festivos"),snap=>{cb(snap.docs.map(d=>({...d.data(),id:d.id})));});}
-async function crearFestivo(data){await addDoc(collection(db,"festivos"),data);}
-async function borrarFestivo(id){await deleteDoc(doc(db,"festivos",id));}
-function suscribirBloqueos(cb){return onSnapshot(collection(db,"bloqueos"),snap=>{cb(snap.docs.map(d=>({...d.data(),id:d.id})));});}
-async function crearBloqueo(data){await addDoc(collection(db,"bloqueos"),data);}
-async function borrarBloqueo(id){await deleteDoc(doc(db,"bloqueos",id));}
+function suscribirFestivos(cb){
+  return onSnapshot(collection(db,"cierres"),snap=>{
+    cb(snap.docs.map(d=>({...d.data(),id:d.id})));
+  });
+}
+async function crearFestivo(nombreDocumento, data){
+  await setDoc(doc(db,"cierres",nombreDocumento),data);
+}
+async function borrarFestivo(id){
+  await deleteDoc(doc(db,"cierres",id));
+}
+
+function suscribirBloqueos(cb){
+  return onSnapshot(collection(db,"bloqueos"),snap=>{
+    cb(snap.docs.map(d=>({...d.data(),id:d.id})));
+  });
+}
+async function crearBloqueo(nombreDocumento, data){
+  await setDoc(doc(db,"bloqueos",nombreDocumento),data);
+}
+async function borrarBloqueo(id){
+  await deleteDoc(doc(db,"bloqueos",id));
+}
 
 // ── Servicios en Firebase ──
 function suscribirServicios(cb){
@@ -362,25 +413,20 @@ async function borrarCita(id){
   if(citaSnap.exists()){
     const cita=citaSnap.data();
     if(cita.clienteTel){
-      // Buscar cuántas citas tiene este cliente
       const q=query(collection(db,"clientes_citas")||collection(db,"citas"),where("clienteTel","==",cita.clienteTel));
       const todasCitas=await getDocs(q);
-      // Si solo tiene esta cita (la que vamos a borrar), eliminar el cliente
       const otrasCitas=todasCitas.docs.filter(d=>d.id!==id);
       if(otrasCitas.length===0){
-        // Solo eliminar si no tiene más citas de ningún tipo
         const docId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
         const clienteRef=doc(db,"clientes",docId);
         const clienteSnap=await getDoc(clienteRef);
         if(clienteSnap.exists()){
           const cl=clienteSnap.data();
-          // Solo borrar si tiene 0 visitas y 0 gasto (nunca completó ninguna cita)
           if((cl.visitas||0)===0&&(cl.gasto||0)===0&&(cl.noShows||0)===0){
             await deleteDoc(clienteRef);
           }
         }
       } else {
-        // Tiene más citas, solo actualizar si la cita era completada
         if(cita.estado==="completada"){
           const docId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
           const clienteRef=doc(db,"clientes",docId);
@@ -516,61 +562,121 @@ const TOTAL_MIN=HORA_CIE-HORA_APE;
 const GRID_H=TOTAL_MIN*PX_MIN;
 const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
-function CalendarioGrid({dias,citas,peluqueroFiltroId}){
-  return(
-    <div className="cal-scroll">
-      {/* eje horas */}
-      <div style={{width:44,flexShrink:0,position:"relative",borderRight:`1px solid ${CR3}`,background:CR}}>
-        {/* ★ sticky spacer para alinearse con las cabeceras de columna */}
-        <div className="cal-hour-header" style={{background:CR}}/>
-        <div style={{position:"relative",height:GRID_H}}>
-          {HORA_LABELS.map(h=>(
-            <div key={h} style={{position:"absolute",top:(h*60-HORA_APE)*PX_MIN-7,left:0,right:0,textAlign:"right",paddingRight:6,fontSize:9,color:TX2,fontWeight:600}}>{h}:00</div>
+function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
+  return (
+    <div className="cal-scroll" style={{ overflow: "visible", height: "auto", maxHeight: "none", display: "flex", width: "100%" }}>
+      
+      {/* EL ANTÍDOTO PARA EL STICKY ROTO */}
+      <style>{`
+        body, html, #root, #__next, .App, main, section, div {
+          overflow-x: clip !important; 
+        }
+      `}</style>
+
+      {/* Eje de horas */}
+      <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
+        
+        {/* Cabecera de horas pegajosa a 130px */}
+        <div className="cal-hour-header" style={{ background: CR, position: "sticky", top: "130px", zIndex: 100, minHeight: "38px" }}></div>
+        
+        <div style={{ position: "relative", height: GRID_H }}>
+          {HORA_LABELS.map((h) => (
+            <div key={h} style={{ position: "absolute", top: (h * 60 - HORA_APE) * PX_MIN - 7, left: 0, right: 0, textAlign: "right", paddingRight: 6, fontSize: 9, color: TX2, fontWeight: 600 }}>
+              {h}:00
+            </div>
           ))}
         </div>
       </div>
-      {/* columnas por día */}
-      {dias.map((d,i)=>{
-        const iso=isoDate(d);
-        const esHoy=iso===HOY_ISO;
-        const hGen=CONFIG.horarioGeneral[d.getDay()];
-        const citasDia=citas.filter(c=>c.fecha===iso&&(!peluqueroFiltroId||c.peluqueroId===peluqueroFiltroId)).sort((a,b)=>a.hora.localeCompare(b.hora));
-        const pelEnEsteDia=CONFIG.peluqueros.filter(p=>!!p.horario[d.getDay()]);
-        return(
-          <div key={i} className="cal-day-col">
-            {/* ★ STICKY header */}
-            <div className="cal-day-header" style={{background:esHoy?`#1B4F8A`:CR3}}>
-              <span style={{fontSize:9,fontWeight:700,color:esHoy?"#fff":TX2,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{DIAS_ES[d.getDay()]}</span>
-            <span style={{fontSize:12,fontWeight:700,color:esHoy?"#fff":TX,whiteSpace:"nowrap"}}>{d.getDate()} {MESES_ES[d.getMonth()]}</span>
+      
+      {/* Columnas por día */}
+      {dias.map((d, i) => {
+        const iso = isoDate(d);
+        const esHoy = iso === HOY_ISO;
+        const hGen = CONFIG.horarioGeneral[d.getDay()];
+        const citasDia = citas.filter((c) => c.fecha === iso && (!peluqueroFiltroId || c.peluqueroId === peluqueroFiltroId)).sort((a, b) => a.hora.localeCompare(b.hora));
+        const pelEnEsteDia = CONFIG.peluqueros.filter((p) => !!p.horario[d.getDay()]);
+        
+        return (
+          <div key={i} className="cal-day-col" style={{ flex: 1, minWidth: "100px", height: "auto", maxHeight: "none", overflow: "visible" }}>
+            
+            {/* CABECERA STICKY A 130px, CENTRADA Y JUNTITA */}
+            <div className="cal-day-header" style={{ 
+              background: esHoy ? "#1B4F8A" : CR3, 
+              position: "sticky", 
+              top: "130px", 
+              zIndex: 100, 
+              padding: "8px 4px", 
+              display: "flex", 
+              flexDirection: "column", 
+              alignItems: "center", 
+              justifyContent: "center", 
+              gap: "10px" 
+            }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: esHoy ? "#fff" : TX2, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", lineHeight: 1 }}>
+                {DIAS_ES[d.getDay()]}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: esHoy ? "#fff" : TX, whiteSpace: "nowrap", lineHeight: 1 }}>
+                {d.getDate()} {MESES_ES[d.getMonth()]}
+              </span>
             </div>
-            {/* cuerpo */}
-            <div style={{position:"relative",height:GRID_H,flexShrink:0}}>
-              {HORA_LABELS.map(h=><div key={h} style={{position:"absolute",top:(h*60-HORA_APE)*PX_MIN,left:0,right:0,borderTop:`1px solid ${h%2===0?CR3:CR2}`,zIndex:0}}/>)}
-              {!hGen&&<div style={{position:"absolute",inset:0,background:"repeating-linear-gradient(45deg,#F5F0E8,#F5F0E8 4px,#EDE6D9 4px,#EDE6D9 8px)",zIndex:1,opacity:.6}}/>}
-              {hGen&&pelEnEsteDia.map(p=>{
-                const hp=p.horario[d.getDay()]; if(!hp?.descanso) return null;
-                const top=(toMin(hp.descanso.inicio)-HORA_APE)*PX_MIN;
-                const height=(toMin(hp.descanso.fin)-toMin(hp.descanso.inicio))*PX_MIN;
-                return <div key={p.id} style={{position:"absolute",left:0,right:0,top,height,background:p.color+"0A",zIndex:1,borderTop:`1px dashed ${p.color}33`,borderBottom:`1px dashed ${p.color}33`}}/>;
+            
+            {/* Cuerpo del calendario */}
+            <div style={{ position: "relative", height: GRID_H, flexShrink: 0 }}>
+              
+              {/* Líneas divisorias de horas */}
+              {HORA_LABELS.map((h) => (
+                <div key={h} style={{ position: "absolute", top: (h * 60 - HORA_APE) * PX_MIN, left: 0, right: 0, borderTop: `1px solid ${h % 2 === 0 ? CR3 : CR2}`, zIndex: 0 }}></div>
+              ))}
+              
+              {/* Fondo rayado si está cerrado */}
+              {!hGen && (
+                <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(45deg,#F5F0E8,#F5F0E8 4px,#EDE6D9 4px,#EDE6D9 8px)", zIndex: 1, opacity: 0.6 }}></div>
+              )}
+              
+              {/* Descansos de los peluqueros */}
+              {hGen && pelEnEsteDia.map((p) => {
+                const hp = p.horario[d.getDay()];
+                if (!hp?.descanso) return null;
+                const top = (toMin(hp.descanso.inicio) - HORA_APE) * PX_MIN;
+                const height = (toMin(hp.descanso.fin) - toMin(hp.descanso.inicio)) * PX_MIN;
+                return (
+                  <div key={p.id} style={{ position: "absolute", left: 0, right: 0, top: top, height: height, background: p.color + "0A", zIndex: 1, borderTop: `1px dashed ${p.color}33`, borderBottom: `1px dashed ${p.color}33` }}></div>
+                );
               })}
-              {citasDia.map(c=>{
-                const svc=CONFIG.serviciosDefault.find(s=>s.id===c.servicioId)||{duracionMin:30};
-                const pel=CONFIG.peluqueros.find(p=>p.id===c.peluqueroId);
-                const col=pel?.color||A;
-                const top=(toMin(c.hora)-HORA_APE)*PX_MIN;
-                const height=Math.max(svc.duracionMin*PX_MIN-2,18);
-                const pelIdx=peluqueroFiltroId?0:CONFIG.peluqueros.findIndex(p=>p.id===c.peluqueroId);
-                const total=peluqueroFiltroId?1:CONFIG.peluqueros.length;
-                const cw=100/total;
-                return(
-                  <div key={c.id} style={{position:"absolute",top,left:`calc(${pelIdx*cw}% + 1px)`,width:`calc(${cw}% - 2px)`,height,background:`${col}22`,border:`1.5px solid ${col}99`,borderLeft:`3px solid ${col}`,borderRadius:4,padding:"2px 4px",overflow:"hidden",zIndex:2,boxSizing:"border-box"}}>
-                    <div style={{fontSize:9,fontWeight:700,color:col,lineHeight:1.3}}>{c.hora}</div>
-                    {height>20&&<div style={{fontSize:9,color:TX,fontWeight:600,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.clienteNombre.split(" ")[0]}</div>}
-                    {height>34&&<div style={{fontSize:8,color:TX2,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.servicio}</div>}
-                    {height>48&&<div style={{fontSize:8,color:col,fontWeight:600}}>{pel?.nombre}</div>}
+              
+              {/* Citas del día */}
+              {citasDia.map((c) => {
+                const svc = CONFIG.serviciosDefault.find((s) => s.id === c.servicioId) || { duracionMin: 30 };
+                const pel = CONFIG.peluqueros.find((p) => p.id === c.peluqueroId);
+                const col = pel?.color || A;
+                const top = (toMin(c.hora) - HORA_APE) * PX_MIN;
+                const height = Math.max(svc.duracionMin * PX_MIN - 2, 18);
+                const pelIdx = peluqueroFiltroId ? 0 : CONFIG.peluqueros.findIndex((p) => p.id === c.peluqueroId);
+                const total = peluqueroFiltroId ? 1 : CONFIG.peluqueros.length;
+                const cw = 100 / total;
+                
+                return (
+                  <div key={c.id} style={{ position: "absolute", top: top, left: `calc(${pelIdx * cw}% + 1px)`, width: `calc(${cw}% - 2px)`, height: height, background: `${col}22`, border: `1.5px solid ${col}99`, borderLeft: `3px solid ${col}`, borderRadius: 4, padding: "2px 4px", overflow: "hidden", zIndex: 2, boxSizing: "border-box" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: col, lineHeight: 1.3 }}>{c.hora}</div>
+                    {height > 20 && (
+                      <div style={{ fontSize: 9, color: TX, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.clienteNombre.split(" ")[0]}
+                      </div>
+                    )}
+                    {height > 34 && (
+                      <div style={{ fontSize: 8, color: TX2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.servicio}
+                      </div>
+                    )}
+                    {height > 48 && (
+                      <div style={{ fontSize: 8, color: col, fontWeight: 600 }}>
+                        {pel?.nombre}
+                      </div>
+                    )}
                   </div>
                 );
               })}
+              
             </div>
           </div>
         );
@@ -696,25 +802,83 @@ function PeluqueroPage({citas}){
 // ─────────────────────────────────────────────
 // CLIENTE APP — página home + flujo reserva
 // ─────────────────────────────────────────────
-function useScrollReveal(){
-  useEffect(()=>{
-    const els=document.querySelectorAll('.reveal');
-    const obs=new IntersectionObserver(entries=>{
-      entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
-    },{threshold:0.12});
-    els.forEach(el=>obs.observe(el));
-    return()=>obs.disconnect();
-  },[]);
-}
+function ClientePage({valoraciones, citas, festivos, bloqueos, servicios, startPaso=0}){
 
-function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0}){
-  const navigate=useNavigate();
-  const [paso,setPaso]=useState(startPaso);
+  // --- PANEL DE CONTROL VISUAL (Modifica estos valores para ajustar distancias) ---
+  const CONFIG_RESERVA = {
+    anchoContenedor: "90%",      // Ancho total de la zona de reserva
+    separacionSuperior: "100px",    // Distancia del título con el header (techo)
+    distanciaTituloCajas: "50px",   // Espacio entre el título y las fotos/contenido
+    anchoCajaPC: "25%",             // Tamaño de los cuadros de servicio/peluquero
+    anchoCajaMovil: "48%",          // Tamaño en móviles
+    colorFondo: "#F8FBFF"           // Fondo de la zona de reserva
+  };
+
+  const [paso, setPaso] = useState(startPaso);
+  const [selServicio, setSelServicio] = useState(null);
+  const [selPeluquero, setSelPeluquero] = useState(null);
+  const navigate = useNavigate();
+
+  // Escuchador de la URL + Motor de Animaciones
+  useEffect(() => {
+    // --- NUEVO: ESTO HACE QUE LA PÁGINA DEJE DE ESTAR VACÍA/INVISIBLE ---
+    const els = document.querySelectorAll('.reveal');
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { 
+        if (e.isIntersecting) e.target.classList.add('visible'); 
+      });
+    }, { threshold: 0.12 });
+    els.forEach(el => obs.observe(el));
+    // ------------------------------------------------------------------
+
+    const params = new URLSearchParams(window.location.search);
+    const sId = params.get('serviceId');
+    const stepUrl = params.get('step');
+
+    if (sId && servicios && servicios.length > 0) {
+      const encontrado = servicios.find(s => String(s.id) === String(sId));
+      if (encontrado) {
+        setSelServicio(encontrado);
+        if (stepUrl) setPaso(parseInt(stepUrl));
+        else setPaso(2); 
+      }
+    } else if (stepUrl) {
+      setPaso(parseInt(stepUrl));
+    }
+
+    // Limpieza al desmontar
+    return () => obs.disconnect();
+  }, [servicios, window.location.search]);
+  
+  // Función para avanzar/retroceder
+  const irAPaso = (n) => {
+    setPaso(n);
+    
+    const params = new URLSearchParams();
+    // El servicio siempre se mantiene si existe
+    if (selServicio) params.set('serviceId', selServicio.id);
+
+    if (n === 0) {
+      navigate("/", { replace: false });
+    } else if (n === 1) {
+      navigate("/reservar", { replace: false });
+    } else if (n === 2) {
+      // Al volver al 2, NO ponemos el peluqueroId para que el link esté limpio
+      params.set('step', 2);
+      navigate(`/reservar?${params.toString()}`, { replace: false });
+    } else {
+      // Pasos 3 y 4: Aquí sí incluimos el peluquero en la URL
+      if (selPeluquero) params.set('peluqueroId', selPeluquero.id);
+      params.set('step', n);
+      navigate(`/reservar?${params.toString()}`, { replace: false });
+    }
+    
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const [catAbierta,setCatAbierta]=useState(null);
-  const [selServicio,setSelServicio]=useState(null);
-  const [selPeluquero,setSelPeluquero]=useState(null);
-  const [selDia,setSelDia]=useState(null);
+  const [selDia, setSelDia] = useState(new Date()); // Inicializa con hoy
   const [selHora,setSelHora]=useState(null);
+  const [mesRef, setMesRef] = useState(new Date());
   const [form,setForm]=useState({nombre:"",telefono:""});
   const festivosSet=useMemo(()=>new Set(festivos.map(f=>f.fecha)),[festivos]);
 
@@ -732,12 +896,6 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
   },[selPeluquero,selDia,selServicio,citas]);
 
   const scrollTop=()=>window.scrollTo({top:0,behavior:"smooth"});
-  const irAPaso=n=>{
-    scrollTop();
-    if(n===0){ navigate("/"); return; }
-    if(paso===0){ navigate("/reservar"); return; }
-    setPaso(n);
-  };
   const reset=()=>{ scrollTop(); navigate("/"); };
   const confirmarReserva=async()=>{
     if(!form.nombre||!form.telefono) return;
@@ -826,7 +984,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
     infoBar:{display:"flex",background:WH,borderBottom:`1px solid ${CR3}`},
     infoItem:{flex:1,textAlign:"center",padding:"13px 6px",borderRight:`1px solid ${CR3}`},
     sectionServicios: { 
-      /* 0px arriba, 4% lados, 100px abajo para reservar el hueco del desplegable */
+      /* 0px arriba, 4% lados, 00px abajo para reservar el hueco del desplegable */
       padding: "0px 4% 0px 4%", 
       maxWidth: "100%", 
       margin: "0 auto",
@@ -837,7 +995,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
       
     },
     sectionCompacta: { 
-      /* 0px arriba, 10% lados, 60px abajo */
+      /* 0px arriba, 10% lados, 0px abajo */
       padding: "0px 10% 0px 10%", 
       maxWidth: "100%", 
       margin: "0 auto",
@@ -848,7 +1006,6 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
   };
 
   // ── HOME ──
-  useScrollReveal();
   const scrollTo=id=>{
     const el=document.getElementById(id);
     if(el){
@@ -904,7 +1061,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
           ))}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <button style={{background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:100,padding:"9px 30px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}} onClick={()=>navigate("/reservar")}>RESERVAR</button>
+          <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
           <button style={{background:"transparent",border:"none",color:CR3,cursor:"pointer",fontSize:13,padding:0}} onClick={()=>navigate("/login")}>⚙</button>
         </div>
       </div>
@@ -933,7 +1090,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
         <h1 className="hero-title" style={{fontSize:32,fontWeight:700,color:WH,marginBottom:6,letterSpacing:1}}>{CONFIG.nombre}</h1>
         <p className="hero-slogan" style={{fontSize:15,color:"#9ec3e8",marginBottom:4,fontStyle:"italic"}}>"{CONFIG.slogan}"</p>
         <p className="hero-dir" style={{fontSize:12,color:"#9ec3e8",marginBottom:28}}>📍 {CONFIG.direccion} · 📞 {CONFIG.telefono}</p>
-        <button className="hero-btn btn-pulse" style={cs.btnPpal} onClick={()=>navigate("/reservar")}>RESERVAR CITA</button>
+        <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
       </div>
       
       <div style={{ padding: "0 4% 0px 4%", marginTop: 20, marginBottom: "30px" }}>
@@ -953,38 +1110,27 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
         </div>
       </div>
       
-
-      {/* --- SECCIÓN 2: SERVICIOS (ANCHO COMPLETO Y MÁRGENES AJUSTABLES) --- */}
+      {/* --- SECCIÓN 2: SERVICIOS EN EL HOME --- */}
 {(() => {
-  // --- CONFIGURA AQUÍ TUS ESPACIOS ---
-  const margenVertical = "0px";   // Espacio arriba y abajo de la sección
-  const margenHorizontal = "4%"; // Espacio a los lados de la fila de cajas
-  const separacionCajas = "20px";  // Espacio entre cada cuadrado
-  const anchoCajaPC = "20%";     // Tamaño de cada cuadrado
-  // ----------------------------------
-
+  const margenSuperiorSeccion = "0.1px"; 
+  const separacionTituloFotos = "10px"; 
+  const margenHorizontal = "4%"; 
+  const separacionCajas = "20px"; 
+  
   return (
-    <div id="servicios" className="reveal" style={{ 
-      padding: `${margenVertical} 0`, 
-      backgroundColor: "#f8f9fa",
-      width: "100%",
-      overflow: "hidden" 
-    }}>
+    <div id="servicios" className="reveal" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "60px", backgroundColor: "transparent", width: "100%" }}>
       
-      {/* Título de la sección */}
-      <div style={cs.sTitle}>✦ Servicios</div>
+      <div style={{ ...cs.sTitle, marginBottom: separacionTituloFotos, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        ✦ Servicios
+      </div>
 
-      {/* Fila de Cajas Centrada */}
-      <div style={{
-        display: "flex",
-        flexWrap: "nowrap",       
+      <div style={{ 
+        display: "flex", 
+        flexWrap: "wrap", 
         justifyContent: "center", 
-        gap: separacionCajas,
-        width: "100%",
-        padding: `0 ${margenHorizontal} 20px ${margenHorizontal}`,
-        overflowX: "auto",        
-        WebkitOverflowScrolling: "touch",
-        scrollbarWidth: "none"    
+        gap: separacionCajas, 
+        width: "100%", 
+        padding: `20px ${margenHorizontal} 40px ${margenHorizontal}` 
       }}>
         {CONFIG.categorias.map(cat => {
           const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
@@ -994,99 +1140,80 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
             <div 
               key={cat.id}
               onClick={() => setCatAbierta(abierta ? null : cat.id)}
-              style={{
-                position: "relative",
-                flex: `0 0 ${anchoCajaPC}`,
-                aspectRatio: "1 / 1",
-                borderRadius: "20px",
-                overflow: "hidden",
-                cursor: "pointer",
-                backgroundImage: `url(${cat.foto})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                boxShadow: abierta ? "0 15px 35px rgba(0,0,0,0.2)" : "0 10px 25px rgba(0,0,0,0.1)",
-                transition: "all 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+              className="card-hover"
+              style={{ 
+                position: "relative", 
+                flex: window.innerWidth > 768 
+                  ? `0 1 ${CONFIG_RESERVA.anchoCajaPC}` 
+                  : `0 1 ${CONFIG_RESERVA.anchoCajaMovil}`, 
+                minWidth: window.innerWidth > 768 ? "250px" : "140px",
+                aspectRatio: "1 / 1", 
+                borderRadius: "20px", 
+                overflow: "hidden", 
+                cursor: "pointer", 
+                backgroundImage: `url(${cat.foto})`, 
+                backgroundSize: "cover", 
+                backgroundPosition: "center", 
+                transition: "all 0.4s cubic-bezier(0.25, 1, 0.5, 1)", 
                 transform: abierta ? "scale(1.02)" : "scale(1)"
               }}
             >
-              <div style={{
-                position: "absolute",
-                top: 0, left: 0, right: 0, bottom: 0,
-                background: abierta 
-                  ? "rgba(0,0,0,0.95)" 
-                  : "linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)",
-                display: "flex",
-                flexDirection: "column",
+              {/* Overlay y Contenido Desplegable */}
+              <div style={{ 
+                position: "absolute", 
+                top: 0, left: 0, right: 0, bottom: 0, 
+                background: abierta ? "rgba(0,0,0,0.95)" : "linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)", 
+                display: "flex", 
+                flexDirection: "column", 
                 justifyContent: abierta ? "center" : "flex-end", 
-                alignItems: "center",
-                padding: abierta ? "15px" : "20px",
-                transition: "background 0.4s ease-out"
+                alignItems: "center", 
+                padding: abierta ? "15px" : "20px", 
+                transition: "background 0.4s ease-out" 
               }}>
                 
-                {/* Cabecera Categoría */}
+                {/* Título de la Categoría */}
                 <div style={{ textAlign: "center", marginBottom: abierta ? "15px" : "5px", width: "100%" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                    <h3 style={{ 
-                      color: "#FFF", margin: 0, 
-                      fontSize: abierta ? "18px" : "18px", 
-                      fontWeight: "800", textTransform: "uppercase" 
-                    }}>{cat.nombre}</h3>
-                    <div style={{ 
-                      color: "#FFF", fontSize: "9px", 
-                      transform: abierta ? "rotate(180deg)" : "rotate(0deg)",
-                      transition: "transform 0.4s"
-                    }}>▼</div>
+                    <h3 style={{ color: "#FFF", margin: 0, fontSize: "18px", fontWeight: "800", textTransform: "uppercase" }}>{cat.nombre}</h3>
+                    <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
                   </div>
                 </div>
 
-                {/* Listado de servicios */}
-                <div style={{
-                  width: "100%",
-                  maxHeight: abierta ? "90%" : "0",
-                  opacity: abierta ? 1 : 0,
-                  transform: abierta ? "translateY(0)" : "translateY(10px)",
-                  overflowY: "auto",
+                {/* Lista de Servicios (El desplegable) */}
+                <div style={{ 
+                  width: "100%", 
+                  maxHeight: abierta ? "350px" : "0", 
+                  opacity: abierta ? 1 : 0, 
+                  transform: abierta ? "translateY(0)" : "translateY(10px)", 
+                  overflowY: "auto", 
                   transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                  scrollbarWidth: "none"
                 }}>
                   {svcs.map(s => (
-                    <div key={s.id} style={{ 
+                    <div 
+                      key={s.id} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Acceso directo: va directo al calendario con el servicio elegido
+                        navigate(`/reservar?serviceId=${s.id}&step=2`);
+                      }}
+                      style={{ 
                         padding: "10px 0", 
-                        borderBottom: "1px solid rgba(255,255,255,0.1)",
-                        display: "flex",
-                        alignItems: "center", // Centra verticalmente nombre/desc y precio
-                        justifyContent: "space-between"
-                    }}>
-                      {/* Lado Izquierdo: Nombre, Tiempo y Desc */}
+                        borderBottom: "1px solid rgba(255,255,255,0.1)", 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "space-between", 
+                        cursor: "pointer" 
+                      }}
+                    >
                       <div style={{ textAlign: "left", flex: 1, paddingRight: "10px" }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "20px", flexWrap: "wrap" }}>
-                           <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
-                           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px", fontWeight: "400" }}>
-                             ⏱ {s.duracionMin}'
-                           </span>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                          <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
+                          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>⏱ {s.duracionMin}'</span>
                         </div>
-                        
-                        {s.desc && (
-                          <div style={{ 
-                            color: "rgba(255,255,255,0.6)", 
-                            fontSize: "10px", 
-                            lineHeight: "1.1",
-                            marginTop: "3px" 
-                          }}>
-                            {s.desc}
-                          </div>
-                        )}
+                        {s.desc && <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px", lineHeight: "1.1", marginTop: "3px" }}>{s.desc}</div>}
                       </div>
-
-                      {/* Lado Derecho: Precio más grande */}
-                      <div style={{ 
-                        color: "#FFF", 
-                        fontWeight: "800", 
-                        fontSize: "15px", // Un poco más grande
-                        minWidth: "40px",
-                        textAlign: "right"
-                      }}>
-                         {s.precio}€
-                      </div>
+                      <div style={{ color: "#FFF", fontWeight: "800", fontSize: "14px" }}>{s.precio}€</div>
                     </div>
                   ))}
                 </div>
@@ -1103,89 +1230,160 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
-        margin: "100px auto 30px auto", /* 100px de la sección anterior, solo 30px para el siguiente título */
+        margin: "0px auto 0px auto", /* 00px de la sección anterior, solo 30px para el siguiente título */
         maxWidth: "100%"
       }} />
 
-      {/* --- SECCIÓN EQUIPO DIVIDIDA (IMAGEN IZQ, LISTA DER) --- */}
+      {/* --- SECCIÓN EQUIPO (ESTRUCTURA DE CONTROL TOTAL) --- */}
       <div id="equipo" className="reveal" style={{
-        ...cs.sectionEquipo,
-        padding: 0, // Quitamos padding lateral para que la imagen pegue al borde si quieres
-        overflow: "hidden"
+        width: "100%",
+        background: WH, 
+        overflow: "hidden",
+        padding: 0
       }}>
         
         <div style={{
           display: "flex",
           flexDirection: window.innerWidth > 768 ? "row" : "column",
-          /* --- ESTA LÍNEA ES LA QUE CENTRA EL CONTENIDO DE LA DERECHA CON LA IMAGEN --- */
-          alignItems: "center", 
-          justifyContent: "center", // Centra el conjunto en el medio si la sección es muy ancha
-          gap: "40px",              // Espacio entre la imagen y los nombres
-          background: WH,
-          padding: "0px"           // Un poco de aire alrededor
+          alignItems: "stretch", // Esto hace que la imagen y el bloque derecho midan lo mismo de alto
+          width: "100%"
         }}>
           
-          {/* 1. LADO IZQUIERDO: IMAGEN GRANDE */}
-          <div style={{
-            flex: "0 0 40%", // Ocupa exactamente el 50%
-            position: "relative",
-            minHeight: "300px"
-          }}>
-            <img 
-              src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" // Cambia esto por la foto de tu local o equipo
-              alt="Nuestro Equipo"
-              style={{
-                width: "100%",
-                height: "auto",
-                objectFit: "cover", // Esto hace que la imagen rellene todo el espacio sin deformarse
-                display: "block"
-              }}
-            />
-          </div>
-
-          {/* 2. LADO DERECHO: LISTA DE INTEGRANTES */}
-          <div style={{
-            flex: "1",
-            padding: window.innerWidth > 768 ? "0px 0px" : "0px 0px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center", // Centra las cajas verticalmente
-            gap: "30px"
-          }}>
-            <div style={{...cs.sTitle, textAlign: "left", marginBottom: "0px"}}>✦ Profesionales</div>
+          {/* --- CONFIGURACIÓN DE DISTANCIAS (Toca estos números) --- */}
+          {(() => {
+            const anchoFoto = "40%";             // Ancho de la imagen izquierda
+            const separacionInterna = "5%";   // Distancia entre foto y cajas
+            const margenDerecho = "5%";         // Distancia hasta el borde derecho
+            const anchoMaximoCaja = "5000px";     // Ancho máximo de cada tarjeta de peluquero
             
-            {CONFIG.peluqueros.map(p => (
-              <div key={p.id} className="card-hover" style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "15px",
-                background: WH,
-                padding: "15px",
-                borderRadius: "20px",
-                border: `1px solid ${CR3}`,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
-              }}>
-                {/* Avatar pequeño dentro de la lista */}
-                <div style={{ width: 50, height: 50, borderRadius: "50%", background: CR2, flexShrink: 0, overflow: 'hidden' }}>
-                  <img src={p.foto || "https://i.postimg.cc/4xxWbVq0/postepelu.webp"} style={{width:'100%', height:'100%', objectFit:'cover'}} />
+            return (
+              <>
+                {/* 1. LADO IZQUIERDO: IMAGEN PEGADA AL BORDE */}
+                <div style={{
+                  flex: `0 0 ${anchoFoto}`,
+                  position: "relative"
+                }}>
+                  <img 
+                    src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" 
+                    alt="Nuestro Equipo"
+                    style={{
+                      width: "100%",
+                      height: "100%", // Ocupa todo el alto disponible
+                      display: "block",
+                      objectFit: "cover"
+                    }}
+                  />
                 </div>
-                
-                <div>
-                  <div style={{ fontWeight: 700, color: TX, fontSize: "16px", textAlign: "left"}}>{p.nombre}</div>
-                  <div style={{ fontSize: "12px", color: A, fontWeight: 600, textAlign: "left" }}>{p.especialidad || "Estilista"}</div>
-                </div>
-              </div>
-            ))}
-          </div>
 
+                {/* 2. LADO DERECHO: CUADRÍCULA DE INTEGRANTES */}
+                <div style={{
+                  flex: "1",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  padding: "40px 0", // Padding vertical general
+                  background: WH
+                }}>
+
+                  {/* --- PANEL DE CONTROL DE DISTANCIAS HORIZONTALES --- */}
+                  {(() => {
+                    // 1. Control del Título
+                    const tituloDistanciaIzquierda = "40px"; 
+                    const tituloMargenInferior = "40px";
+
+                    // 2. Control de las Cajas
+                    const cajasDistanciaIzquierda = "0%px"; // Distancia respecto a la foto
+                    const cajasDistanciaDerecha = "0%";   // Espacio al final de la pantalla
+                    const separacionEntreCajas = "30px";    // Gap entre ellas
+                    
+                    // 3. Tamaño de las Cajas
+                    const anchoCaja = "250px";
+                    const altoCaja = "300px";
+                    
+                    return (
+                      <>
+                        {/* BLOQUE DEL TÍTULO */}
+                        <div style={{
+                          ...cs.sTitle, 
+                          textAlign: "left",
+                          paddingLeft: tituloDistanciaIzquierda, // <--- Control independiente del título
+                          marginBottom: tituloMargenInferior
+                        }}>
+                          ✦ Profesionales
+                        </div>
+                        
+                        {/* BLOQUE DE LAS CAJAS */}
+                        <div style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: separacionEntreCajas,
+                          justifyContent: "center", // Mantiene el centrado interno si sobran huecos
+                          width: "100%",
+                          // --- AQUÍ CONTROLAS EL BLOQUE DE LAS CAJAS ---
+                          paddingLeft: window.innerWidth > 768 ? cajasDistanciaIzquierda : "20px",
+                          paddingRight: window.innerWidth > 768 ? cajasDistanciaDerecha : "20px",
+                        }}>
+                          {CONFIG.peluqueros.map(p => (
+                            <div key={p.id} className="card-hover" style={{
+                              width: window.innerWidth > 768 ? anchoCaja : "46%",
+                              flex: window.innerWidth > 768 ? `0 0 ${anchoCaja}` : `1 1 46%`,
+                              minHeight: altoCaja,
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: "#FFF",
+                              padding: "20px",
+                              borderRadius: "24px",
+                              border: `1px solid ${CR3}`,
+                              boxShadow: "0 4px 15px rgba(0,0,0,0.04)",
+                              textAlign: "center"
+                            }}>
+                              {/* Foto del peluquero */}
+                              <div style={{ 
+                                width: "115px", 
+                                height: "115px", 
+                                borderRadius: "50%", 
+                                marginBottom: "18px", 
+                                overflow: 'hidden',
+                                border: `3px solid ${A}15`
+                              }}>
+                                <img 
+                                  src={p.foto || "https://i.postimg.cc/4xxWbVq0/postepelu.webp"} 
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                />
+                              </div>
+                              
+                              <div style={{ fontWeight: 800, color: TX, fontSize: "19px" }}>{p.nombre}</div>
+                              <div style={{ 
+                                fontSize: "12px", 
+                                color: A, 
+                                fontWeight: 700, 
+                                textTransform: "uppercase", 
+                                marginTop: "6px",
+                                letterSpacing: "0.5px" 
+                              }}>
+                                {p.especialidad}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
+
 
       <hr style={{ 
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
-        margin: "80px auto 30px auto", /* 80px de la sección anterior, solo 30px para el siguiente título */
+        margin: "0px auto 30px auto", /* 30px de la sección anterior, solo 30px para el siguiente título */
         maxWidth: "100%"
       }} />
 
@@ -1196,7 +1394,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
             {valoraciones.map(v => (
               <div key={v.id} style={{background: WH, border: `1px solid ${CR3}`, borderRadius: 13, padding: "20px"}}>
-                <div style={{display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems:"center"}}>
+                <div style={{display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems:"center"}}>
                   <span style={{fontSize: 13, fontWeight: 700}}>{v.nombre}</span>
                   <div style={{display: "flex", gap: 1}}>
                     {[1,2,3,4,5].map(i => <span key={i} style={{fontSize: 12, color: i <= v.estrellas ? "#F59E0B" : "#D1D5DB"}}>★</span>)}
@@ -1221,25 +1419,15 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
       {/* --- SECCIÓN 4: UBICACIÓN Y CONTACTO --- */}
       <div id="ubicacion" className="reveal" style={cs.sectionCompacta}>
         
-        {/* 1. ESTE ES EL NUEVO DIV PARA CONTROLAR EL ANCHO AL 80% */}
-        <div style={{
-          width: window.innerWidth > 768 ? "80%" : "100%", 
-          margin: "0 auto", 
-        }}>
+        <div style={{ width: window.innerWidth > 768 ? "80%" : "100%", margin: "0 auto" }}>
           
           <div style={cs.sTitle}>✦ Contacto</div>
 
-          <div style={{
-            display: "flex",
-            flexDirection: window.innerWidth > 768 ? "row" : "column",
-            gap: "40px",
-            alignItems: "center",
-            marginTop: "0px"
-          }}>
+          <div style={{ display: "flex", flexDirection: window.innerWidth > 768 ? "row" : "column", gap: "40px", alignItems: "center", marginTop: "0px" }}>
             
             {/* BLOQUE IZQUIERDO: TEXTOS */}
             <div style={{ flex: 1, textAlign: "left" }}>
-              <p style={{fontSize:20,fontWeight:900, marginBottom: 5, color:TX}}>{CONFIG.nombre}</p>
+              <p style={{ fontSize: 20, fontWeight: 900, marginBottom: 5, color: TX }}>{CONFIG.nombre}</p>
               <p style={{ color: TX2, fontSize: 15, marginBottom: 25 }}>El detalle marca la diferencia</p>
 
               <div style={{ marginBottom: 20 }}>
@@ -1260,75 +1448,15 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
                 </div>
               </div>
 
-              {/* BUSCA DONDE ESTÁ TU BOTÓN ACTUAL Y SUSTITÚYELO POR ESTO */}
-              <div style={{ 
-                display: "flex", 
-                gap: "20px", 
-                alignItems: "center", 
-                marginTop: "25px" 
-              }}>
+              {/* CONTENEDOR DE BOTONES UNIFICADOS */}
+              <div style={{ display: "flex", gap: "15px", alignItems: "center", marginTop: "30px" }}>
                 
-                {/* BOTÓN PRINCIPAL CON ALTURA FIJA */}
-                <button 
-                  onClick={() => window.location.href = '/reservar'}
-                  style={{
-                    height: "50px", // <-- IGUALAMOS LA ALTURA AL BOTÓN DE INSTA
-                    padding: "0 25px", // Quitamos el padding vertical (12px) y dejamos solo el horizontal
-                    display: "flex", // Añadimos flex para centrar el texto verticalmente
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: A,
-                    color: WH,
-                    border: "none",
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    fontSize: 14,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    flex: window.innerWidth > 768 ? "0 1 auto" : "1",
-                    transition: "all 0.3s ease", // <-- ESTO HACE QUE SEA SUAVE
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.08)"}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-                >
-                  PEDIR CITA AHORA
-                </button>
+                {/* BOTÓN PEDIR CITA (ESTILO RESERVAR) */}
+                <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
 
-                {/* BOTÓN INSTAGRAM CON DEGRADADO COMPLETO */}
-                <a 
-                  href="https://www.instagram.com/_mvaquero01" // Pon aquí tu link real
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "50px",
-                    height: "50px",
-                    /* EL DEGRADADO DE INSTAGRAM */
-                    background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
-                    borderRadius: "8px",
-                    textDecoration: "none",
-                    flexShrink: 0,
-                    boxShadow: "0 4px 10px rgba(220, 39, 67, 0.2)",
-                    transition: "transform 0.2s ease",
-                    transition: "all 0.3s ease", // <-- ESTO HACE QUE SEA SUAVE
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.08)"}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-                >
-                  {/* Icono en blanco para que resalte sobre el degradado */}
-                  <svg 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="#FFFFFF" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    style={{ width: "27px", height: "27px" }}
-                  >
+                {/* BOTÓN INSTAGRAM (SIN ERRORES VISUALES) */}
+                <a href="https://www.instagram.com/_mvaquero01" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "45px", height: "45px", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", borderRadius: "8px", textDecoration: "none", flexShrink: 0, cursor: "pointer", transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility: "hidden", willChange: "transform", transform: "scale(1)", transformStyle: "preserve-3d" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: "27px", height: "27px", pointerEvents: "none", display: "block" }}>
                     <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
                     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
                     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
@@ -1337,55 +1465,26 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
               </div>
             </div>
 
-            {/* BLOQUE DERECHO: MAPA SIN ERRORES DE API */}
+            {/* BLOQUE DERECHO: MAPA */}
             <div style={{ flex: 1, width: "100%" }}>
-              <div style={{ 
-                width: "100%", 
-                height: "380px", 
-                borderRadius: 13, 
-                overflow: "hidden", 
-                border: `1px solid ${CR3}`,
-                boxShadow: "0 4px 15px rgba(0,0,0,0.05)"
-              }}>
+              <div style={{ width: "100%", height: "380px", borderRadius: 13, overflow: "hidden", border: `1px solid ${CR3}`, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2993.438515321355!2d2.115367676579222!3d41.38627059604164!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12a4986487e3d81d%3A0x330058e578f1496a!2sAv.%20Diagonal%2C%20647%2C%20Les%20Corts%2C%2008028%20Barcelona!5e0!3m2!1ses!2ses!4v1715600000000!5m2!1ses!2ses" 
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 0 }} 
-                  allowFullScreen="" 
-                  loading="lazy" 
-                  referrerPolicy="no-referrer-when-downgrade"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2992.8341995404413!2d2.1093153765879717!3d41.38851419588691!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12a4986488730951%3A0x6a0c56f8f5539599!2sAv.%20Diagonal%2C%20647%2C%20Les%20Corts%2C%2008028%20Barcelona!5e0!3m2!1ses!2ses!4v1712750000000!5m2!1ses!2ses" 
+                  width="100%" height="100%" style={{ border: 0 }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
                 ></iframe>
               </div>
 
               {/* BOTÓN VER EN GOOGLE MAPS */}
               <div style={{ textAlign: "center", marginTop: "15px" }}>
-                <a 
-                  href="https://maps.app.goo.gl/ANdrx2wzSvmpSZJL6"
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    color: A,
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    background: `${A}10`,
-                    border: `1px solid ${A}30`
-                  }}
-                >
+                <a href="https://maps.app.goo.gl/8wuBgAbC2hn8xxb88" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: A, fontSize: "14px", fontWeight: 700, textDecoration: "none", padding: "8px 16px", borderRadius: "8px", background: `${A}10`, border: `1px solid ${A}30`, transition: "all 0.3s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = `${A}20`} onMouseLeave={(e) => e.currentTarget.style.background = `${A}10`}>
                   <span>🗺️ Ver en Google Maps</span>
                 </a>
               </div>
             </div>
           </div>
-        </div> {/* 2. CIERRE DEL DIV DEL 80% */}
+        </div>
       </div>
-      <div style={{height:80}}/>
+      <div style={{ height: 80 }} />
     </div>
   );
 
@@ -1393,263 +1492,768 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
 
   // ── FLUJO RESERVA (pasos 1-5) ──
   // ★ Botón CONTINUAR fijo en la parte inferior
-  const btnOk = paso===1?!!selServicio : paso===2?!!selPeluquero : paso===3?!!(selDia&&selHora) : paso===4?!!(form.nombre&&form.telefono) : false;
-  const btnLabel = paso===4?"CONFIRMAR RESERVA ✓":"CONTINUAR →";
-  const btnAction = ()=>{
-    if(!btnOk) return;
-    if(paso===1) irAPaso(2);
-    else if(paso===2) irAPaso(3);
-    else if(paso===3) irAPaso(4);
-    else if(paso===4) confirmarReserva();
+  // --- LÓGICA DE BOTÓN CONTINUAR ---
+  const btnOk = paso === 1 ? !!selServicio : paso === 2 ? !!selPeluquero : paso === 3 ? !!(selDia && selHora) : paso === 4 ? !!(form.nombre && form.telefono) : false;
+  const formValido = form.nombre?.trim() !== '' && form.telefono?.trim() !== '';
+  const btnLabel = paso === 4 
+    ? (formValido ? "CONFIRMAR RESERVA ✓" : "RELLENA LOS DATOS PARA CONFIRMAR") 
+    : "CONTINUAR →";
+  const btnAction = () => {
+    if (!btnOk) return;
+    if (paso === 1) irAPaso(2);
+    else if (paso === 2) irAPaso(3);
+    else if (paso === 3) irAPaso(4);
+    else if (paso === 4) confirmarReserva();
   };
 
-  return(
-    <div className="cliente-wrap" style={{ fontFamily: FONT, background: WH, minHeight: "100vh", paddingTop: "60px" }}>
-      <div className="cliente-header-sticky" style={{ ...cs.header, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4%", background: WH, borderBottom: `1px solid ${CR3}`, width: "100%", boxSizing: "border-box", height: "70px", position: "fixed", top: 0, left: 0, zIndex:2000 }}>
+  // --- RETURN ÚNICO (Sustituye todo el flujo anterior) ---
+  return (
+    <div className="cliente-wrap" style={{ fontFamily: FONT, background: CONFIG_RESERVA.colorFondo, minHeight: "100vh", paddingTop: "70px" }}>
+      
+      {/* 1. HEADER FIJO */}
+      <div style={{ 
+        position: "fixed", 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        height: "70px", 
+        background: WH, 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        padding: "0 4%", 
+        zIndex: 2000, 
+        borderBottom: `1px solid ${CR3}`,
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.05)"
+      }}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
             <img 
               src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
               alt="Logo Peluquería" 
-              style={{
-                width: "100%", 
-                height: "100%", 
-                objectFit: "contain" // Esto evita que la imagen se deforme
-              }} 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }} 
             />
           </div>
           <span style={{fontSize:17,fontWeight:700,color:TX}}>{CONFIG.nombre}</span>
         </div>
       </div>
 
-      {paso>=1&&paso<=4&&(
-        <div style={cs.progreso}>
-          {[1,2,3,4].map(p=><div key={p} style={cs.prog(paso>p,paso===p)}/>)}
-          <span style={{fontSize:10,color:TX2,marginLeft:8}}>Paso {paso} de 4</span>
+      {/* 2. CONTENEDOR MAESTRO (Controla el ancho) */}
+      <div style={{ maxWidth: CONFIG_RESERVA.anchoContenedor, margin: "0 auto", padding: `0 20px`, paddingTop: CONFIG_RESERVA.separacionSuperior }}>
+        
+        {/* 3. BOTONES VOLVER ATRÁS (Fácil de modificar) */}
+        <div style={{ textAlign: 'left', marginBottom: '10px', height: '30px' }}>
+          {paso === 1 && <button style={cs.backBtn} onClick={() => irAPaso(0)}>← Volver al inicio</button>}
+          {paso === 2 && <button style={cs.backBtn} onClick={() => irAPaso(1)}>← Cambiar servicio</button>}
+          {paso === 3 && <button style={cs.backBtn} onClick={() => irAPaso(2)}>← Cambiar profesional</button>}
+          {paso === 4 && <button style={cs.backBtn} onClick={() => irAPaso(3)}>← Cambiar fecha</button>}
         </div>
-      )}
 
-      {/* ── contenido con padding-bottom para que no tape el botón fijo ── */}
-      <div key={paso} className="slide-in" style={{paddingBottom: paso>=1&&paso<=4?90:0}}>
+        {/* 4. TÍTULOS DE PASOS (Distancia configurable arriba) */}
+        <div style={{ ...cs.sTitle, marginBottom: CONFIG_RESERVA.distanciaTituloCajas, textAlign: 'center' }}>
+          {paso === 1 && "✦ ¿Qué servicio necesitas?"}
+          {paso === 2 && "✦ Elige tu profesional"}
+          {paso === 3 && "✦ Elige fecha y hora"}
+          {paso === 4 && "✦ Confirmar reserva"}
+        </div>
 
-        {paso === 1 && (
-          <div style={cs.section}>
-            <button style={cs.backBtn} onClick={reset}>← Inicio</button>
-            <div style={cs.sTitle}>✦ ¿Qué servicio necesitas?</div>
-            
-            {/* Contenedor en Grid para ponerlos uno al lado del otro */}
+        {/* 5. CONTENIDO DE LOS PASOS */}
+        <div className="slide-in" style={{ paddingBottom: "140px" }}>
+          
+          {paso === 1 && (
             <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
-              gap: "15px",
-              alignItems: "start" 
+              display: "flex", 
+              flexWrap: "wrap",        // Permite saltar a la siguiente fila
+              justifyContent: "center", 
+              gap: "20px", 
+              width: "100%",
+              paddingBottom: "50px" 
             }}>
               {CONFIG.categorias.map(cat => {
                 const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
                 const abierta = catAbierta === cat.id;
-                
+
                 return (
-                  <div key={cat.id} className="card-hover" style={{
-                    background: WH,
-                    border: `1px solid ${CR3}`,
-                    borderRadius: 13,
-                    overflow: "hidden", // Para que el contenido no se salga de las esquinas redondeadas
-                    height: "fit-content"
-                  }}>
-                    {/* Cabecera de la categoría */}
-                    <div style={{...cs.catHeader, borderBottom: abierta ? `1px solid ${CR3}` : "none"}} 
-                        onClick={() => setCatAbierta(abierta ? null : cat.id)}>
-                      <div style={cs.catLeft}>
-                        <div style={cs.catIcon}>{cat.emoji}</div>
-                        <div>
-                          <div style={{fontSize: 14, fontWeight: 700, color: TX}}>{cat.nombre}</div>
-                          <div style={{fontSize: 11, color: TX2}}>{svcs.length} servicio{svcs.length > 1 ? "s" : ""}</div>
+                  <div 
+                    key={cat.id}
+                    onClick={() => setCatAbierta(abierta ? null : cat.id)}
+                    className="card-hover"
+                    style={{ 
+                      position: "relative", 
+                      // CAMBIO AQUÍ: Usamos '0 1' para que la caja sea flexible y respete el wrap
+                      flex: window.innerWidth > 768 ? `0 1 ${CONFIG_RESERVA.anchoCajaPC}` : `0 1 ${CONFIG_RESERVA.anchoCajaMovil}`,
+                      // Opcional: añadir un minWidth para que no se vean demasiado pequeñas en PC
+                      minWidth: window.innerWidth > 768 ? "250px" : "140px",
+                      aspectRatio: "1 / 1",
+                      borderRadius: "20px", 
+                      overflow: "hidden", 
+                      cursor: "pointer", 
+                      backgroundImage: `url(${cat.foto})`, 
+                      backgroundSize: "cover", 
+                      backgroundPosition: "center", 
+                      transform: abierta ? "scale(1.02)" : "scale(1)",
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+                      transition: "all 0.4s cubic-bezier(0.25, 1, 0.5, 1)"
+                    }}
+                  >
+                    <div style={{ 
+                      position: "absolute", 
+                      inset: 0, 
+                      background: abierta ? "rgba(0,0,0,0.95)" : "linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)", 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      justifyContent: abierta ? "center" : "flex-end", 
+                      alignItems: "center", 
+                      padding: abierta ? "10px" : "20px",
+                      transition: "background 0.4s ease-out"
+                    }}>
+                      
+                      {/* Título de Categoría */}
+                      <div style={{ textAlign: "center", marginBottom: abierta ? "15px" : "5px", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                          <h3 style={{ color: "#FFF", margin: 0, fontSize: "18px", fontWeight: "800", textTransform: "uppercase" }}>
+                            {cat.nombre}
+                          </h3>
+                          <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
                         </div>
                       </div>
-                      <span style={{
-                        color: TX2, 
-                        fontSize: 18, 
-                        transform: abierta ? "rotate(180deg)" : "rotate(0deg)", 
-                        transition: ".2s",
-                        display: "inline-block"
-                      }}>▾</span>
-                    </div>
 
-                    {/* Contenido desplegable (Sin position absolute para que funcione bien) */}
-                    {abierta && (
-                      <div style={{ background: WH }}>
-                        {svcs.map(s => (
-                          <div key={s.id} 
-                              style={cs.svcRow(selServicio?.id === s.id)} 
-                              onClick={() => setSelServicio(s)}>
-                            <div style={{display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center"}}>
-                              <div>
-                                <span style={{fontSize: 13, color: TX, fontWeight: 600}}>{s.nombre}</span>
-                                <span style={{fontSize: 11, color: TX2, marginLeft: 8}}>⏱ {s.duracionMin} min</span>
+                      {/* Lista de servicios */}
+                      <div style={{ 
+                        width: "100%", 
+                        maxHeight: abierta ? "350px" : "0", 
+                        opacity: abierta ? 1 : 0, 
+                        transform: abierta ? "translateY(0)" : "translateY(10px)", 
+                        overflowY: "auto", 
+                        transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                        scrollbarWidth: "none"
+                      }}>
+                        {svcs.map((s, index) => {
+                          const esSeleccionado = selServicio?.id === s.id;
+                          return (
+                            <div key={s.id} style={{ width: "100%" }}>
+                              <div 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelServicio(s);
+                                }}
+                                style={{ 
+                                  padding: "10px 0px", 
+                                  margin: "2px 0px",
+                                  display: "flex", 
+                                  alignItems: "center", 
+                                  justifyContent: "space-between", 
+                                  cursor: "pointer",
+                                  borderRadius: "8px",
+                                  background: esSeleccionado ? "rgba(27, 79, 138, 0.5)" : "transparent",
+                                  transition: "background 0.2s ease"
+                                }}
+                              >
+                                <div style={{ textAlign: "left", flex: 1, paddingLeft: "10px" }}>
+                                  <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                                    <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "700" }}>{s.nombre}</span>
+                                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "9px" }}>⏱ {s.duracionMin}'</span>
+                                  </div>
+                                  {s.desc && (
+                                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px", lineHeight: "1.2", marginTop: "2px" }}>
+                                      {s.desc}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div style={{ color: "#FFF", fontWeight: "800", fontSize: "13px", textAlign: "right", paddingRight: "10px" }}>
+                                  {s.precio}€
+                                </div>
                               </div>
-                              <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                                <span style={{fontSize: 14, fontWeight: 700, color: A}}>€{s.precio}</span>
-                                {selServicio?.id === s.id && <span style={{color: A}}>✓</span>}
-                              </div>
+                              {index < svcs.length - 1 && (
+                                <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "0" }} />
+                              )}
                             </div>
-                            {s.desc && <div style={{fontSize: 11, color: TX2, marginTop: 2}}>{s.desc}</div>}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
 
-        {paso === 2 && (
-          <div style={cs.section}>
-            <button style={cs.backBtn} onClick={() => { irAPaso(1); setSelPeluquero(null); }}>← Cambiar servicio</button>
-            <div style={cs.sTitle}>✦ Elige tu profesional</div>
-            <div style={{background: CR2, borderRadius: 10, padding: "9px 14px", marginBottom: 14, fontSize: 12, color: TX2}}>
-              {selServicio?.emoji} {selServicio?.nombre} · ⏱ {selServicio?.duracionMin} min · <span style={{color: A, fontWeight: 700}}>€{selServicio?.precio}</span>
-            </div>
+          {paso === 2 && (
+            <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-            {/* Grid horizontal para selección de peluquero */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "20px"
-            }}>
-              {CONFIG.peluqueros.map(p => (
-                <div key={p.id} className="card-hover" style={{...cs.card(selPeluquero?.id === p.id), marginBottom: 0}} onClick={() => setSelPeluquero(p)}>
-                  <div style={cs.cardLeft}>
-                    <div style={cs.cardEmoji}>{p.emoji}</div>
-                    <div>
-                      <div style={{fontSize: 14, fontWeight: 700, color: TX}}>{p.nombre}</div>
-                      <div style={{fontSize: 11, color: TX2}}>{p.especialidad}</div>
+              {/* GRID DE PROFESIONALES */}
+              <div style={{ 
+                display: "flex", 
+                flexWrap: "wrap", 
+                justifyContent: "center", 
+                gap: "25px", 
+                width: "100%",
+                paddingBottom: "40px" 
+              }}>
+                {CONFIG.peluqueros.map(p => {
+                  const esSeleccionado = selPeluquero?.id === p.id;
+                  const colorActivo = "#1B4F8A"; 
+
+                  return (
+                    <div 
+                      key={p.id} 
+                      onClick={() => setSelPeluquero(p)} 
+                      style={{ 
+                        width: 260, 
+                        padding: "40px 20px", 
+                        background: "#FFF", 
+                        border: `2px solid ${esSeleccionado ? colorActivo : "#E8EEF6"}`, 
+                        borderRadius: "24px", 
+                        textAlign: "center", 
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        boxShadow: esSeleccionado 
+                          ? "0 10px 25px rgba(27, 79, 138, 0.15)" 
+                          : "0 4px 12px rgba(0,0,0,0.03)",
+                        transform: esSeleccionado ? "translateY(-5px)" : "none"
+                      }}
+                    >
+                      {/* Foto con anillo dinámico */}
+                      <div style={{ 
+                        width: 130, 
+                        height: 130, 
+                        borderRadius: "50%", 
+                        margin: "0 auto 20px auto",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: `3px solid ${esSeleccionado ? colorActivo : "#F0F4F9"}`,
+                        padding: "4px", 
+                        transition: "all 0.3s ease"
+                      }}>
+                        <img 
+                          src={p.foto} 
+                          style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
+                        />
+                      </div>
+
+                      <div style={{ fontWeight: 800, fontSize: "18px", color: "#0A1F3D", textTransform: "uppercase" }}>
+                        {p.nombre}
+                      </div>
+                      
+                      <div style={{ fontSize: "12px", color: colorActivo, fontWeight: 600, marginTop: "8px", textTransform: "uppercase" }}>
+                        {p.especialidad || "Barber Specialist"}
+                      </div>
                     </div>
-                  </div>
-                  {selPeluquero?.id === p.id ? <span style={{color: A, fontSize: 18}}>✓</span> : <div style={{width: 10, height: 10, borderRadius: "50%", background: p.color}} />}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {paso===3&&(
-          <div style={cs.section}>
-            <button style={cs.backBtn} onClick={()=>{irAPaso(2);setSelDia(null);setSelHora(null);}}>← Cambiar profesional</button>
-            <div style={cs.sTitle}>✦ Elige fecha y hora</div>
-            <div style={{background:CR2,borderRadius:10,padding:"9px 14px",marginBottom:16,fontSize:12,color:TX2}}>{selPeluquero?.emoji} {selPeluquero?.nombre} · {selServicio?.nombre} · <span style={{color:A,fontWeight:700}}>€{selServicio?.precio}</span></div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:4}}>
-              {["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].map(d=>(
-                <div key={d} style={{textAlign:"center",fontSize:12,fontWeight:700,color:d==="Dom"?ER+"99":TX2,textTransform:"uppercase",letterSpacing:.5,padding:"3px 0"}}>{d}</div>
-              ))}
-            </div>
-            {getCalendarWeeks().map((sem,si)=>(
-              <div key={si} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:4}}>
-                {sem.map((d,di)=>{
-                  const dISO=isoDate(d), esPasado=d<HOY, esDom=d.getDay()===0, esFest=festivosSet.has(dISO);
-                  const abiertoPelu=!!selPeluquero?.horario[d.getDay()], abiertoGen=!!CONFIG.horarioGeneral[d.getDay()];
-                  const estaBloqueado=selPeluquero?peluqueroEstaBloqueado(selPeluquero.id,dISO,bloqueos):false;
-                  const disp=!esPasado&&!esDom&&!esFest&&abiertoPelu&&abiertoGen&&!estaBloqueado;
-                  const a=selDia?.toDateString()===d.toDateString();
-                  return(
-                    <button key={di} style={{background:a?`linear-gradient(135deg,${A},#133A6A)`:disp?WH:CR,border:`1px solid ${a?A:esDom||esPasado||esFest||estaBloqueado?"transparent":disp?CR3:CR3}`,borderRadius:9,padding:"6px 2px",cursor:disp?"pointer":"default",textAlign:"center",opacity:esPasado?.25:esFest||estaBloqueado?.35:1}} disabled={!disp} onClick={()=>{if(disp){setSelDia(d);setSelHora(null);}}}>
-                      <span style={{fontSize:15,fontWeight:700,color:a?WH:esDom?ER+"88":esFest||estaBloqueado?ER+"66":disp?TX:TX2,display:"block"}}>{d.getDate()}</span>
-                      <span style={{fontSize:12,color:a?"#FFE4A0":TX2,display:"block"}}>{MESES_ES[d.getMonth()]}</span>
-                    </button>
                   );
                 })}
               </div>
-            ))}
-            {/* 1. Primero verás la condición del día seleccionado */}
-            {selDia && (
-              <>
-                <div style={{ height: 0 }} />
-                <div style={{ ...cs.sTitle, marginTop: 50}}>
-                  Horas disponibles — {fmtLarga(selDia)}
+            </div>
+          )}
+
+          {paso === 3 && (() => {
+            // ... [MANTÉN TUS CONFIGURACIONES CAL_ST Y FUNCIONES IGUAL] ...
+            const CAL_ST = {
+              borderRadius: "20px",
+              shadow: "0 10px 30px rgba(0,0,0,0.05)",
+              anchoMax: "90%",
+              alturaCajas: "350px",
+              separacionTituloMes: "20px",
+              separacionMesCalendario: "5px"
+            };
+
+            const generarTodasLasHoras = () => {
+              const horas = [];
+              for (let h = 9; h <= 20; h++) {
+                const horaStr = h < 10 ? `0${h}` : `${h}`;
+                horas.push(`${horaStr}:00`, `${horaStr}:15`, `${horaStr}:30`, `${horaStr}:45`);
+              }
+              return horas;
+            };
+            const todasLasHoras = generarTodasLasHoras();
+
+            const startOfMonth = new Date(mesRef.getFullYear(), mesRef.getMonth(), 1);
+            const endOfMonth = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 0);
+            let startCol = startOfMonth.getDay();
+            if (startCol === 0) startCol = 7;
+
+            const diasLocal = [];
+            for (let i = 1; i < startCol; i++) diasLocal.push(null);
+            for (let i = 1; i <= endOfMonth.getDate(); i++) {
+              diasLocal.push(new Date(mesRef.getFullYear(), mesRef.getMonth(), i));
+            }
+
+            const navegar = (n) => setMesRef(new Date(mesRef.getFullYear(), mesRef.getMonth() + n, 1));
+
+            return (
+              <div style={{ width: '100%', maxWidth: CAL_ST.anchoMax, margin: '0 auto', padding: '0 20px', animation: 'fadeIn 0.5s ease' }}>
+
+                <div style={{ 
+                  display: "flex", 
+                  flexDirection: window.innerWidth > 850 ? "row" : "column", 
+                  gap: "20px", 
+                  alignItems: "flex-start" 
+                }}>
+                  
+                  {/* COLUMNA IZQUIERDA: CALENDARIO */}
+                  <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column" }}>
+                    
+                    <div style={{ 
+                      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', height: '32px', marginBottom: CAL_ST.separacionMesCalendario 
+                    }}>
+                      <button onClick={() => navegar(-1)} style={{ background: "#F0F4F9", border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer' }}>‹</button>
+                      <h3 style={{ margin: 0, textTransform: 'uppercase', fontSize: '14px', fontWeight: '900', color: "#0A1F3D", minWidth: '150px', textAlign: 'center' }}>
+                        {mesRef.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+                      </h3>
+                      <button onClick={() => navegar(1)} style={{ background: "#F0F4F9", border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer' }}>›</button>
+                    </div>
+
+                    <div style={{ 
+                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto",
+                      background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
+                    }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: '10px' }}>
+                        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => (
+                          <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '900', color: "#A0AEC0" }}>{d}</div>
+                        ))}
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "5px", flex: 1 }}>
+                        {diasLocal.map((d, di) => {
+                          if (!d) return <div key={di} />;
+                          const iso = isoDate(d);
+                          const isSel = selDia?.toDateString() === d.toDateString();
+                          const isHoy = iso === HOY_ISO;
+                          const festivo = festivosSet.has(iso);
+                          const bloq = selPeluquero ? peluqueroEstaBloqueado(selPeluquero.id, iso, bloqueos) : false;
+                          const disp = d >= HOY && d.getDay() !== 0 && !festivo && !bloq;
+
+                          return (
+                            <button 
+                              key={di} 
+                              // CAMBIO CLAVE AQUÍ: Cuando cambias de día, reseteamos la hora a null
+                              onClick={() => {
+                                if (disp) {
+                                  setSelDia(d);
+                                  setSelHora(null); // <-- ESTO ARREGLA EL BUG
+                                }
+                              }} 
+                              style={{
+                              borderRadius: '10px',
+                              border: isSel ? `2px solid #1B4F8A` : '1px solid #F7FAFC',
+                              background: isSel ? "#1B4F8A" : isHoy ? "#F0F7FF" : "#F7FAFC",
+                              color: isSel ? "#FFF" : disp ? "#0A1F3D" : "#CBD5E0",
+                              fontWeight: disp || isSel || isHoy ? '800' : '500',
+                              cursor: disp ? 'pointer' : 'default',
+                              fontSize: '12px',
+                              position: 'relative'
+                            }}>
+                              {d.getDate()}
+                              {isHoy && (
+                                <div style={{ position: 'absolute', bottom: '4px', left: '50%', transform: 'translateX(-50%)', width: '3px', height: '3px', borderRadius: '50%', background: isSel ? "#FFF" : "#1B4F8A" }} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLUMNA DERECHA: HORAS */}
+                  <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column" }}>
+                    
+                    <div style={{ height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: CAL_ST.separacionMesCalendario }}>
+                      <p style={{ margin: 0, fontSize: '10px', fontWeight: '800', color: "#A0AEC0", textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        ✦ Disponibilidad {selDia ? `${selDia.getDate()} ${selDia.toLocaleString('es-ES', { month: 'short' })}` : ''}
+                      </p>
+                    </div>
+
+                    <div style={{ 
+                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto",
+                      background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
+                    }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: '4px', flex: 1 }}>
+                        {todasLasHoras.map(h => {
+                          const disponible = slots.includes(h);
+                          const seleccionado = selHora === h;
+
+                          return (
+                            <button 
+                              key={h} 
+                              disabled={!disponible}
+                              onClick={() => disponible && setSelHora(h)} 
+                              style={{
+                                borderRadius: "6px", 
+                                fontWeight: "700", 
+                                fontSize: "10px", 
+                                transition: 'all 0.2s',
+                                cursor: disponible ? 'pointer' : 'default',
+                                border: seleccionado ? "1.5px solid #1B4F8A" : "1px solid #E2E8F0",
+                                background: seleccionado ? "#1B4F8A" : disponible ? "#FFF" : "#F7FAFC", 
+                                color: seleccionado ? "#FFF" : disponible ? "#2D3748" : "#CBD5E0",
+                                padding: "4px 0"
+                              }}
+                            >
+                              {h}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            );
+          })()}
+
+          {paso === 4 && (() => {
+            // --- PANEL DE CONTROL TOTAL DEL PASO 4 ---
+            const RES_ST = {
+              // 1. DIMENSIONES GLOBALES
+              anchoMax: "40%",
+
+              // 2. COLORES
+              colorPrimario: "#1B4F8A",
+              colorTexto: "#0A1F3D",
+              colorSecundario: "#A0AEC0",
+              colorFondo: "#FFF",
+              colorBorde: "#E2E8F0",
+              bgCajita: "#F8FAFC",
+
+              // 3. BORDES Y SOMBRAS
+              borderRadiusMarco: "20px",
+              borderRadiusCajita: "16px",
+              borderRadiusInput: "14px",
+              shadow: "0 10px 30px rgba(0,0,0,0.05)",
+
+              // 4. MÁRGENES (Separaciones hacia AFUERA)
+              margenInferiorPagina: "0px",
+              margenInferiorTarjeta: "30px",
+              margenInferiorTitulo: "20px",
+              margenInferiorEtiquetas: "6px",
+
+              // 5. PADDINGS (Rellenos hacia ADENTRO)
+              paddingPaginaLateral: "20px",
+              paddingMarcoInterno: "25px",
+              
+              // 👇 NUEVOS CONTROLES SEPARADOS PARA EQUILIBRAR LA VISTA 👇
+              paddingTopCajitas: "10px",       // Relleno SUPERIOR (encima de "Servicio" y "Día"). Bájalo si hay mucho hueco.
+              paddingBottomCajitas: "20px",    // Relleno INFERIOR (debajo de "Corte" y la "Hora"). Súbelo si hay poco hueco.
+              paddingLadosCajitas: "0px",     // Relleno a los LADOS de las cajitas.
+              // 👆 =================================================== 👆
+
+              paddingCajitaCentral: "10px",    // Relleno interior de la caja del "Profesional"
+              paddingTextosMitad: "0 0px",    // Aleja los textos de la línea vertical divisoria.
+              paddingInputs: "16px",           // Grosor interno de las casillas de Nombre y Teléfono.
+
+              // 6. GAPS (Huecos entre elementos)
+              gapCajitasResumen: "12px",
+              gapFotoNombre: "8px",
+              gapFormulario: "20px"
+            };
+
+            // --- FORMATEO PERSONALIZADO DE LA FECHA ---
+            let textoDia = '';
+            if (selDia) {
+              const nombreDia = selDia.toLocaleDateString('es-ES', { weekday: 'long' });
+              const diaNum = selDia.getDate();
+              const mes = selDia.toLocaleDateString('es-ES', { month: 'long' });
+              textoDia = `${nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1)} ${diaNum} de ${mes}`;
+            }
+
+            return (
+              <div style={{ 
+                width: '100%', 
+                maxWidth: RES_ST.anchoMax, 
+                margin: '0 auto', 
+                animation: 'fadeIn 0.5s ease', 
+                padding: `0 ${RES_ST.paddingPaginaLateral}`, 
+                paddingBottom: RES_ST.margenInferiorPagina 
+              }}>
+                
+                {/* --- TARJETA DE RESUMEN SIMÉTRICA --- */}
+                <div style={{ 
+                  background: RES_ST.colorFondo, 
+                  borderRadius: RES_ST.borderRadiusMarco, 
+                  padding: RES_ST.paddingMarcoInterno, 
+                  border: `1px solid ${RES_ST.colorBorde}`, 
+                  boxShadow: RES_ST.shadow,
+                  marginBottom: RES_ST.margenInferiorTarjeta
+                }}>
+                  <h3 style={{ margin: 0, marginBottom: RES_ST.margenInferiorTitulo, fontSize: '13px', color: RES_ST.colorTexto, textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center', fontWeight: '900' }}>
+                    Resumen de tu cita
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: RES_ST.gapCajitasResumen }}>
+
+                    {/* CAJITA 1: SERVICIO Y PRECIO */}
+                    {/* Fíjate cómo aplicamos aquí el padding separado */}
+                    <div style={{ background: RES_ST.bgCajita, padding: `${RES_ST.paddingTopCajitas} ${RES_ST.paddingLadosCajitas} ${RES_ST.paddingBottomCajitas} ${RES_ST.paddingLadosCajitas}`, borderRadius: RES_ST.borderRadiusCajita, display: 'flex', alignItems: 'stretch' }}>
+                      <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid ${RES_ST.colorBorde}`, padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Servicio</span>
+                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2', display: 'block' }}>{selServicio?.nombre}</span>
+                      </div>
+                      <div style={{ flex: 1, textAlign: 'center', padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Precio</span>
+                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2' }}>{selServicio?.precio}€</span>
+                      </div>
+                    </div>
+
+                    {/* CAJITA 2: PROFESIONAL */}
+                    <div style={{ background: RES_ST.bgCajita, padding: RES_ST.paddingCajitaCentral, borderRadius: RES_ST.borderRadiusCajita, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', marginBottom: '10px' }}>Profesional</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: RES_ST.gapFotoNombre }}>
+                        {selPeluquero?.foto && (
+                          <img src={selPeluquero.foto} alt={selPeluquero.nombre} style={{ width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${RES_ST.colorBorde}` }} />
+                        )}
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: RES_ST.colorTexto }}>{selPeluquero?.nombre}</span>
+                      </div>
+                    </div>
+
+                    {/* CAJITA 3: DÍA Y HORA */}
+                    <div style={{ background: RES_ST.bgCajita, padding: `${RES_ST.paddingTopCajitas} ${RES_ST.paddingLadosCajitas} ${RES_ST.paddingBottomCajitas} ${RES_ST.paddingLadosCajitas}`, borderRadius: RES_ST.borderRadiusCajita, display: 'flex', alignItems: 'stretch' }}>
+                      <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid ${RES_ST.colorBorde}`, padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Día</span>
+                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2' }}>
+                          {textoDia}
+                        </span>
+                      </div>
+                      <div style={{ flex: 1, textAlign: 'center', padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Hora</span>
+                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2' }}>{selHora}</span>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
 
-                {/* 2. AQUÍ ESTÁ EL CONTENEDOR QUE BUSCAS */}
-                {slots.length > 0 ? (
-                  <div style={{
-                    display: "flex",          // Cambia el estilo aquí
-                    flexWrap: "wrap",
-                    justifyContent: "center", 
-                    gap: "20px",
-                    marginTop: "15px",
-                    width: "90%",
-                    maxWidth: "90%",
-                    margin: "0 auto"
-                  }}>
-                    {/* 3. Y aquí dentro está el mapeo de los botones */}
-                    {slots.map((h, i) => (
-                      <button 
-                        key={h} 
-                        className="slot-btn" 
-                        style={{
-                          ...cs.horaBtn(selHora === h),
-                          flex: "0 1 85px", 
-                          minWidth: "15px",
-                          textAlign: "center",
-                          padding: "10px 5px"
-                        }} 
-                        onClick={() => setSelHora(h)}
-                      >
-                        {h}
-                      </button>
-                    ))}
+                {/* --- FORMULARIO --- */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: RES_ST.gapFormulario }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: RES_ST.colorSecundario, marginBottom: '8px', letterSpacing: '1px' }}>NOMBRE COMPLETO</label>
+                    <input 
+                      style={{ width: '100%', padding: RES_ST.paddingInputs, borderRadius: RES_ST.borderRadiusInput, border: `1px solid ${RES_ST.colorBorde}`, fontSize: '15px', fontWeight: '600', color: RES_ST.colorTexto, outline: 'none', background: RES_ST.colorFondo, boxSizing: 'border-box' }}
+                      placeholder="Escribe tu nombre" 
+                      value={form.nombre} 
+                      onChange={e => setForm({ ...form, nombre: e.target.value })} 
+                    />
                   </div>
-                ) : (
-                  /* El div de "Sin disponibilidad" */
-                  <div style={{ textAlign: "center", padding: "10px", color: TX2, fontSize: 15, background: CR2, borderRadius: 12 }}>Sin disponibilidad este día</div>
-                )}
-              </>
+                  
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: RES_ST.colorSecundario, marginBottom: '8px', letterSpacing: '1px' }}>TELÉFONO</label>
+                    <input 
+                      style={{ width: '100%', padding: RES_ST.paddingInputs, borderRadius: RES_ST.borderRadiusInput, border: `1px solid ${RES_ST.colorBorde}`, fontSize: '15px', fontWeight: '600', color: RES_ST.colorTexto, outline: 'none', background: RES_ST.colorFondo, boxSizing: 'border-box' }}
+                      type="tel"
+                      placeholder="Tu número de móvil" 
+                      value={form.telefono} 
+                      onChange={e => setForm({ ...form, telefono: e.target.value })} 
+                    />
+                  </div>
 
-          )}
-          </div>
-        )}
+                </div>
+              </div>
+            );
+          })()}
 
-        {paso===4&&(
-          <div style={cs.section}>
-            <button style={cs.backBtn} onClick={()=>irAPaso(3)}>← Cambiar fecha</button>
-            <div style={cs.sTitle}>✦ Confirmar reserva</div>
-            <div style={cs.resBox}>
-              {[["Servicio",selServicio?.nombre],["Duración",`${selServicio?.duracionMin} min`],["Profesional",`${selPeluquero?.emoji} ${selPeluquero?.nombre}`],["Fecha",selDia?fmtLarga(selDia):""],["Hora",selHora]].map(([l,v],i,arr)=>(
-                <div key={i} style={cs.resFila(i===arr.length-1)}><span style={{fontSize:11,color:TX2,textTransform:"uppercase",letterSpacing:1}}>{l}</span><span style={{fontSize:13,color:TX,fontWeight:700,textAlign:"right"}}>{v}</span></div>
-              ))}
-            </div>
-            <div style={{...cs.resBox,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:13,color:TX2}}>Total</span><span style={{fontSize:26,fontWeight:700,color:A}}>€{selServicio?.precio}</span></div>
-            <input style={cs.inp} placeholder="Tu nombre completo" value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})}/>
-            <input style={cs.inp} placeholder="Tu WhatsApp (recibirás confirmación)" value={form.telefono} onChange={e=>setForm({...form,telefono:e.target.value})}/>
-          </div>
-        )}
 
-        {paso===5&&(
-          <div style={cs.successBox}>
-            <div style={cs.successIcon}>✓</div>
-            <h2 style={{fontSize:24,color:A,marginBottom:6,letterSpacing:1}}>¡Reserva confirmada!</h2>
-            <p style={{color:TX2,marginBottom:20,fontStyle:"italic"}}>Te esperamos, {form.nombre}</p>
-            <div style={{...cs.resBox,maxWidth:340,margin:"0 auto 16px",textAlign:"left"}}>
-              {[["Peluquería",CONFIG.nombre],["Servicio",selServicio?.nombre],["Profesional",`${selPeluquero?.emoji} ${selPeluquero?.nombre}`],["Fecha y hora",selDia?`${fmtLarga(selDia)} · ${selHora}`:""],[" Precio",`€${selServicio?.precio}`]].map(([l,v],i,arr)=>(
-                <div key={i} style={cs.resFila(i===arr.length-1)}><span style={{fontSize:11,color:TX2,textTransform:"uppercase",letterSpacing:1}}>{l.trim()}</span><span style={{fontSize:13,fontWeight:700,color:i===arr.length-1?A:TX,textAlign:"right"}}>{v}</span></div>
-              ))}
-            </div>
-            <div style={{background:"#25D36610",border:"1px solid #25D36633",borderRadius:12,padding:"12px 16px",maxWidth:340,margin:"0 auto 20px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{fontSize:18}}>💬</span><span style={{fontSize:12,fontWeight:700,color:"#25D366"}}>Confirmación por WhatsApp</span></div>
-              <a href={`https://wa.me/${CONFIG.whatsapp}?text=${waMsgCliente}`} target="_blank" rel="noreferrer" style={{display:"inline-block",background:"#25D366",color:WH,borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,textDecoration:"none"}}>Ver mensaje →</a>
-            </div>
-            <button style={{background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:12,padding:"14px 40px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={reset}>VOLVER AL INICIO</button>
-          </div>
-        )}
+          {paso === 5 && (() => {
+  // --- PANEL DE CONTROL DEL PASO 5 ---
+  const OK_ST = {
+    // 1. DIMENSIONES Y FORMAS
+    anchoMax: "40%",               
+    alturaCaja: "auto",              
+    borderRadiusMarco: "24px",
+    borderRadiusBtn: "16px",
+    
+    // 2. COLORES
+    colorPrimario: "#1B4F8A",
+    colorTexto: "#0A1F3D",           
+    colorSecundario: "#64748B",      
+    colorFondo: "#FFF",
+    colorBorde: "#E2E8F0",
+    
+    // 3. COLORES DEL CHECK
+    colorCheck: "#059669",           
+    bgCheck: "#D1FAE5",              
+    bgHalo: "rgba(16, 185, 129, 0.12)", 
+
+    // 4. DISTANCIAS (Control de posición en pantalla)
+    margenSuperior: "-70px",  // <-- REDUCE esto para SUBIR la caja (ej: "0px", "-20px", "-40px")
+    margenInferior: "-70px",  // <-- Aumenta esto si quieres más aire por debajo
+    paddingMarco: "40px 30px",       
+    shadow: "0 20px 40px rgba(0,0,0,0.08)" 
+  };
+
+  // Formateo de la fecha (Ej: "Martes 21 de abril")
+  let textoDia = '';
+  if (selDia) {
+    const nombreDia = selDia.toLocaleDateString('es-ES', { weekday: 'long' });
+    const diaNum = selDia.getDate();
+    const mes = selDia.toLocaleDateString('es-ES', { month: 'long' });
+    textoDia = `${nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1)} ${diaNum} de ${mes}`;
+  }
+
+  // Rescatamos el nombre completo y el teléfono
+  const nombreCompleto = form.nombre ? form.nombre.trim() : '';
+  const telefonoCliente = form.telefono ? form.telefono.trim() : '';
+
+  return (
+    <div style={{ 
+      width: '100%', 
+      maxWidth: OK_ST.anchoMax, 
+      // Aquí aplicamos los márgenes personalizados arriba y abajo, y 'auto' para centrar a los lados
+      margin: `${OK_ST.margenSuperior} auto ${OK_ST.margenInferior}`, 
+      animation: 'fadeIn 0.6s ease', 
+      padding: '0 0px'
+    }}>
+      
+      <div style={{ 
+        height: OK_ST.alturaCaja, 
+        background: OK_ST.colorFondo, 
+        borderRadius: OK_ST.borderRadiusMarco, 
+        padding: OK_ST.paddingMarco, 
+        border: `1px solid ${OK_ST.colorBorde}`, 
+        boxShadow: OK_ST.shadow,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center', 
+        textAlign: 'center',
+        boxSizing: 'border-box' 
+      }}>
+
+        {/* --- ICONO DE ÉXITO --- */}
+        <div style={{
+          width: '70px',
+          height: '70px',
+          borderRadius: '50%',
+          background: OK_ST.bgCheck,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '25px',
+          boxShadow: `0 0 0 10px ${OK_ST.bgHalo}` 
+        }}>
+          <span style={{ fontSize: '35px', color: OK_ST.colorCheck, fontWeight: '900' }}>✓</span>
+        </div>
+
+        {/* --- TÍTULO --- */}
+        <h2 style={{ 
+          margin: '0 0 12px 0', 
+          fontSize: '22px', 
+          fontWeight: '900', 
+          color: OK_ST.colorTexto, 
+          letterSpacing: '-0.5px' 
+        }}>
+          ¡Reserva confirmada!
+        </h2>
+
+        {/* --- MENSAJE DE SALUDO --- */}
+        <p style={{ 
+          margin: '0 0 25px 0', 
+          fontSize: '15px', 
+          color: OK_ST.colorSecundario, 
+          lineHeight: '1.5'
+        }}>
+          ¡Genial, <strong style={{ color: OK_ST.colorTexto }}>{nombreCompleto}</strong>! <br/>
+          Hemos anotado tu cita en nuestra agenda.
+        </p>
+
+        {/* --- CAJA DE RECORDATORIO --- */}
+        <div style={{
+          background: '#F8FAFC',
+          border: `1px solid ${OK_ST.colorBorde}`,
+          borderRadius: '16px',
+          padding: '18px 20px',
+          width: '100%',
+          boxSizing: 'border-box',
+          marginBottom: '20px', 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
+           <div style={{ fontSize: '11px', fontWeight: '800', color: OK_ST.colorSecundario, textTransform: 'uppercase', letterSpacing: '1px' }}>
+             TU CITA
+           </div>
+           
+           {/* Día en negro (colorTexto) */}
+           <div style={{ fontSize: '16px', fontWeight: '800', color: OK_ST.colorTexto, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             {textoDia}
+           </div>
+           
+           {/* Hora en negro (colorTexto) en lugar de colorPrimario */}
+           <div style={{ fontSize: '16px', fontWeight: '800', color: OK_ST.colorTexto, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             a las {selHora}
+           </div>
+        </div>
+
+        {/* --- NOTIFICACIÓN WHATSAPP --- */}
+        <p style={{ 
+          margin: '0 0 30px 0', 
+          fontSize: '13px', 
+          color: OK_ST.colorSecundario, 
+          lineHeight: '1.5',
+          padding: '0 10px'
+        }}>
+          Te hemos enviado un mensaje por WhatsApp al <strong>{telefonoCliente}</strong> con los detalles de tu reserva.
+        </p>
+
+        {/* --- BOTÓN DE VOLVER --- */}
+        <button 
+          onClick={reset} 
+          style={{
+            width: '100%',
+            padding: '18px',
+            borderRadius: OK_ST.borderRadiusBtn,
+            border: 'none',
+            background: OK_ST.colorPrimario,
+            color: '#FFF',
+            fontSize: '13px',
+            fontWeight: '800',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            boxShadow: `0 10px 20px ${OK_ST.colorPrimario}40`,
+            marginTop: 'auto' 
+          }}
+        >
+          Volver al inicio
+        </button>
+
+      </div>
+    </div>
+  );
+})()}
+        </div>
       </div>
 
-      {/* ★ STICKY BOTTOM BUTTON — solo en pasos 1-4 */}
-      {paso>=1&&paso<=4&&(
+      {/* 6. BOTÓN CONTINUAR FLOTANTE */}
+      {paso >= 1 && paso <= 4 && (
         <div className="sticky-bottom">
-          <button
-            style={{width:"100%",background:btnOk?`linear-gradient(135deg,${A},#133A6A)`:CR2,color:btnOk?WH:TX2,border:btnOk?"none":`1px solid ${CR3}`,borderRadius:12,padding:"14px",fontSize:14,fontWeight:700,cursor:btnOk?"pointer":"not-allowed",letterSpacing:.5}}
-            disabled={!btnOk}
-            onClick={btnAction}
+          <button 
+            className="btn-continuar-float" 
+            onClick={btnAction} 
+            disabled={!btnOk} 
+            style={{ 
+              // CAMBIO: Usamos backgroundColor (colores sólidos) para que la animación sea perfecta
+              backgroundColor: !btnOk 
+                ? "#E2E8F0" // Gris claro cuando está bloqueado
+                : (paso === 4 
+                    ? "#10B981" // Verde esmeralda sólido
+                    : A),       // Azul sólido de tu marca
+              
+              color: !btnOk ? "#94A3B8" : WH,
+              
+              // Ajustamos la sombra para que coincida con el color activo
+              boxShadow: !btnOk 
+                ? "none" 
+                : (paso === 4 
+                    ? "0 8px 24px rgba(16, 185, 129, 0.4)" // Sombra verde
+                    : `0 8px 24px ${A}40`),               // Sombra azul
+              
+              border: "none",
+              
+              // Forzamos que la transición de color sea fluida
+              transition: "background-color 0.4s ease, box-shadow 0.4s ease, color 0.4s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+            }}
           >
             {btnLabel}
           </button>
@@ -1657,7 +2261,7 @@ function ClientePage({valoraciones,citas,festivos,bloqueos,servicios,startPaso=0
       )}
     </div>
   );
-}
+} // FIN DE CLIENTEPAGE
 
 // ─────────────────────────────────────────────
 // ADMIN PANEL
@@ -1882,11 +2486,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CITAS
+// TAB CITAS
   // ──────────────────────
   const TabCitas=()=>{
     const [,forceUpdate]=useState(0);
-    const localBusqRef=useRef(busqCitaRef.current);
+    const localBusqRef=useRef(busqCitaRef?.current || "");
     const [showManual,setShowManual]=useState(false);
     const [editNota,setEditNota]=useState(null);
     const [notaVal,setNotaVal]=useState("");
@@ -1902,8 +2506,16 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const [citaEditando,setCitaEditando]=useState(null);
     const [citaBorrar,setCitaBorrar]=useState(null);
     const [showEditCalPicker,setShowEditCalPicker]=useState(false);
+    
     const weekDays=getWeekDays(weekOffsetCitas);
     const filtWeekDays=getWeekDays(filtSemanaOffset);
+
+    const FOTO_DEFAULT = "https://i.postimg.cc/WbKz7QyQ/avatar-default.png";
+
+    // ★ AQUÍ PONDRÁS LOS LINKS DE TUS PROPIOS ICONOS O FOTOS
+    const LINK_EFECTIVO = "https://cdn-icons-png.flaticon.com/512/2489/2489756.png"; 
+    const LINK_TARJETA  = "https://cdn-icons-png.flaticon.com/512/1086/1086741.png";
+    const LINK_BIZUM    = "https://cdn-icons-png.flaticon.com/512/11559/11559814.png";
 
     const citasHoy=citas.filter(c=>c.fecha===HOY_ISO).sort((a,b)=>a.hora.localeCompare(b.hora));
     const citasFiltradas=useMemo(()=>{
@@ -1948,17 +2560,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       if(!manForm.nombre||!manForm.servicioId||!manForm.peluqueroId||!manForm.fecha||!manForm.hora) return;
       const svc=servicios.find(s=>s.id===Number(manForm.servicioId));
       const pel=CONFIG.peluqueros.find(p=>p.id===Number(manForm.peluqueroId));
-      await crearCita({clienteNombre:nombre,clienteTel:telefono,servicio:svc.nombre,servicioId:svc.id,peluqueroId:pel.id,peluquero:pel.nombre,fecha:manForm.fecha,hora:manForm.hora,precio:svc.precio,estado:"pendiente",nota:manForm.nota});
+      await crearCita({clienteNombre:manForm.nombre,clienteTel:manForm.telefono,servicio:svc.nombre,servicioId:svc.id,peluqueroId:pel.id,peluquero:pel.nombre,fecha:manForm.fecha,hora:manForm.hora,precio:svc.precio,estado:"pendiente",nota:manForm.nota});
       if(manForm.telefono){
-        const docId=nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+manForm.telefono;
+        const docId=manForm.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+manForm.telefono;
         const ref=doc(db,"clientes",docId);
         const snap=await getDoc(ref);
-        console.log("Buscando cliente con ID:", docId, "Existe:", snap.exists());
         if(!snap.exists()){
-          const q=query(collection(db,"clientes"),where("telefono","==",manForm.telefono));
-          const snapQ=await getDocs(q);
-          console.log("Búsqueda por teléfono, resultados:", snapQ.size, snapQ.docs.map(d=>d.id));
-          await setDoc(ref,{nombre:nombre,telefono:telefono,visitas:1,gasto:svc.precio,ultimaVisita:manForm.fecha,nota:"",historial:[{fecha:manForm.fecha,servicio:svc.nombre,peluquero:pel.nombre,precio:svc.precio}]});
+          await setDoc(ref,{nombre:manForm.nombre,telefono:manForm.telefono,visitas:1,gasto:svc.precio,ultimaVisita:manForm.fecha,nota:"",historial:[{fecha:manForm.fecha,servicio:svc.nombre,peluquero:pel.nombre,precio:svc.precio}]});
         } else {
           const cl=snap.data();
           await updateDoc(ref,{
@@ -1970,65 +2578,142 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         }
       }
       setShowManual(false); setManForm({nombre:"",telefono:"",servicioId:"",peluqueroId:"",fecha:"",hora:"",nota:""});
-        telefonoValRef.current="";
-        nombreValRef.current="";
-        notaValRef.current=""; setClienteRec(null);
-            };
+    };
 
     const mostrarToast=cita=>{ _citaEliminadaTemp=cita; setToastVisible(true); if(toastTimer)clearTimeout(toastTimer); const t=setTimeout(()=>{setToastVisible(false);_citaEliminadaTemp=null;},6000); setToastTimer(t); };
     const confirmarBorrado=async()=>{ const cita={...citaBorrar}; await borrarCita(cita.id); setCitaBorrar(null); mostrarToast(cita); };
 
-    const AccionesCita=({c})=>(
-      <td style={{...as.td,position:"relative"}}>
-        {c.estado==="pendiente"&&<><button style={as.actBtn(OK)} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button><button style={as.actBtn(ER)} onClick={()=>cambiarEstado(c.id,"no-show")}>✗</button></>}
-        {c.estado!=="pendiente"&&<button style={as.actBtn(TX2)} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
-        <button style={as.actBtn(TX2)} onClick={()=>setMenuAbierto(menuAbierto===c.id?null:c.id)}>•••</button>
+    // Actualizar Método de Pago con un clic (Permite pasar null para deseleccionar)
+    const cambiarMetodoPago = async (id, metodo) => {
+      setCitas(prev => prev.map(c => c.id === id ? { ...c, metodoPago: metodo } : c));
+      try {
+        await actualizarCita(id, { metodoPago: metodo });
+      } catch (error) {
+        console.error("Error al guardar método de pago", error);
+      }
+    };
+
+    // --- SUBCOMPONENTES DE CELDAS PREMIUM ---
+    const EstadoPremium=({estado})=>{
+      const config = {
+        "pendiente":  { bg: "#FEF3C7", tx: "#D97706", lbl: "Pendiente" },
+        "completada": { bg: "#D1FAE5", tx: "#059669", lbl: "Completada" },
+        "no-show":    { bg: "#FEE2E2", tx: "#DC2626", lbl: "No show" }
+      };
+      const st = config[estado] || config["pendiente"];
+      return <span style={{background:st.bg, color:st.tx, padding:"6px 12px", borderRadius:"20px", fontSize:"10px", fontWeight:800}}>{st.lbl}</span>;
+    };
+
+    // ★ SELECTOR DE PAGO: Permite deseleccionar y mantiene las fotos opacas si está completado
+    const SelectorPago = ({ cita }) => {
+      const p = cita.metodoPago;
+      const esCompletada = cita.estado === "completada";
+
+      const st = (activo, colorBg, colorBorder) => ({
+        width: "28px",        
+        height: "28px",       
+        padding: 0,           
+        borderRadius: "6px",
+        border: `1px solid ${activo && esCompletada ? colorBorder : "#E2E8F0"}`,
+        background: activo && esCompletada ? colorBg : "#F8FAFC",
+        cursor: esCompletada ? "pointer" : "not-allowed", 
+        opacity: esCompletada ? 1 : 0.4, // ★ Todo el botón opaco si la cita está completada
+        transition: "all 0.2s ease",
+        display: "flex",      
+        alignItems: "center", 
+        justifyContent: "center", 
+        boxSizing: "border-box"
+      });
+
+      const handleSelect = (metodo) => {
+        if (esCompletada) {
+          // ★ Si ya estaba seleccionado ese método, pasamos null para desmarcarlo
+          cambiarMetodoPago(cita.id, p === metodo ? null : metodo);
+        }
+      };
+
+      return (
+        <div style={{display:"flex", gap:"6px", justifyContent:"center"}}>
+          <button 
+            title={esCompletada ? "Pago en Efectivo" : "Confirma primero la cita"} 
+            style={st(p==='efectivo', '#DEF7EC', '#059669')} 
+            onClick={()=>handleSelect('efectivo')}
+            disabled={!esCompletada} 
+          >
+            <img src={LINK_EFECTIVO} alt="Efectivo" style={{width:"16px", height:"16px", objectFit:"contain", opacity: esCompletada ? 1 : 0.3}} />
+          </button>
+          
+          <button 
+            title={esCompletada ? "Pago con Tarjeta" : "Confirma primero la cita"}  
+            style={st(p==='tarjeta', '#E1EFFE', '#1E429F')} 
+            onClick={()=>handleSelect('tarjeta')}
+            disabled={!esCompletada}
+          >
+            <img src={LINK_TARJETA} alt="Tarjeta" style={{width:"16px", height:"16px", objectFit:"contain", opacity: esCompletada ? 1 : 0.3}} />
+          </button>
+
+          <button 
+            title={esCompletada ? "Pago por Bizum" : "Confirma primero la cita"}    
+            style={st(p==='bizum', '#FCE8F3', '#99154B')} 
+            onClick={()=>handleSelect('bizum')}
+            disabled={!esCompletada}
+          >
+            <img src={LINK_BIZUM} alt="Bizum" style={{width:"16px", height:"16px", objectFit:"contain", opacity: esCompletada ? 1 : 0.3}} />
+          </button>
+        </div>
+      );
+    };
+
+    const AccionesCitaPremium=({c})=>(
+      <td style={{padding:"16px 10px", verticalAlign:"middle", position:"relative"}}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"}}>
+          {c.estado==="pendiente"&&<>
+            <button title="Confirmar" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px", fontWeight:"900", transition:"0.2s"}} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
+            <button title="No Show" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900", transition:"0.2s"}} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
+          </>}
+          {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
+          <button title="Opciones" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#F8FAFC", color:"#475569", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={()=>setMenuAbierto(menuAbierto===c.id?null:c.id)}>⋮</button>
+        </div>
+
         {menuAbierto===c.id&&(
-          <div style={{position:"absolute",right:0,top:"100%",background:WH,border:`1px solid ${CR3}`,borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,.12)",zIndex:50,minWidth:140,overflow:"hidden"}}>
-            <button style={{display:"block",width:"100%",padding:"10px 16px",fontSize:12,fontWeight:600,color:TX,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar cita</button>
-            <button style={{display:"block",width:"100%",padding:"10px 16px",fontSize:12,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
+          <div style={{position:"absolute",right:"45px",top:"50%",transform:"translateY(-50%)",background:WH,border:`1px solid ${CR3}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:50,minWidth:140,overflow:"hidden"}}>
+            <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar cita</button>
+            <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
           </div>
         )}
       </td>
     );
 
-    const CalModal=({show,setShow,title,children})=>show?(
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-        <div style={{background:WH,borderRadius:18,padding:"28px",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-            <h3 style={{fontSize:16,fontWeight:700,color:TX}}>{title}</h3>
-            <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:TX2}} onClick={()=>setShow(false)}>✕</button>
-          </div>
-          {children}
-        </div>
-      </div>
-    ):null;
-
     return(
       <div>
+        <style>{`
+          .fila-premium { transition: background-color 0.2s ease; border-bottom: 1px solid #F1F5F9; }
+          .fila-premium:hover { background-color: #F8FAFC; }
+          .tabla-premium { width: 100%; border-collapse: collapse; }
+          .th-premium { padding: 5px 10px; color: #64748B; font-size: 10px; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #F1F5F9; text-align: center; }
+          .td-premium { padding: 5px 10px; vertical-align: middle; text-align: center; }
+        `}</style>
+
+        {/* 1. KPIs VISIBLES SIEMPRE */}
         <div className="admin-kpi-grid" style={as.kpiGrid}>
           {[["€"+ingrHoy,"Ingresos hoy"],[citasHoy.length,"Citas hoy"],[pendHoy,"Pendientes"],[noShowHoy,"No shows"]].map(([v,l],i)=>(
             <div key={i} style={as.kpi}><div style={as.kpiVal}>{v}</div><div style={as.kpiLbl}>{l}</div></div>
           ))}
         </div>
+
+        {/* 2. PESTAÑAS PRINCIPALES DE VISTA */}
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-          {[["hoy","📋 Tabla hoy"],["semana","📅 Semana"],["peluquero","✂️ Por peluquero"]].map(([v,l])=>(
-            <button key={v} style={{background:vistaCitas===v?A:CR2,color:vistaCitas===v?WH:TX,border:`1px solid ${vistaCitas===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setVistaCitas(v)}>{l}</button>
+          {[["hoy","📋 Vista Tabla"],["semana","📅 Vista Calendario"],["peluquero","✂️ Vista Peluquero"]].map(([v,l])=>(
+            <button key={v} style={{background:vistaCitas===v?A:CR2,color:vistaCitas===v?WH:TX,border:`1px solid ${vistaCitas===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>{
+              setVistaCitas(v);
+              if(v==="hoy"){ setFiltFecha("hoy"); setMostrarBuscador(false); }
+            }}>{l}</button>
           ))}
           <button style={{marginLeft:"auto",background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setShowManual(true)}>+ Nueva cita</button>
         </div>
 
         {/* Modal nueva cita */}
-        <NuevaCitaModal
-          show={showManual}
-          onClose={()=>setShowManual(false)}
-          clientes={clientes}
-          servicios={servicios}
-          bloqueos={bloqueos}
-          festivosSet={festivosSet}
-          citas={citas}
-          onCreada={()=>setShowManual(false)}
-        />
+        <NuevaCitaModal show={showManual} onClose={()=>setShowManual(false)} clientes={clientes} servicios={servicios} bloqueos={bloqueos} festivosSet={festivosSet} citas={citas} onCreada={()=>setShowManual(false)} />
 
         {/* Modal editar cita */}
         {citaEditando&&(
@@ -2076,134 +2761,191 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
+        {/* --- VISTA: TABLA --- */}
         {vistaCitas==="hoy"&&(
-          <div style={as.card}>
+          <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px 24px", width: "100%", boxSizing: "border-box" }}>
             <div style={{background:CR,border:`1px solid ${hayFiltros?A:CR3}`,borderRadius:10,padding:"10px 12px",marginBottom:14}}>
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:mostrarBuscador||hayFiltros?10:0}}>
                 <input
                   style={{flex:1,marginBottom:0,padding:"7px 12px",fontSize:12,width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,color:TX,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}
-                  defaultValue={busqCitaRef.current}
+                  defaultValue={busqCitaRef?.current || ""}
                   onChange={e=>{busqCitaRef.current=e.target.value;localBusqRef.current=e.target.value;forceUpdate(n=>n+1);}}
                   placeholder="🔍 Buscar por nombre o teléfono..."
                 />
-                <button style={{background:mostrarBuscador?`${A}15`:WH,border:`1px solid ${mostrarBuscador?A:CR3}`,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",color:mostrarBuscador?A:TX2,whiteSpace:"nowrap"}} onClick={()=>setMostrarBuscador(v=>!v)}>{mostrarBuscador?"▲ Filtros":"▼ Filtros"}{hayFiltros?" ●":""}</button>
+                <button style={{background:mostrarBuscador?`${A}15`:WH,border:`1px solid ${mostrarBuscador?A:CR3}`,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",color:mostrarBuscador?A:TX2,whiteSpace:"nowrap"}} onClick={()=>setMostrarBuscador(v=>!v)}>
+                  {mostrarBuscador?"▲ Ocultar Filtros":"▼ Ver Filtros"}{hayFiltros?" ●":""}
+                </button>
                 {hayFiltros&&<button style={{background:ER+"15",border:`1px solid ${ER}33`,borderRadius:8,padding:"7px 10px",fontSize:11,fontWeight:700,cursor:"pointer",color:ER}} onClick={()=>{busqCitaRef.current="";localBusqRef.current="";forceUpdate(n=>n+1);setFiltFecha("hoy");setFiltDesde("");setFiltHasta("");setFiltPel("todas");setFiltEstado("todos");setMostrarBuscador(false);}}>✕</button>}
               </div>
+
               {(mostrarBuscador||hayFiltros)&&(
-                <>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,alignItems:"end",width:"100%"}}>
-                  <div style={{minWidth:120}}>
-                    <Lbl>Fecha</Lbl>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:10,alignItems:"end",width:"100%", marginTop: "10px"}}>
+                  <div>
+                    <Lbl>Filtrar por Fecha</Lbl>
                     <Sel style={{padding:"6px 9px",fontSize:11}} value={filtFecha} onChange={e=>{setFiltFecha(e.target.value);setFiltSemanaOffset(0);}}>
-                      <option value="todas">Todas</option>
                       <option value="hoy">Hoy</option>
                       <option value="semana">Esta semana</option>
                       <option value="fecha">Fecha concreta</option>
-                      <option value="rango">Rango</option>
+                      <option value="rango">Rango de fechas</option>
+                      <option value="todas">Todas las citas</option>
                     </Sel>
                   </div>
-                  {filtFecha==="fecha"&&(
-                    <div style={{position:"relative",minWidth:150}}>
-                      <Lbl>Fecha concreta</Lbl>
-                      <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"6px 9px",fontSize:11,color:filtDesde?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFiltDesdeCalPicker(v=>!v)}>
-                        <span>{filtDesde||"Seleccionar..."}</span><span>📅</span>
-                      </button>
-                      {showFiltDesdeCalPicker&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={filtDesde} onChange={iso=>{setFiltDesde(iso);setShowFiltDesdeCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+
+                  {filtFecha==="semana"&&(
+                    <div style={{display:"flex",alignItems:"center",gap:4, height: "28px"}}>
+                      <button style={{background:WH,border:`1px solid ${CR3}`,borderRadius:6,padding:"0 8px",fontSize:11,height:"100%",cursor:"pointer"}} onClick={()=>setFiltSemanaOffset(o=>o-1)}>←</button>
+                      <span style={{fontSize:10,fontWeight:700,color:TX,flex:1,textAlign:"center",whiteSpace:"nowrap"}}>{filtWeekDays[0].getDate()} {MESES_ES[filtWeekDays[0].getMonth()]} - {filtWeekDays[5].getDate()} {MESES_ES[filtWeekDays[5].getMonth()]}</span>
+                      {filtSemanaOffset!==0&&<button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:6,padding:"0 6px",fontSize:10,height:"100%",cursor:"pointer"}} onClick={()=>setFiltSemanaOffset(0)}>Hoy</button>}
+                      <button style={{background:WH,border:`1px solid ${CR3}`,borderRadius:6,padding:"0 8px",fontSize:11,height:"100%",cursor:"pointer"}} onClick={()=>setFiltSemanaOffset(o=>o+1)}>→</button>
                     </div>
                   )}
-                  {filtFecha==="rango"&&<>
-                    <div style={{position:"relative",minWidth:130}}>
-                      <Lbl>Desde</Lbl>
-                      <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"6px 9px",fontSize:11,color:filtDesde?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFiltDesdeCalPicker(v=>!v)}>
-                        <span>{filtDesde||"Desde..."}</span><span>📅</span>
+
+                  {filtFecha==="fecha"&&(
+                    <div style={{position:"relative"}}>
+                      <Lbl>Selecciona el día</Lbl>
+                      <button style={{width:"100%",background:WH,border:`1px solid ${CR3}`,borderRadius:9,padding:"6px 9px",fontSize:11,color:filtDesde?TX:TX2,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between"}} onClick={()=>setShowFiltDesdeCalPicker(v=>!v)}>
+                        <span>{filtDesde||"Seleccionar..."}</span><span>📅</span>
                       </button>
-                      {showFiltDesdeCalPicker&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={filtDesde} onChange={iso=>{setFiltDesde(iso);setShowFiltDesdeCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+                      {showFiltDesdeCalPicker&&<div style={{position:"absolute",top:"100%",left:0,zIndex:200}}><MiniCalPicker value={filtDesde} onChange={iso=>{setFiltDesde(iso);setShowFiltDesdeCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
                     </div>
-                    <div style={{position:"relative",minWidth:130}}>
-                      <Lbl>Hasta</Lbl>
-                      <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"6px 9px",fontSize:11,color:filtHasta?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFiltHastaCalPicker(v=>!v)}>
-                        <span>{filtHasta||"Hasta..."}</span><span>📅</span>
-                      </button>
-                      {showFiltHastaCalPicker&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={filtHasta} onChange={iso=>{setFiltHasta(iso);setShowFiltHastaCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
-                    </div>
-                  </>}
-                  <div>
-                    <Lbl>Peluquero</Lbl>
-                    <Sel style={{padding:"6px 9px",fontSize:11}} value={filtPel} onChange={e=>setFiltPel(e.target.value)}>
-                      <option value="todas">Todos</option>
-                      {CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}
-                    </Sel>
-                  </div>
-                  <div>
-                    <Lbl>Estado</Lbl>
-                    <Sel style={{padding:"6px 9px",fontSize:11}} value={filtEstado} onChange={e=>setFiltEstado(e.target.value)}>
-                      <option value="todos">Todos</option>
-                      <option value="pendiente">Pendiente</option>
-                      <option value="completada">Completada</option>
-                      <option value="no-show">No show</option>
-                    </Sel>
-                  </div>
+                  )}
+
+                  {filtFecha==="rango"&&(
+                    <>
+                      <div style={{position:"relative"}}>
+                        <Lbl>Desde el día</Lbl>
+                        <button style={{width:"100%",background:WH,border:`1px solid ${CR3}`,borderRadius:9,padding:"6px 9px",fontSize:11,color:filtDesde?TX:TX2,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between"}} onClick={()=>setShowFiltDesdeCalPicker(v=>!v)}>
+                          <span>{filtDesde||"Inicio..."}</span><span>📅</span>
+                        </button>
+                        {showFiltDesdeCalPicker&&<div style={{position:"absolute",top:"100%",left:0,zIndex:200}}><MiniCalPicker value={filtDesde} onChange={iso=>{setFiltDesde(iso);setShowFiltDesdeCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+                      </div>
+                      <div style={{position:"relative"}}>
+                        <Lbl>Hasta el día</Lbl>
+                        <button style={{width:"100%",background:WH,border:`1px solid ${CR3}`,borderRadius:9,padding:"6px 9px",fontSize:11,color:filtHasta?TX:TX2,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between"}} onClick={()=>setShowFiltHastaCalPicker(v=>!v)}>
+                          <span>{filtHasta||"Fin..."}</span><span>📅</span>
+                        </button>
+                        {showFiltHastaCalPicker&&<div style={{position:"absolute",top:"100%",left:0,zIndex:200}}><MiniCalPicker value={filtHasta} onChange={iso=>{setFiltHasta(iso);setShowFiltHastaCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+                      </div>
+                    </>
+                  )}
+
+                  <div><Lbl>Peluquero</Lbl><Sel style={{padding:"6px 9px",fontSize:11}} value={filtPel} onChange={e=>setFiltPel(e.target.value)}><option value="todas">Todos</option>{CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}</Sel></div>
+                  <div><Lbl>Estado</Lbl><Sel style={{padding:"6px 9px",fontSize:11}} value={filtEstado} onChange={e=>setFiltEstado(e.target.value)}><option value="todos">Todos</option><option value="pendiente">Pendiente</option><option value="completada">Completada</option><option value="no-show">No show</option></Sel></div>
                 </div>
-                {filtFecha==="semana"&&(
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
-                    <button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:7,padding:"5px 10px",fontSize:11,cursor:"pointer",color:TX}} onClick={()=>setFiltSemanaOffset(o=>o-1)}>← Anterior</button>
-                    <span style={{fontSize:11,fontWeight:700,color:TX,flex:1,textAlign:"center"}}>{filtWeekDays[0].getDate()} {MESES_ES[filtWeekDays[0].getMonth()]} – {filtWeekDays[5].getDate()} {MESES_ES[filtWeekDays[5].getMonth()]}</span>
-                    {filtSemanaOffset!==0&&<button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:7,padding:"5px 10px",fontSize:11,cursor:"pointer",color:TX2}} onClick={()=>setFiltSemanaOffset(0)}>Hoy</button>}
-                    <button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:7,padding:"5px 10px",fontSize:11,cursor:"pointer",color:TX}} onClick={()=>setFiltSemanaOffset(o=>o+1)}>Siguiente →</button>
-                  </div>
-                )}
-                </>
               )}
             </div>
+
             {hayFiltros?(
               <>
                 <div style={{fontSize:11,fontWeight:700,color:A,marginBottom:10}}>{citasFiltradas.length} resultado{citasFiltradas.length!==1?"s":""}</div>
                 {citasFiltradas.length===0?<div style={{fontSize:13,color:TX2,fontStyle:"italic"}}>No se encontraron citas</div>:(
-                  <div className="admin-table-wrap"><table style={as.table}><thead><tr>{["Fecha","Hora","Cliente","Servicio","Prof.","€","Estado","Acc."].map(h=><th key={h} style={as.th}>{h}</th>)}</tr></thead>
-                  <tbody>{citasFiltradas.map(c=>(
-                    <tr key={c.id}>
-                      <td style={{...as.td,fontSize:11,color:TX2}}>{c.fecha===HOY_ISO?"Hoy":c.fecha}</td>
-                      <td style={{...as.td,fontWeight:700,color:A}}>{c.hora}</td>
-                      <td style={as.td}>{c.clienteNombre}</td><td style={as.td}>{c.servicio}</td>
-                      <td style={as.td}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:"50%",background:CONFIG.peluqueros.find(p=>p.id===c.peluqueroId)?.color||A,flexShrink:0}}/>{c.peluquero}</span></td>
-                      <td style={{...as.td,fontWeight:700}}>€{c.precio}</td>
-                      <td style={as.td}><EstBdg e={c.estado}/></td>
-                      <AccionesCita c={c}/>
-                    </tr>
-                  ))}</tbody></table></div>
+                  <div className="admin-table-wrap" style={{overflowX:"auto"}}>
+                    <table className="tabla-premium">
+                      <thead>
+                        <tr>
+                          <th className="th-premium">Fecha</th>
+                          <th className="th-premium">Hora</th>
+                          <th className="th-premium">Cliente</th>
+                          <th className="th-premium">Servicio</th>
+                          <th className="th-premium">Profesional</th>
+                          <th className="th-premium" style={{textAlign:"center", fontSize:"10px"}}>Precio</th>
+                          <th className="th-premium">Estado</th>
+                          <th className="th-premium">Pago</th>
+                          <th className="th-premium">Acc.</th>
+                        </tr>
+                      </thead>
+                      <tbody>{citasFiltradas.map(c=>(
+                        <tr key={c.id} className="fila-premium">
+                          <td className="td-premium" style={{fontSize:"10px",color:TX2}}>{c.fecha===HOY_ISO?"Hoy":c.fecha}</td>
+                          <td className="td-premium" style={{fontWeight:700,color:A, fontSize:"12px"}}>{c.hora}</td>
+                          <td className="td-premium">
+                            <div style={{fontWeight:600, fontSize:"12px"}}>{c.clienteNombre}</div>
+                            <div style={{fontSize:"9px",color:TX2}}>{c.clienteTel}</div>
+                          </td>
+                          <td className="td-premium" style={{color:"#475569", fontSize:"12px"}}>{c.servicio}</td>
+                          <td className="td-premium">
+                            <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"}}>
+                              <img src={CONFIG.peluqueros.find(p=>p.id===c.peluqueroId)?.foto || FOTO_DEFAULT} alt={c.peluquero} style={{width:"24px", height:"24px", borderRadius:"50%", objectFit:"cover"}} />
+                              <span style={{fontSize:"12px", fontWeight:600, color:"#0A1F3D"}}>{c.peluquero}</span>
+                            </div>
+                          </td>
+                          <td className="td-premium" style={{fontWeight:700, textAlign:"center", fontSize:"12px"}}>{c.precio}€</td>
+                          <td className="td-premium"><EstadoPremium estado={c.estado}/></td>
+                          <td className="td-premium"><SelectorPago cita={c} /></td>
+                          <AccionesCitaPremium c={c}/>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
                 )}
               </>
             ):(
               <>
                 <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Citas de hoy — {fmtLarga(HOY)}</div>
                 {citasHoy.length===0?<div style={{fontSize:13,color:TX2,fontStyle:"italic"}}>No hay citas para hoy</div>:(
-                  <div className="admin-table-wrap"><table style={as.table}><thead><tr>{["Hora","Cliente","Servicio","Profesional","Precio","Estado","Nota","Acc."].map(h=><th key={h} style={as.th}>{h}</th>)}</tr></thead>
-                  <tbody>{citasHoy.map(c=>(
-                    <tr key={c.id}>
-                      <td style={{...as.td,fontWeight:700,color:A}}>{c.hora}</td>
-                      <td style={as.td}>{c.clienteNombre}<div style={{fontSize:10,color:TX2}}>{c.clienteTel}</div></td>
-                      <td style={as.td}>{c.servicio}</td>
-                      <td style={as.td}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:"50%",background:CONFIG.peluqueros.find(p=>p.id===c.peluqueroId)?.color||A,flexShrink:0}}/>{c.peluquero}</span></td>
-                      <td style={{...as.td,fontWeight:700}}>€{c.precio}</td>
-                      <td style={as.td}><EstBdg e={c.estado}/></td>
-                      <td style={as.td}>{editNota===c.id?(<div style={{display:"flex",gap:4}}><Inp style={{padding:"4px 8px",fontSize:11}} value={notaVal} onChange={e=>setNotaVal(e.target.value)}/><button style={as.actBtn(OK)} onClick={()=>guardarNota(c.id)}>✓</button></div>):(<span style={{fontSize:11,color:c.nota?TX:TX2,cursor:"pointer",fontStyle:c.nota?"normal":"italic"}} onClick={()=>{setEditNota(c.id);setNotaVal(c.nota||"");}}>{ c.nota||"+ nota"}</span>)}</td>
-                      <AccionesCita c={c}/>
-                    </tr>
-                  ))}</tbody></table></div>
+                  <div className="admin-table-wrap" style={{overflowX:"auto"}}>
+                    <table className="tabla-premium">
+                      <thead>
+                        <tr>
+                          <th className="th-premium">Hora</th>
+                          <th className="th-premium">Cliente</th>
+                          <th className="th-premium">Servicio</th>
+                          <th className="th-premium">Profesional</th>
+                          <th className="th-premium" style={{textAlign:"center", fontSize:"10px"}}>Precio</th>
+                          <th className="th-premium">Estado</th>
+                          <th className="th-premium">Pago</th>
+                          <th className="th-premium">Nota</th>
+                          <th className="th-premium">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>{citasHoy.map(c=>(
+                        <tr key={c.id} className="fila-premium">
+                          <td className="td-premium" style={{fontWeight:700,color:A, fontSize:"12px"}}>{c.hora}</td>
+                          <td className="td-premium">
+                            <div style={{fontWeight:600, fontSize:"13px"}}>{c.clienteNombre}</div>
+                            <div style={{fontSize:"9px",color:TX2}}>{c.clienteTel}</div>
+                          </td>
+                          <td className="td-premium" style={{color:"#475569", fontSize:"12px"}}>{c.servicio}</td>
+                          <td className="td-premium">
+                            <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"}}>
+                              <img src={CONFIG.peluqueros.find(p=>p.id===c.peluqueroId)?.foto || FOTO_DEFAULT} alt={c.peluquero} style={{width:"24px", height:"24px", borderRadius:"50%", objectFit:"cover"}} />
+                              <span style={{fontSize:"12px", fontWeight:600, color:"#0A1F3D"}}>{c.peluquero}</span>
+                            </div>
+                          </td>
+                          <td className="td-premium" style={{fontWeight:700, textAlign:"center", fontSize:"12px"}}>{c.precio}€</td>
+                          <td className="td-premium"><EstadoPremium estado={c.estado}/></td>
+                          <td className="td-premium"><SelectorPago cita={c} /></td>
+                          <td className="td-premium">
+                            {editNota===c.id?(
+                              <div style={{display:"flex", justifyContent:"center", gap:4}}>
+                                <Inp style={{padding:"4px 8px",fontSize:"10px", width:"80px"}} value={notaVal} onChange={e=>setNotaVal(e.target.value)}/>
+                                <button style={{background:"#10B981",color:"white",border:"none",borderRadius:6,padding:"4px 8px"}} onClick={()=>guardarNota(c.id)}>✓</button>
+                              </div>
+                            ):(<span style={{fontSize:"10px",color:c.nota?TX:TX2,cursor:"pointer",fontStyle:c.nota?"normal":"italic"}} onClick={()=>{setEditNota(c.id);setNotaVal(c.nota||"");}}>{ c.nota||"+ nota"}</span>)}
+                          </td>
+                          <AccionesCitaPremium c={c}/>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
                 )}
               </>
             )}
           </div>
         )}
 
+        {/* --- VISTA: CALENDARIO SEMANAL --- */}
         {vistaCitas==="semana"&&(
-          <div style={as.card}>
+          <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box" }}>
             <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
             <LeyendaPeluqueros/>
-            <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
+            <div style={{ marginTop: "16px" }}>
+              <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
+            </div>
           </div>
         )}
 
+        {/* --- VISTA: CALENDARIO POR PELUQUERO --- */}
         {vistaCitas==="peluquero"&&(
           <div>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
@@ -2213,44 +2955,69 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </button>
               ))}
             </div>
-            <div style={as.card}>
+            <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box" }}>
               <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
               {pelFiltroCitas&&<div style={{marginBottom:8,display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:2,background:CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.color}}/><span style={{fontSize:12,fontWeight:700,color:TX}}>{CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.nombre}</span></div>}
               {!pelFiltroCitas&&<LeyendaPeluqueros/>}
-              <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
+              <div style={{ marginTop: "16px" }}>
+                <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
+              </div>
             </div>
           </div>
         )}
       </div>
     );
   };
-
   // ──────────────────────
   // TAB CLIENTES
   // ──────────────────────
   const TabClientes=()=>{
-    const [busq,setBusq]=useState("");
+    // ★ EL TRUCO: Usamos una "memoria" global para que React no olvide el buscador al recargar
+    const [busq,setBusq]=useState(() => window._busqCache || "");
     const [clienteBorrar,setClienteBorrar]=useState(null);
-    const [inactivos,setInactivos]=useState(false);
+    const [inactivos,setInactivos]=useState(() => window._inactivosCache || false);
     const [editNota,setEditNota]=useState(false);
     const [notaVal,setNotaVal]=useState("");
     const semMil=CONFIG.semanasSinVisita*7*24*60*60*1000;
+    
     const clientesFiltrados=useMemo(()=>{
       let lista=clientes;
       if(inactivos){const lim=new Date(Date.now()-semMil);lista=lista.filter(c=>new Date(c.ultimaVisita)<lim);}
       if(!busq) return lista.sort((a,b)=>a.nombre.localeCompare(b.nombre));
       return lista.map(c=>({...c,score:c.telefono?.includes(busq)?90:similitud(busq,c.nombre)})).filter(c=>c.score>=60).sort((a,b)=>b.score-a.score);
     },[busq,inactivos,clientes]);
+
     const guardarNota=async()=>{ setClientes(prev=>prev.map(c=>c.id===clienteSel.id?{...c,nota:notaVal}:c)); setClienteSel(prev=>({...prev,nota:notaVal})); setEditNota(false); try{await actualizarCliente(clienteSel.id,{nota:notaVal});}catch(e){console.error(e);} };
+    
     return(
       <div>
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-          <Inp style={{flex:1,minWidth:200,marginBottom:0}} defaultValue={busq} onChange={e=>setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o teléfono..."/>
-          <button style={{background:inactivos?A:CR2,color:inactivos?WH:TX,border:`1px solid ${inactivos?A:CR3}`,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setInactivos(v=>!v)}>{inactivos?"✓ ":""}{`+${CONFIG.semanasSinVisita}sem sin visita`}</button>
+          <Inp 
+            style={{flex:1,minWidth:200,marginBottom:0}} 
+            value={busq} 
+            onChange={e=>{
+              setBusq(e.target.value);
+              window._busqCache = e.target.value; // Guardamos en memoria lo que escribes
+            }} 
+            placeholder="🔍 Buscar por nombre o teléfono..."
+          />
+          <button 
+            style={{background:inactivos?A:CR2,color:inactivos?WH:TX,border:`1px solid ${inactivos?A:CR3}`,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} 
+            onClick={()=>{
+              setInactivos(v=>{
+                window._inactivosCache = !v; // Guardamos en memoria si el filtro está activo
+                return !v;
+              });
+            }}
+          >
+            {inactivos?"✓ ":""}{`+${CONFIG.semanasSinVisita}sem sin visita`}
+          </button>
         </div>
         <div style={{fontSize:11,color:TX2,marginBottom:10}}>{clientesFiltrados.length} cliente{clientesFiltrados.length!==1?"s":""}</div>
+        
         <div style={as.twoCol}>
-          <div>
+          {/* COLUMNA 1: LA LISTA */}
+          <div style={{ width: "100%" }}>
             {clientesFiltrados.map(c=>(
               <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -2261,34 +3028,45 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             ))}
             {clientesFiltrados.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`}}>No se encontraron clientes</div>}
           </div>
-          {clienteSel&&(
-            <div style={as.card}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-                <div style={{fontSize:15,fontWeight:700,color:TX}}>{clienteSel.nombre}</div>
-                <button style={{background:ER+"15",border:`1px solid ${ER}33`,color:ER,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setClienteBorrar(clienteSel)}>🗑 Eliminar</button>
-              </div>
-              <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14}}>
-                {[["€"+clienteSel.gasto,"Total"],[clienteSel.visitas,"Visitas"],["€"+Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)),"Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
-                  <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
+
+          {/* COLUMNA 2: LA FICHA (SIEMPRE PRESENTE) */}
+          <div style={{ width: "100%" }}>
+            {clienteSel ? (
+              <div style={as.card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                  <div style={{fontSize:15,fontWeight:700,color:TX}}>{clienteSel.nombre}</div>
+                  <button style={{background:ER+"15",border:`1px solid ${ER}33`,color:ER,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setClienteBorrar(clienteSel)}>🗑 Eliminar</button>
+                </div>
+                <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                  {[["€"+clienteSel.gasto,"Total"],[clienteSel.visitas,"Visitas"],["€"+Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)),"Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
+                    <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
+                  ))}
+                </div>
+                <Divider/>
+                <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Nota</div>
+                {editNota?(<div><Inp value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
+                  <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
+                )}
+                <Divider/>
+                <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Historial</div>
+                {(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).length===0?<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin historial</div>:(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).map((h,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${CR2}`,fontSize:12}}>
+                    <div><span style={{color:TX2,marginRight:8}}>{h.fecha}</span><span style={{color:TX}}>{h.servicio}</span></div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>€{h.precio}</span></div>
+                  </div>
                 ))}
               </div>
-              <Divider/>
-              <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Nota</div>
-              {editNota?(<div><Inp value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
-                <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
-              )}
-              <Divider/>
-              <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Historial</div>
-              {(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).length===0?<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin historial</div>:(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).map((h,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${CR2}`,fontSize:12}}>
-                  <div><span style={{color:TX2,marginRight:8}}>{h.fecha}</span><span style={{color:TX}}>{h.servicio}</span></div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>€{h.precio}</span></div>
-                </div>
-              ))}
-            </div>
-          )}
+            ) : (
+              /* ESTADO VACÍO: Mantiene la estructura para que la lista izquierda no salte */
+              <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "200px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center" }}>
+                <span style={{ fontSize: 24, marginBottom: 8 }}>👈</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Selecciona un cliente para ver su ficha</span>
+              </div>
+            )}
+          </div>
         </div>
+
         {clienteBorrar&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
             <div style={{background:WH,borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
@@ -2314,167 +3092,448 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       </div>
     );
   };
+  // ──────────────────────
+  // TAB CAJA - VERSIÓN POSICIÓN PERFECTA
+  // ──────────────────────────────────────────────
+  const TabCaja = () => {
+    const [fechaCaja, setFechaCaja] = useState(HOY_ISO);
+    const [fondoCaja, setFondoCaja] = useState(50);
+    const [gastosCaja, setGastosCaja] = useState(0);
+    const [notaCierre, setNotaCierre] = useState("");
+    
+    const [datosOriginales, setDatosOriginales] = useState({ nota: "", fondo: 50, gastos: 0 });
+    const [guardando, setGuardando] = useState(false);
+    const [showPicker, setShowPicker] = useState(false);
 
-  // ──────────────────────
-  // TAB CAJA
-  // ──────────────────────
-  const TabCaja=()=>{
-    const ingHoy=citas.filter(c=>c.fecha===HOY_ISO&&c.estado==="completada").reduce((s,c)=>s+c.precio,0);
-    const noShows=citas.filter(c=>c.fecha===HOY_ISO&&c.estado==="no-show").length;
-    const totalHoy=citas.filter(c=>c.fecha===HOY_ISO).length;
-    const tasaNS=totalHoy>0?Math.round(noShows/totalHoy*100):0;
-    const ingSemana=ingHoy*4.8|0, ingMes=ingHoy*19|0, ingMesAnt=ingHoy*18|0;
-    const [showPDF,setShowPDF]=useState(false);
-    const exportarExcel=()=>{
-      try{const XLSX=window.XLSX;if(!XLSX){alert("Cargando...");return;}
-        const datos=[["RESUMEN DE CAJA — "+CONFIG.nombre],[],[],["Hoy","Semana","Mes","Mes ant."],[`€${ingHoy}`,`€${ingSemana}`,`€${ingMes}`,`€${ingMesAnt}`]];
-        const ws=XLSX.utils.aoa_to_sheet(datos);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Caja");XLSX.writeFile(wb,`caja-${HOY_ISO}.xlsx`);
-      }catch(e){alert("Error: "+e.message);}
+    const fmtEs = (iso) => {
+      if (!iso) return "";
+      const [y, m, d] = iso.split("-");
+      return `${d}/${m}/${y}`;
     };
-    return(
-      <div>
-        {showPDF&&(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-            <div style={{background:WH,borderRadius:18,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto"}}>
-              <div style={{background:`linear-gradient(135deg,#0D1F35,#1B3A5C)`,padding:"20px 24px",borderRadius:"18px 18px 0 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div><div style={{fontSize:16,fontWeight:700,color:WH}}>{CONFIG.nombre}</div><div style={{fontSize:11,color:"#7AADD4"}}>Resumen de caja — {new Date().toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div></div>
-                <button style={{background:"none",border:"none",color:"#7AADD4",fontSize:20,cursor:"pointer"}} onClick={()=>setShowPDF(false)}>✕</button>
-              </div>
-              <div style={{padding:"20px 24px"}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:20}}>
-                  {[["Hoy",`€${ingHoy}`],["Esta semana",`€${ingSemana}`],["Este mes",`€${ingMes}`],["Mes anterior",`€${ingMesAnt}`]].map(([l,v])=>(
-                    <div key={l} style={{background:CR,borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:18,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2,textTransform:"uppercase"}}>{l}</div></div>
-                  ))}
+
+    // 1. CARGAR DATOS
+    useEffect(() => {
+      const cargarDatosDia = async () => {
+        try {
+          const docRef = doc(db, "notasCaja", fechaCaja);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const d = docSnap.data();
+            const carga = { 
+              nota: d.texto || "", 
+              fondo: d.fondoInicial || 50, 
+              gastos: d.gastos || 0 
+            };
+            setNotaCierre(carga.nota);
+            setFondoCaja(carga.fondo);
+            setGastosCaja(carga.gastos);
+            setDatosOriginales(carga);
+          } else {
+            const vacio = { nota: "", fondo: 50, gastos: 0 };
+            setNotaCierre(""); setFondoCaja(50); setGastosCaja(0);
+            setDatosOriginales(vacio);
+          }
+        } catch (e) { console.error(e); }
+      };
+      cargarDatosDia();
+    }, [fechaCaja]);
+
+    // 2. CÁLCULOS
+    const citasDia = citas.filter(c => c.fecha === fechaCaja);
+    const completadas = citasDia.filter(c => c.estado === "completada");
+    const efec = completadas.filter(c => c.metodoPago === "efectivo").reduce((s, c) => s + c.precio, 0);
+    const tarj = completadas.filter(c => c.metodoPago === "tarjeta").reduce((s, c) => s + c.precio, 0);
+    const biz = completadas.filter(c => c.metodoPago === "bizum").reduce((s, c) => s + c.precio, 0);
+    const facturadoDia = efec + tarj + biz;
+    const dineroFisicoEsperado = parseFloat(fondoCaja || 0) + efec - parseFloat(gastosCaja || 0);
+
+    const hayCambios = notaCierre !== datosOriginales.nota || 
+                       parseFloat(fondoCaja) !== datosOriginales.fondo || 
+                       parseFloat(gastosCaja) !== datosOriginales.gastos;
+
+    // 3. GUARDAR
+    const handleGuardarCierre = async () => {
+      setGuardando(true);
+      try {
+        const nuevosDatos = {
+          texto: notaCierre,
+          fecha: fechaCaja,
+          fondoInicial: parseFloat(fondoCaja),
+          gastos: parseFloat(gastosCaja),
+          ingresosTotales: facturadoDia,
+          actualizado: new Date().toISOString()
+        };
+        await setDoc(doc(db, "notasCaja", fechaCaja), nuevosDatos);
+        setDatosOriginales({ 
+          nota: notaCierre, 
+          fondo: parseFloat(fondoCaja), 
+          gastos: parseFloat(gastosCaja) 
+        });
+      } catch (e) { console.error(e); }
+      setGuardando(false);
+    };
+
+    return (
+      <div style={{ position: "relative", minHeight: "100vh" }}>
+        
+        {/* CABECERA FIJA: FECHA CENTRADA + BOTÓN HOY FLOTANTE */}
+        <div style={{ 
+          position: "fixed", top: "145px", left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, pointerEvents: "none", width: "100%", maxWidth: "400px", display: "flex", justifyContent: "center"
+        }}>
+          
+          {/* Botón Volver a Hoy - POSICIÓN ABSOLUTA para no mover el centro */}
+          {fechaCaja !== HOY_ISO && (
+            <div 
+              style={{
+                position: "absolute",
+                left: "10px", // Aparece a la izquierda sin empujar
+                pointerEvents: "auto", background: A, color: WH, 
+                padding: "8px 14px", borderRadius: "50px", fontSize: 11, 
+                fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                display: "flex", alignItems: "center", transition: "0.2s"
+              }}
+              onClick={() => setFechaCaja(HOY_ISO)}
+            >
+              HOY
+            </div>
+          )}
+
+          {/* LA CAJITA DE LA FECHA (Se queda quieta en el centro) */}
+          <div style={{ pointerEvents: "auto", position: "relative" }}>
+            <div 
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 10, background: WH, 
+                padding: "8px 20px", borderRadius: "50px", border: `1px solid ${CR3}`,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "pointer"
+              }} 
+              onClick={() => setShowPicker(!showPicker)}
+            >
+              <span style={{ fontSize: 12, color: TX2, fontWeight: 600 }}>Caja del:</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: A }}>{fmtEs(fechaCaja)}</span>
+              <span style={{ fontSize: 10, color: A }}>▼</span>
+            </div>
+
+            {showPicker && (
+              <>
+                <div 
+                  style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 10000 }} 
+                  onClick={() => setShowPicker(false)}
+                />
+                <div style={{
+                  position: "absolute", top: "120%", left: "50%", transform: "translateX(-50%)",
+                  zIndex: 10001, boxShadow: "0 10px 30px rgba(0,0,0,0.2)", borderRadius: 12, overflow: "hidden"
+                }}>
+                  <MiniCalPicker value={fechaCaja} onChange={(iso) => { setFechaCaja(iso); setShowPicker(false); }} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]} />
                 </div>
-                {CONFIG.peluqueros.map(p=>{const t=citas.filter(c=>c.peluqueroId===p.id&&c.estado==="completada").reduce((s,c)=>s+c.precio,0);return(<div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${CR2}`}}><span style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:8,height:8,borderRadius:2,background:p.color}}/>{p.nombre}</span><span style={{fontWeight:700,color:A}}>€{t}</span></div>);})}
-                <button onClick={()=>window.print()} style={{width:"100%",background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:10,padding:"12px",fontSize:13,fontWeight:700,cursor:"pointer",marginTop:16}}>🖨️ Imprimir / Guardar PDF</button>
-              </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* CONTENIDO */}
+        <div style={{ paddingTop: "70px" }}>
+          
+          {/* KPIs */}
+          <div className="admin-kpi-grid" style={{ ...as.kpiGrid, marginBottom: 25 }}>
+            <div style={{ ...as.kpi, borderLeft: `4px solid ${A}` }}>
+              <div style={as.kpiVal}>€{facturadoDia}</div>
+              <div style={as.kpiLbl}>Facturado Hoy</div>
+            </div>
+            <div style={{ ...as.kpi, background: "#DEF7EC" }}>
+              <div style={{ ...as.kpiVal, color: "#059669" }}>€{efec}</div>
+              <div style={{ ...as.kpiLbl, color: "#03543F" }}>💵 Efectivo</div>
+            </div>
+            <div style={{ ...as.kpi, background: "#E1EFFE" }}>
+              <div style={{ ...as.kpiVal, color: "#1D4ED8" }}>€{tarj}</div>
+              <div style={{ ...as.kpiLbl, color: "#1E429F" }}>💳 Tarjeta</div>
+            </div>
+            <div style={{ ...as.kpi, background: "#FCE8F3" }}>
+              <div style={{ ...as.kpiVal, color: "#BE185D" }}>€{biz}</div>
+              <div style={{ ...as.kpiLbl, color: "#99154B" }}>📱 Bizum</div>
             </div>
           </div>
-        )}
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14,gap:8}}>
-          <button style={{background:"#16a34a",color:WH,border:"none",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={exportarExcel}>📊 Exportar Excel</button>
-          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setShowPDF(true)}>📄 Ver resumen PDF</button>
-        </div>
-        <div className="admin-kpi-grid" style={as.kpiGrid}>
-          {[["€"+ingHoy,"Hoy"],["€"+ingSemana,"Esta semana"],["€"+ingMes,"Este mes"],["€"+ingMesAnt,"Mes anterior"]].map(([v,l],i)=>(
-            <div key={i} style={as.kpi}><div style={as.kpiVal}>{v}</div><div style={as.kpiLbl}>{l}</div></div>
-          ))}
-        </div>
-        <div style={as.card}><div style={as.cardTitle}>Evolución ingresos</div><div style={as.chartH}><ResponsiveContainer width="100%" height="100%"><LineChart data={STATS_INGRESOS}><XAxis dataKey="semana" tick={{fontSize:9,fill:TX2}}/><YAxis tick={{fontSize:9,fill:TX2}}/><Tooltip formatter={v=>`€${v}`} contentStyle={{background:WH,border:`1px solid ${CR3}`,borderRadius:8,fontSize:11}}/><Line type="monotone" dataKey="actual" stroke={A} strokeWidth={2.5} dot={{fill:A,r:3}}/><Line type="monotone" dataKey="anterior" stroke={CR3} strokeWidth={2} strokeDasharray="4 4" dot={false}/></LineChart></ResponsiveContainer></div></div>
-        <div className="admin-two-col" style={as.twoCol}>
-          <div style={as.card}><div style={as.cardTitle}>Por peluquero</div>{CONFIG.peluqueros.map(p=>{const t=citas.filter(c=>c.peluqueroId===p.id&&c.estado==="completada").reduce((s,c)=>s+c.precio,0);const nc=citas.filter(c=>c.peluqueroId===p.id).length;return(<div key={p.id} style={as.row}><span style={{fontSize:13,display:"flex",alignItems:"center",gap:6}}><span style={{width:8,height:8,borderRadius:2,background:p.color}}/>{p.nombre}<span style={{fontSize:11,color:TX2}}>{nc} citas</span></span><span style={{fontSize:14,fontWeight:700,color:A}}>€{t}</span></div>);})}</div>
-          <div style={as.card}><div style={as.cardTitle}>Servicios populares</div><div style={{height:160}}><ResponsiveContainer width="100%" height="100%"><BarChart data={STATS_SERVICIOS} layout="vertical"><XAxis type="number" tick={{fontSize:9,fill:TX2}}/><YAxis dataKey="nombre" type="category" tick={{fontSize:10,fill:TX}} width={80}/><Tooltip contentStyle={{background:WH,border:`1px solid ${CR3}`,borderRadius:8,fontSize:11}}/><Bar dataKey="c" fill={A} radius={[0,4,4,0]}/></BarChart></ResponsiveContainer></div></div>
-        </div>
-        <div className="admin-two-col" style={as.twoCol}>
-          <div style={as.card}><div style={as.cardTitle}>Citas por día</div><div style={as.chartH}><ResponsiveContainer width="100%" height="100%"><BarChart data={STATS_DIAS}><XAxis dataKey="dia" tick={{fontSize:10,fill:TX2}}/><YAxis tick={{fontSize:9,fill:TX2}}/><Tooltip contentStyle={{background:WH,border:`1px solid ${CR3}`,borderRadius:8,fontSize:11}}/><Bar dataKey="citas" radius={[4,4,0,0]}>{STATS_DIAS.map((_,i)=><Cell key={i} fill={i===4?A:A+"77"}/>)}</Bar></BarChart></ResponsiveContainer></div></div>
-          <div style={as.card}><div style={as.cardTitle}>Resumen del día</div>{[["Citas totales",totalHoy],["Completadas",citas.filter(c=>c.fecha===HOY_ISO&&c.estado==="completada").length],["Pendientes",citas.filter(c=>c.fecha===HOY_ISO&&c.estado==="pendiente").length],["No shows",noShows],["Tasa no-show",tasaNS+"%"]].map(([l,v])=>(<div key={l} style={as.row}><span style={{fontSize:13,color:TX}}>{l}</span><span style={{fontSize:14,fontWeight:700,color:A}}>{v}</span></div>))}</div>
+
+          {/* CUADRE Y NOTAS */}
+          <div className="admin-two-col" style={{ ...as.twoCol, marginBottom: 25 }}>
+            <div style={as.card}>
+              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, color: TX }}>🧮 Cuadre Físico</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: TX2, fontWeight: 700 }}>FONDO INICIAL</span>
+                  <Inp type="number" value={fondoCaja} onChange={e => setFondoCaja(e.target.value)} style={{ width: 80, textAlign: "right", margin: 0, fontWeight: 700 }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12, color: TX2, fontWeight: 700 }}>INGRESOS EFECTIVO</span>
+                  <span style={{ fontWeight: 700, color: "#059669" }}>+ €{efec}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: TX2, fontWeight: 700 }}>GASTOS / SALIDAS</span>
+                  <Inp type="number" value={gastosCaja} onChange={e => setGastosCaja(e.target.value)} style={{ width: 80, textAlign: "right", margin: 0, color: ER, fontWeight: 700 }} />
+                </div>
+                <div style={{ marginTop: 10, paddingTop: 15, borderTop: `2px solid ${CR2}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>HABER EN CAJA</span>
+                  <span style={{ fontSize: 26, fontWeight: 900, color: A }}>€{dineroFisicoEsperado}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={as.card}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ fontWeight: 800, fontSize: 14, color: TX }}>📝 Nota de Cierre</div>
+                <button
+                  onClick={handleGuardarCierre}
+                  style={{
+                    background: guardando ? "#94a3b8" : (hayCambios ? "#16a34a" : "#94a3b8"),
+                    color: WH, border: "none", borderRadius: 8,
+                    padding: "8px 18px", fontSize: 11, fontWeight: 700,
+                    cursor: hayCambios ? "pointer" : "default",
+                    transition: "background 0.4s ease"
+                  }}
+                >
+                  {guardando ? "GUARDANDO..." : (hayCambios ? "GUARDAR CAJA" : "GUARDADO")}
+                </button>
+              </div>
+              <textarea
+                value={notaCierre}
+                onChange={e => setNotaCierre(e.target.value)}
+                style={{
+                  width: "100%", height: 120, borderRadius: 12, border: `1px solid ${CR3}`,
+                  padding: 15, outline: "none", resize: "none", fontSize: 13, background: CR, color: TX, lineHeight: "1.5"
+                }}
+                placeholder="Notas del día..."
+              />
+            </div>
+          </div>
+
+          {/* REPARTO POR PROFESIONAL */}
+          <div style={{ ...as.card, marginBottom: 40 }}>
+            <div style={{ ...as.cardTitle, marginBottom: 20 }}>Facturación por Profesional</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+              {CONFIG.peluqueros.map(p => {
+                const t = completadas.filter(c => c.peluqueroId === p.id).reduce((s, c) => s + c.precio, 0);
+                const nc = citasDia.filter(c => c.peluqueroId === p.id).length;
+                return (
+                  <div key={p.id} style={{ background: WH, padding: "20px", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${CR2}`, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: TX, marginBottom: 4 }}>{p.nombre}</div>
+                      <div style={{ fontSize: 12, color: TX2 }}>{nc} servicios hoy</div>
+                    </div>
+                    <span style={{ fontSize: 22, fontWeight: 900, color: A }}>€{t}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     );
   };
 
   // ──────────────────────
-  // TAB DISPONIBILIDAD
+  // TAB DISPONIBILIDAD (CIERRES Y AUSENCIAS)
   // ──────────────────────
-  const TabDisponibilidad=()=>{
-    const [showFF,setShowFF]=useState(false),[showBF,setShowBF]=useState(false);
-    const [festForm,setFestForm]=useState({fecha:"",hasta:"",motivo:"",tipo:"dia"});
-    const [bloqForm,setBloqForm]=useState({peluqueroId:"",tipo:"dia",desde:"",hasta:"",motivo:""});
-    const [showFestCal,setShowFestCal]=useState(false);
-    const [showFestHastaCal,setShowFestHastaCal]=useState(false),[showBloqDesdeCal,setShowBloqDesdeCal]=useState(false),[showBloqHastaCal,setShowBloqHastaCal]=useState(false);
-    return(
-      <div style={as.twoCol}>
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <h3 style={{fontSize:13,fontWeight:700,color:TX,margin:0}}>🗓️ Días festivos</h3>
-            <Btn sm onClick={()=>setShowFF(v=>!v)}>+ Añadir</Btn>
+  const TabDisponibilidad = () => {
+    const [showFF, setShowFF] = useState(false);
+    const [showBF, setShowBF] = useState(false);
+    
+    const [festForm, setFestForm] = useState({ desde: "", hasta: "", motivo: "" });
+    const [bloqForm, setBloqForm] = useState({ peluqueroId: "", desde: "", hasta: "", motivo: "" });
+    
+    const [showFestCal, setShowFestCal] = useState(false);
+    const [showFestHastaCal, setShowFestHastaCal] = useState(false);
+    const [showBloqDesdeCal, setShowBloqDesdeCal] = useState(false);
+    const [showBloqHastaCal, setShowBloqHastaCal] = useState(false);
+
+    // FORMATOS DE FECHA
+    const toDMY = (iso) => iso ? iso.split("-").reverse().join("/") : "";
+    const toSafeDMY = (iso) => iso ? iso.split("-").reverse().join("-") : "";
+
+    // LÓGICA DE DÍAS
+    const obtenerDiasEntre = (inicio, fin) => {
+      const fechas = [];
+      let actual = new Date(inicio);
+      const final = new Date(fin || inicio);
+      while (actual <= final) {
+        fechas.push(actual.toISOString().split('T')[0]);
+        actual.setDate(actual.getDate() + 1);
+      }
+      return fechas;
+    };
+
+    // FUNCIÓN ROBUSTA PARA SACAR EL MOTIVO DEL ID DEL DOCUMENTO
+    const getMotivo = (item, isBloqueo) => {
+      if (item.id) {
+        const partes = item.id.split(" - ");
+        if (isBloqueo && partes.length >= 3) return partes[1]; // Peluquero - Motivo - Fecha
+        if (!isBloqueo && partes.length >= 2) return partes[0]; // Motivo - Fecha
+      }
+      return item.motivo || (isBloqueo ? "Ausencia" : "Cierre");
+    };
+
+    // AGRUPAR PARA LA VISTA ADMIN
+    const agruparItems = (items) => {
+      const agrupados = [];
+      const procesados = new Set();
+      const ordenados = [...items].sort((a, b) => (a.fecha || a.desde).localeCompare(b.fecha || b.desde));
+
+      ordenados.forEach(item => {
+        if (procesados.has(item.id)) return;
+        
+        const isBloqueo = !!item.peluqueroId;
+        const motivoVisual = getMotivo(item, isBloqueo);
+
+        if (item.rangoId) {
+          const hermanos = ordenados.filter(i => i.rangoId === item.rangoId);
+          hermanos.forEach(h => procesados.add(h.id));
+          agrupados.push({
+            isGroup: true,
+            ids: hermanos.map(h => h.id),
+            motivo: motivoVisual,
+            peluqueroId: item.peluqueroId,
+            inicio: hermanos[0].fecha || hermanos[0].desde,
+            fin: hermanos[hermanos.length - 1].fecha || hermanos[hermanos.length - 1].desde,
+          });
+        } else {
+          agrupados.push({
+            isGroup: false,
+            ids: [item.id],
+            motivo: motivoVisual,
+            peluqueroId: item.peluqueroId,
+            inicio: item.fecha || item.desde,
+            fin: item.fecha || item.desde
+          });
+        }
+      });
+      return agrupados;
+    };
+
+    // --- ESTILOS DE DISTRIBUCIÓN ---
+    const containerStyle = {
+      display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10%",                   
+      maxWidth: "90%", margin: "20px auto", padding: "0 20px", alignItems: "start"
+    };
+    const colStyle = { background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" };
+    const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
+    const inputS = { width: "100%", padding: "8px 10px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "12px", boxSizing: "border-box", textAlign: "left" };
+
+    return (
+      <div style={containerStyle}>
+        
+        {/* COLUMNA 1: CIERRES GLOBALES */}
+        <div style={colStyle}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
+            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>🗓️ Cierres</h4>
+            <button onClick={() => setShowFF(!showFF)} style={btnBlue}>{showFF ? "Cancelar" : "+ Añadir"}</button>
           </div>
-          {showFF&&(
-            <div style={{...as.card,marginBottom:12}}>
-              <div style={{marginBottom:8}}><Lbl>Tipo</Lbl>
-                <Sel value={festForm.tipo} onChange={e=>setFestForm(f=>({...f,tipo:e.target.value}))}>
-                  <option value="dia">Día suelto</option>
-                  <option value="rango">Rango de días</option>
-                </Sel>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:festForm.tipo==="rango"?"1fr 1fr":"1fr",gap:8,marginBottom:8}}>
-                <div style={{position:"relative"}}>
-                  <Lbl>{festForm.tipo==="rango"?"Fecha inicio":"Fecha"}</Lbl>
-                  <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:festForm.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFestCal(v=>!v)}>
-                    <span>{festForm.fecha||"Seleccionar fecha..."}</span><span>📅</span>
-                  </button>
-                  {showFestCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={festForm.fecha} onChange={iso=>{setFestForm(f=>({...f,fecha:iso}));setShowFestCal(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
-                </div>
-                {festForm.tipo==="rango"&&(
-                  <div style={{position:"relative"}}>
-                    <Lbl>Fecha fin</Lbl>
-                    <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:festForm.hasta?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowFestHastaCal(v=>!v)}>
-                      <span>{festForm.hasta||"Seleccionar fecha..."}</span><span>📅</span>
-                    </button>
-                    {showFestHastaCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={festForm.hasta} onChange={iso=>{setFestForm(f=>({...f,hasta:iso}));setShowFestHastaCal(false);}} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]}/></div>}
+
+          {showFF && (
+            <div className="anim" style={{ background: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "12px", border: "1px solid #cbd5e1" }}>
+               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                  <div style={{ position: "relative" }}>
+                    <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Desde</label>
+                    <button style={inputS} onClick={() => setShowFestCal(!showFestCal)}>{festForm.desde ? toDMY(festForm.desde) : "..."}</button>
+                    {showFestCal && (
+                      <div style={{ position: "absolute", zIndex: 200, marginTop: "4px" }}>
+                        <MiniCalPicker value={festForm.desde} onChange={d => { setFestForm({...festForm, desde: d}); setShowFestCal(false); }} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div style={{marginBottom:10}}><Lbl>Motivo</Lbl><Inp value={festForm.motivo} onChange={e=>setFestForm(f=>({...f,motivo:e.target.value}))} placeholder="Ej: Navidad"/></div>
-              <div style={{display:"flex",gap:6}}>
-                <Btn ok={false} sm onClick={()=>setShowFF(false)}>Cancelar</Btn>
-                <Btn sm onClick={async()=>{
-                  if(!festForm.fecha||!festForm.motivo) return;
-                  await crearFestivo({...festForm, hasta: festForm.tipo==="dia" ? festForm.fecha : festForm.hasta});
-                  setFestForm({fecha:"",hasta:"",motivo:"",tipo:"dia"});
-                  setShowFF(false);
-                }}>Guardar</Btn>
-              </div>
+                  <div style={{ position: "relative" }}>
+                    <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Hasta (Opcional)</label>
+                    <button style={inputS} onClick={() => setShowFestHastaCal(!showFestHastaCal)}>{festForm.hasta ? toDMY(festForm.hasta) : "..."}</button>
+                    {showFestHastaCal && (
+                      <div style={{ position: "absolute", zIndex: 200, marginTop: "4px", right: 0 }}>
+                        <MiniCalPicker value={festForm.hasta} onChange={d => { setFestForm({...festForm, hasta: d}); setShowFestHastaCal(false); }} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                      </div>
+                    )}
+                  </div>
+               </div>
+               
+               <input style={{...inputS, marginBottom: "12px", cursor:"text"}} placeholder="Motivo (Ej: Festivo local)" value={festForm.motivo} onChange={e=>setFestForm({...festForm, motivo:e.target.value})} />
+               <button style={{...btnBlue, width:"100%", padding:"10px", background:"#10b981", fontSize: "12px"}} onClick={async () => {
+                  if(!festForm.desde || !festForm.motivo) return;
+                  const dias = obtenerDiasEntre(festForm.desde, festForm.hasta || festForm.desde);
+                  const rId = Date.now().toString();
+                  for(const d of dias) {
+                    const docName = `${festForm.motivo} - ${toSafeDMY(d)}`;
+                    await crearFestivo(docName, { fecha: d, rangoId: rId, todoElDia: true });
+                  }
+                  setFestForm({desde:"", hasta:"", motivo:""}); setShowFF(false);
+               }}>Guardar Cierre</button>
             </div>
           )}
-          {festivos.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(f=>(
-            <div key={f.id} style={{...as.card,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",marginBottom:8}}>
-              <div><div style={{fontSize:13,fontWeight:700,color:TX}}>{f.motivo}</div><div style={{fontSize:11,color:TX2}}>{f.fecha}</div></div>
-              <button style={as.actBtn(ER)} onClick={()=>borrarFestivo(f.id)}>Quitar</button>
+
+          {agruparItems(festivos).map((f, i) => (
+            <div key={i} style={{ background: "#fff", padding: "10px 14px", borderRadius: "8px", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b" }}>{f.motivo}</span>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>{toDMY(f.inicio)}{f.inicio !== f.fin ? ` - ${toDMY(f.fin)}` : ""}</span>
+              </div>
+              <button style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontSize:"15px", display: "flex", alignItems: "center", padding: "4px" }} onClick={async () => { for(const id of f.ids) await borrarFestivo(id); }}>✕</button>
             </div>
           ))}
         </div>
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <h3 style={{fontSize:13,fontWeight:700,color:TX,margin:0}}>✂️ Bloqueos por peluquero</h3>
-            <Btn sm onClick={()=>setShowBF(v=>!v)}>+ Añadir</Btn>
+
+        {/* COLUMNA 2: BLOQUEOS POR PELUQUERO */}
+        <div style={colStyle}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
+            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>✂️ Ausencias</h4>
+            <button onClick={() => setShowBF(!showBF)} style={btnBlue}>{showBF ? "Cancelar" : "+ Añadir"}</button>
           </div>
-          {showBF&&(
-            <div style={{...as.card,marginBottom:12}}>
-              <div style={{marginBottom:8}}><Lbl>Peluquero</Lbl><Sel value={bloqForm.peluqueroId} onChange={e=>setBloqForm(f=>({...f,peluqueroId:e.target.value}))}><option value="">Elige</option>{CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}</Sel></div>
-              <div style={{marginBottom:8}}><Lbl>Tipo</Lbl><Sel value={bloqForm.tipo} onChange={e=>setBloqForm(f=>({...f,tipo:e.target.value}))}><option value="dia">Día suelto</option><option value="semana">Rango de días</option></Sel></div>
-              <div style={{display:"grid",gridTemplateColumns:bloqForm.tipo==="semana"?"1fr 1fr":"1fr",gap:8,marginBottom:8}}>
-                <div style={{position:"relative"}}>
-                  <Lbl>{bloqForm.tipo==="semana"?"Fecha inicio":"Fecha"}</Lbl>
-                  <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:bloqForm.desde?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowBloqDesdeCal(v=>!v)}>
-                    <span>{bloqForm.desde||"Fecha..."}</span><span>📅</span>
-                  </button>
-                  {showBloqDesdeCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={bloqForm.desde} onChange={iso=>{setBloqForm(f=>({...f,desde:iso}));setShowBloqDesdeCal(false);}} festivosSet={festivosSet} bloqueosPelId={bloqForm.peluqueroId?Number(bloqForm.peluqueroId):null} bloqueos={bloqueos}/></div>}
+
+          {showBF && (
+            <div className="anim" style={{ background: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "12px", border: "1px solid #cbd5e1" }}>
+              <select style={{...inputS, marginBottom: "8px", cursor:"default"}} value={bloqForm.peluqueroId} onChange={e=>setBloqForm({...bloqForm, peluqueroId:e.target.value})}>
+                <option value="">¿Peluquero?</option>
+                {CONFIG.peluqueros.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                <div style={{ position: "relative" }}>
+                  <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Desde</label>
+                  <button style={inputS} onClick={()=>setShowBloqDesdeCal(!showBloqDesdeCal)}>{bloqForm.desde ? toDMY(bloqForm.desde) : "..."}</button>
+                  {showBloqDesdeCal && (
+                    <div style={{ position: "absolute", zIndex: 200, marginTop: "4px" }}>
+                      <MiniCalPicker value={bloqForm.desde} onChange={d=>{setBloqForm({...bloqForm, desde:d});setShowBloqDesdeCal(false);}} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                    </div>
+                  )}
                 </div>
-                {bloqForm.tipo==="semana"&&(
-                  <div style={{position:"relative"}}>
-                    <Lbl>Fecha fin</Lbl>
-                    <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:bloqForm.hasta?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",outline:"none"}} onClick={()=>setShowBloqHastaCal(v=>!v)}>
-                      <span>{bloqForm.hasta||"Fecha..."}</span><span>📅</span>
-                    </button>
-                    {showBloqHastaCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={bloqForm.hasta} onChange={iso=>{setBloqForm(f=>({...f,hasta:iso}));setShowBloqHastaCal(false);}} festivosSet={festivosSet} bloqueosPelId={bloqForm.peluqueroId?Number(bloqForm.peluqueroId):null} bloqueos={bloqueos}/></div>}
-                  </div>
-                )}
+                <div style={{ position: "relative" }}>
+                  <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Hasta (Opcional)</label>
+                  <button style={inputS} onClick={()=>setShowBloqHastaCal(!showBloqHastaCal)}>{bloqForm.hasta ? toDMY(bloqForm.hasta) : "..."}</button>
+                  {showBloqHastaCal && (
+                    <div style={{ position: "absolute", zIndex: 200, marginTop: "4px", right: 0 }}>
+                      <MiniCalPicker value={bloqForm.hasta} onChange={d=>{setBloqForm({...bloqForm, hasta:d});setShowBloqHastaCal(false);}} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div style={{marginBottom:10}}><Lbl>Motivo</Lbl><Inp value={bloqForm.motivo} onChange={e=>setBloqForm(f=>({...f,motivo:e.target.value}))} placeholder="Ej: Vacaciones"/></div>
-              <div style={{display:"flex",gap:6}}>
-                <Btn ok={false} sm onClick={()=>setShowBF(false)}>Cancelar</Btn>
-                <Btn sm onClick={async()=>{if(!bloqForm.peluqueroId||!bloqForm.desde||!bloqForm.motivo)return;await crearBloqueo({...bloqForm,hasta:bloqForm.tipo==="dia"?bloqForm.desde:bloqForm.hasta});setBloqForm({peluqueroId:"",tipo:"dia",desde:"",hasta:"",motivo:""});setShowBF(false);}}>Guardar</Btn>
-              </div>
+              <input style={{...inputS, marginBottom: "12px", cursor:"text"}} placeholder="Motivo (Ej: Vacaciones)" value={bloqForm.motivo} onChange={e=>setBloqForm({...bloqForm, motivo:e.target.value})} />
+              <button style={{...btnBlue, width:"100%", padding:"10px", background:"#10b981", fontSize: "12px"}} onClick={async () => {
+                  const pel = CONFIG.peluqueros.find(p => String(p.id) === String(bloqForm.peluqueroId));
+                  if(!pel || !bloqForm.desde || !bloqForm.motivo) return;
+                  const dias = obtenerDiasEntre(bloqForm.desde, bloqForm.hasta || bloqForm.desde);
+                  const rId = Date.now().toString();
+                  for(const d of dias) {
+                    const docName = `${pel.nombre} - ${bloqForm.motivo} - ${toSafeDMY(d)}`;
+                    await crearBloqueo(docName, { desde: d, hasta: d, rangoId: rId, peluqueroId: pel.id, todoElDia: true });
+                  }
+                  setBloqForm({peluqueroId:"", desde:"", hasta:"", motivo:""}); setShowBF(false);
+              }}>Guardar Ausencia</button>
             </div>
           )}
-          {bloqueos.map(b=>{
-            const pel=CONFIG.peluqueros.find(p=>p.id===Number(b.peluqueroId));
-            return(
-              <div key={b.id} style={{...as.card,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",marginBottom:8}}>
-                <div><div style={{fontSize:13,fontWeight:700,color:TX}}>{pel?.emoji} {pel?.nombre} — {b.motivo}</div><div style={{fontSize:11,color:TX2}}>{b.tipo==="dia"?b.desde:`${b.desde} → ${b.hasta}`}</div></div>
-                <button style={as.actBtn(ER)} onClick={()=>borrarBloqueo(b.id)}>Quitar</button>
+
+          {agruparItems(bloqueos).map((b, i) => {
+            const pel = CONFIG.peluqueros.find(p => String(p.id) === String(b.peluqueroId));
+            return (
+              <div key={i} style={{ background: "#fff", padding: "8px 12px", borderRadius: "10px", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                  <img src={pel?.foto} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #f1f5f9" }} />
+                  <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{pel?.nombre}</span>
+                  <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "500" }}>{b.motivo}</span>
+                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>{toDMY(b.inicio)}{b.inicio !== b.fin ? ` - ${toDMY(b.fin)}` : ""}</span>
+                </div>
+                <button style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontSize: "15px", padding: "4px" }} onClick={async () => { for(const id of b.ids) await borrarBloqueo(id); }}>✕</button>
               </div>
             );
           })}
@@ -2484,279 +3543,688 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB STATS
-  // ──────────────────────
-  const TabStats=()=>{
-    const [periodo,setPeriodo]=useState("mes");
-    const ahora=new Date();
-    const inicioMes=`${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,"0")}-01`;
-    const inicioSemana=isoDate(getWeekDays()[0]);
-    const citasPeriodo=citas.filter(c=>{
-      if(periodo==="hoy") return c.fecha===HOY_ISO;
-      if(periodo==="semana") return c.fecha>=inicioSemana&&c.fecha<=HOY_ISO;
-      if(periodo==="mes") return c.fecha>=inicioMes&&c.fecha<=HOY_ISO;
+  // TAB STATS - VERSIÓN FINAL CON SERVICIO ESTRELLA REFINADO
+  // ─────────────────────────────────────────────────────────
+  const TabStats = () => {
+    const [periodo, setPeriodo] = useState("mes");
+    const ahora = new Date();
+    const inicioMes = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-01`;
+    const inicioSemana = isoDate(getWeekDays()[0]);
+
+    const FOTO_DEFAULT = "https://i.postimg.cc/WbKz7QyQ/avatar-default.png";
+
+    const citasPeriodo = citas.filter(c => {
+      if (periodo === "hoy") return c.fecha === HOY_ISO;
+      if (periodo === "semana") return c.fecha >= inicioSemana && c.fecha <= HOY_ISO;
+      if (periodo === "mes") return c.fecha >= inicioMes && c.fecha <= HOY_ISO;
       return true;
     });
-    return(
-      <div>
-        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-          {[["hoy","Hoy"],["semana","Esta semana"],["mes","Este mes"],["todo","Todo"]].map(([v,l])=>(
-            <button key={v} style={{background:periodo===v?A:CR2,color:periodo===v?WH:TX,border:`1px solid ${periodo===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setPeriodo(v)}>{l}</button>
+
+    const completadasTotal = citasPeriodo.filter(c => c.estado === "completada");
+    const ingresosTotal = completadasTotal.reduce((s, c) => s + c.precio, 0);
+    const ticketMedio = completadasTotal.length > 0 ? (ingresosTotal / completadasTotal.length).toFixed(2) : 0;
+    const noShowsTotal = citasPeriodo.filter(c => c.estado === "no-show").length;
+    const tasaNSTotal = citasPeriodo.length > 0 ? Math.round((noShowsTotal / citasPeriodo.length) * 100) : 0;
+
+    return (
+      <div style={{ paddingBottom: 40 }}>
+        {/* SELECTOR DE PERIODO */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
+          {[["hoy", "Hoy"], ["semana", "Semana"], ["mes", "Mes"], ["todo", "Histórico"]].map(([v, l]) => (
+            <button 
+              key={v} 
+              style={{
+                background: periodo === v ? A : WH, 
+                color: periodo === v ? WH : TX, 
+                border: `1px solid ${periodo === v ? A : CR3}`,
+                borderRadius: 10, padding: "8px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                transition: "0.2s", boxShadow: periodo === v ? "0 4px 10px rgba(0,0,0,0.1)" : "none"
+              }} 
+              onClick={() => setPeriodo(v)}
+            >
+              {l}
+            </button>
           ))}
         </div>
-        {CONFIG.peluqueros.map(p=>{
-          const mc=citasPeriodo.filter(c=>c.peluqueroId===p.id);
-          const comp=mc.filter(c=>c.estado==="completada");
-          const ing=comp.reduce((s,c)=>s+c.precio,0);
-          const ns=mc.filter(c=>c.estado==="no-show").length;
-          const tns=mc.length>0?Math.round(ns/mc.length*100):0;
-          const sc={}; mc.forEach(c=>{sc[c.servicio]=(sc[c.servicio]||0)+1;});
-          const top=Object.entries(sc).sort((a,b)=>b[1]-a[1])[0];
-          return(
-            <div key={p.id} style={{...as.card,marginBottom:14,borderLeft:`4px solid ${p.color}`}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-                <span style={{fontSize:24}}>{p.emoji}</span>
-                <div><div style={{fontSize:15,fontWeight:700,color:TX}}>{p.nombre}</div><div style={{fontSize:12,color:TX2}}>{p.especialidad}</div></div>
+
+        {/* PANEL GLOBAL */}
+        <div className="admin-kpi-grid" style={{ ...as.kpiGrid, marginBottom: 25 }}>
+          <div style={{ ...as.kpi, borderLeft: `4px solid ${A}` }}>
+            <div style={as.kpiVal}>€{ingresosTotal}</div>
+            <div style={as.kpiLbl}>Ingresos Totales</div>
+          </div>
+          <div style={{ ...as.kpi, borderLeft: `4px solid #10B981` }}>
+            <div style={{ ...as.kpiVal, color: "#10B981" }}>€{ticketMedio}</div>
+            <div style={as.kpiLbl}>Ticket Medio</div>
+          </div>
+          <div style={{ ...as.kpi, borderLeft: `4px solid #6366F1` }}>
+            <div style={{ ...as.kpiVal, color: "#6366F1" }}>{completadasTotal.length}</div>
+            <div style={as.kpiLbl}>Servicios Realizados</div>
+          </div>
+          <div style={{ ...as.kpi, borderLeft: `4px solid ${ER}` }}>
+            <div style={{ ...as.kpiVal, color: ER }}>{tasaNSTotal}%</div>
+            <div style={as.kpiLbl}>Tasa No-Show</div>
+          </div>
+        </div>
+
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 15, color: TX }}>Rendimiento por Profesional</div>
+
+        {/* LISTADO DE PELUQUEROS */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+          {CONFIG.peluqueros.map(p => {
+            const mc = citasPeriodo.filter(c => c.peluqueroId === p.id);
+            const comp = mc.filter(c => c.estado === "completada");
+            const ing = comp.reduce((s, c) => s + c.precio, 0);
+            const ns = mc.filter(c => c.estado === "no-show").length;
+            const tns = mc.length > 0 ? Math.round(ns / mc.length * 100) : 0;
+            
+            const sc = {}; mc.forEach(c => { sc[c.servicio] = (sc[c.servicio] || 0) + 1; });
+            const top = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
+
+            return (
+              <div key={p.id} style={{ ...as.card, borderTop: `5px solid ${p.color}`, position: "relative" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+                  <img 
+                    src={p.foto || FOTO_DEFAULT} 
+                    alt={p.nombre} 
+                    style={{ 
+                      width: "54px", 
+                      height: "54px", 
+                      borderRadius: "50%", 
+                      objectFit: "cover",
+                      border: `3px solid ${p.color}15`,
+                      padding: "2px",
+                      background: WH
+                    }} 
+                  />
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: TX }}>{p.nombre}</div>
+                    <div style={{ fontSize: 11, color: TX2, textTransform: "uppercase", letterSpacing: 1 }}>{p.especialidad}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ background: CR, padding: "12px", borderRadius: 10 }}>
+                    <div style={{ fontSize: 10, color: TX2, marginBottom: 4 }}>FACTURADO</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: p.color }}>€{ing}</div>
+                  </div>
+                  <div style={{ background: CR, padding: "12px", borderRadius: 10 }}>
+                    <div style={{ fontSize: 10, color: TX2, marginBottom: 4 }}>NO-SHOWS</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: tns > 15 ? ER : TX }}>{tns}%</div>
+                  </div>
+                </div>
+
+                {/* BLOQUE SERVICIO ESTRELLA ACTUALIZADO */}
+                <div style={{ 
+                  marginTop: 12, 
+                  padding: "12px", 
+                  background: "#F8FAFC", 
+                  borderRadius: 10, 
+                  border: "1px dashed #CBD5E1",
+                  textAlign: "center" // Centra el título y el contenido
+                }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: TX2, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Servicio más realizado
+                  </div>
+                  {top ? (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: TX }}>
+                      {top[0]} 
+                      <span style={{ 
+                        color: p.color, 
+                        fontWeight: 400, // Menos grosor para la cantidad
+                        fontSize: "12px",
+                        marginLeft: "6px" 
+                      }}>
+                        x{top[1]}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: TX2, fontStyle: "italic" }}>Sin actividad</div>
+                  )}
+                </div>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
-                {[[mc.length,"Citas totales"],[comp.length,"Completadas"],[`€${ing}`,"Ingresos"],[`${tns}%`,"No shows"]].map(([v,l])=>(
-                  <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center"}}><div style={{fontSize:17,fontWeight:700,color:p.color}}>{v}</div><div style={{fontSize:10,color:TX2,textTransform:"uppercase",letterSpacing:.5}}>{l}</div></div>
-                ))}
-              </div>
-              {top?<div style={{background:`${p.color}10`,border:`1px solid ${p.color}30`,borderRadius:8,padding:"8px 12px",fontSize:12}}><span style={{color:TX2}}>Servicio más popular: </span><span style={{fontWeight:700,color:p.color}}>{top[0]}</span><span style={{color:TX2}}> ({top[1]} veces)</span></div>
-                  :<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin citas en este período</div>}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     );
   };
 
+// ──────────────────────
+  // TAB CONFIG (OPINIONES EN FILA HORIZONTAL)
   // ──────────────────────
-  // TAB CONFIG — ★ usa configSubTab del padre para no perder la pestaña al guardar
-  // ──────────────────────
-  const TabConfig=()=>{
-    const [editSvc,setEditSvc]=useState(null);
-    const [newSvc,setNewSvc]=useState({nombre:"",duracionMin:30,precio:0,emoji:"✂️",desc:""});
-    const [showNew,setShowNew]=useState(false);
-    const [showNewVal,setShowNewVal]=useState(false);
-    const [newVal,setNewVal]=useState({nombre:"",estrellas:5,comentario:"",servicio:""});
-    const [editVal,setEditVal]=useState(null);
+  const TabConfig = () => {
+    const [editSvc, setEditSvc] = useState(null);
+    const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
+    const [showNew, setShowNew] = useState(false);
+    
+    const [showNewVal, setShowNewVal] = useState(false);
+    const [newVal, setNewVal] = useState({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
+    const [editVal, setEditVal] = useState(null);
 
-    const guardarSvc=async()=>{
-      if(!editSvc.nombre) return;
-      const updated=servicios.map(s=>s.id===editSvc.id?editSvc:s);
+    // --- FUNCIONES SERVICIOS ---
+    const guardarSvc = async () => {
+      if (!editSvc.nombre) return;
+      const updated = servicios.map(s => s.id === editSvc.id ? editSvc : s);
       setServicios(updated);
       await guardarServicioFB(editSvc);
       setEditSvc(null);
     };
-    const addSvc=async()=>{
-      if(!newSvc.nombre) return;
-      if(servicios.some(s=>s.nombre.toLowerCase()===newSvc.nombre.toLowerCase())){
+
+    const addSvc = async () => {
+      if (!newSvc.nombre) return;
+      if (servicios.some(s => s.nombre.toLowerCase() === newSvc.nombre.toLowerCase())) {
         alert("Ya existe un servicio con ese nombre.");
         return;
       }
-      const svc={...newSvc,id:Date.now(),precio:Number(newSvc.precio),duracionMin:Number(newSvc.duracionMin)};
-      setServicios(prev=>[...prev,svc]);
+      const svc = { ...newSvc, id: Date.now(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) };
+      setServicios(prev => [...prev, svc]);
       await guardarServicioFB(svc);
-      setNewSvc({nombre:"",duracionMin:30,precio:0,emoji:"✂️",desc:""});
+      setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
       setShowNew(false);
     };
-    const deleteSvc=async(id,nombre)=>{
-      setServicios(prev=>prev.filter(s=>s.id!==id));
+
+    const deleteSvc = async (id, nombre) => {
+      setServicios(prev => prev.filter(s => s.id !== id));
       await borrarServicioFB(nombre);
     };
-    const addVal=async()=>{
-      if(!newVal.nombre||!newVal.comentario) return;
-      const nueva={...newVal,id:Date.now()};
-      setValoraciones(p=>[...p,nueva]);
+
+    // --- FUNCIONES VALORACIONES ---
+    const addVal = async () => {
+      if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; 
+      const nueva = { ...newVal, id: Date.now() };
+      setValoraciones(p => [...p, nueva]);
       await guardarValoracionFB(nueva);
-      setNewVal({nombre:"",estrellas:5,comentario:"",servicio:""});
+      setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
       setShowNewVal(false);
     };
-    // ★ saveEdit NO cambia configSubTab — permanece en "valoraciones"
-    const saveEdit=async()=>{
-      if(!editVal) return;
-      setValoraciones(p=>p.map(v=>v.id===editVal.id?editVal:v));
+
+    const saveEdit = async () => {
+      if (!editVal || !editVal.nombre || !editVal.comentario || !editVal.servicio) return;
+      setValoraciones(p => p.map(v => v.id === editVal.id ? editVal : v));
       await guardarValoracionFB(editVal);
       setEditVal(null);
     };
 
-    return(
-      <div>
-        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-          {[["servicios","Servicios"],["valoraciones","Opiniones"],["horarios","Horarios"]].map(([v,l])=>(
-            // ★ usa setConfigSubTab del padre
-            <button key={v} style={{background:configSubTab===v?A:CR2,color:configSubTab===v?WH:TX,border:`1px solid ${configSubTab===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setConfigSubTab(v)}>{l}</button>
+    // --- ESTILOS REUTILIZABLES ---
+    const cardS = { background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" };
+    const inputS = { width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#1e293b", outline: "none", boxSizing: "border-box" };
+    const labelS = { fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" };
+    
+    const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "0.2s" };
+    const btnGreen = { ...btnBlue, background: "#10b981" };
+    const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
+    
+    // Botones de acción cuadrados (32x32)
+    const btnSquareEdit = { background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
+    const btnSquareDel = { background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
+
+    const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", textAlign: "left" };
+    const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
+
+    return (
+      <div style={{ width: "100%", margin: "0 auto" }}> 
+        
+        {/* NAVEGACIÓN DE PESTAÑAS */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
+          {[["servicios", "Servicios"], ["valoraciones", "Opiniones"], ["horarios", "Horarios"]].map(([v, l]) => (
+            <button 
+              key={v} 
+              onClick={() => setConfigSubTab(v)}
+              style={{
+                background: configSubTab === v ? "#1e3a8a" : "#fff",
+                color: configSubTab === v ? "#fff" : "#64748b",
+                border: `1px solid ${configSubTab === v ? "#1e3a8a" : "#cbd5e1"}`,
+                borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", transition: "0.2s"
+              }}
+            >
+              {l}
+            </button>
           ))}
         </div>
 
-        {configSubTab==="servicios"&&(
-          <div>
-            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}><Btn sm onClick={()=>setShowNew(v=>!v)}>+ Nuevo servicio</Btn></div>
-            {showNew&&(
-              <div style={{...as.card,marginBottom:12}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><Lbl>Nombre</Lbl><Inp value={newSvc.nombre} onChange={e=>setNewSvc(f=>({...f,nombre:e.target.value}))} placeholder="Nombre"/></div>
-                  <div><Lbl>Emoji</Lbl><Inp value={newSvc.emoji} onChange={e=>setNewSvc(f=>({...f,emoji:e.target.value}))}/></div>
-                  <div><Lbl>Duración (min)</Lbl><Inp type="number" value={newSvc.duracionMin} onChange={e=>setNewSvc(f=>({...f,duracionMin:e.target.value}))}/></div>
-                  <div><Lbl>Precio (€)</Lbl><Inp type="number" value={newSvc.precio} onChange={e=>setNewSvc(f=>({...f,precio:e.target.value}))}/></div>
-                  <div style={{gridColumn:"1/-1"}}><Lbl>Descripción</Lbl><Inp value={newSvc.desc} onChange={e=>setNewSvc(f=>({...f,desc:e.target.value}))} placeholder="Descripción breve"/></div>
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 1: SERVICIOS */}
+        {configSubTab === "servicios" && (
+          <div className="anim">
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+              <button style={btnBlue} onClick={() => setShowNew(v => !v)}>{showNew ? "Cancelar" : "+ Nuevo servicio"}</button>
+            </div>
+
+            {showNew && (
+              <div style={cardS}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                  <div><label style={labelS}>Nombre</label><input style={inputS} value={newSvc.nombre} onChange={e => setNewSvc(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Corte clásico" /></div>
+                  <div><label style={labelS}>Duración (min)</label><input style={inputS} type="number" value={newSvc.duracionMin} onChange={e => setNewSvc(f => ({ ...f, duracionMin: e.target.value }))} /></div>
+                  <div><label style={labelS}>Precio (€)</label><input style={inputS} type="number" value={newSvc.precio} onChange={e => setNewSvc(f => ({ ...f, precio: e.target.value }))} /></div>
+                  <div style={{ gridColumn: "1 / -1" }}><label style={labelS}>Descripción (Opcional)</label><input style={inputS} value={newSvc.desc} onChange={e => setNewSvc(f => ({ ...f, desc: e.target.value }))} placeholder="Descripción breve del servicio" /></div>
                 </div>
-                <div style={{display:"flex",gap:6}}><Btn ok={false} sm onClick={()=>setShowNew(false)}>Cancelar</Btn><Btn sm onClick={addSvc}>Añadir y guardar en Firebase</Btn></div>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button style={btnCancel} onClick={() => setShowNew(false)}>Cancelar</button>
+                  <button style={{...btnGreen, opacity: newSvc.nombre ? 1 : 0.5}} disabled={!newSvc.nombre} onClick={addSvc}>Guardar Servicio</button>
+                </div>
               </div>
             )}
-            <div style={as.card}>
-              <table style={as.table}>
-                <thead><tr>{["Emoji","Nombre","Duración","Precio","Acciones"].map(h=><th key={h} style={as.th}>{h}</th>)}</tr></thead>
-                <tbody>{servicios.map(s=>(
-                  <tr key={s.id}>{editSvc?.id===s.id?(
-                    <>
-                      <td style={as.td}><Inp style={{width:50,padding:"4px 8px"}} value={editSvc.emoji} onChange={e=>setEditSvc(f=>({...f,emoji:e.target.value}))}/></td>
-                      <td style={as.td}><Inp style={{padding:"4px 8px"}} value={editSvc.nombre} onChange={e=>setEditSvc(f=>({...f,nombre:e.target.value}))}/></td>
-                      <td style={as.td}><Inp style={{width:70,padding:"4px 8px"}} type="number" value={editSvc.duracionMin} onChange={e=>setEditSvc(f=>({...f,duracionMin:Number(e.target.value)}))}/></td>
-                      <td style={as.td}><Inp style={{width:70,padding:"4px 8px"}} type="number" value={editSvc.precio} onChange={e=>setEditSvc(f=>({...f,precio:Number(e.target.value)}))}/></td>
-                      <td style={as.td}><button style={as.actBtn(OK)} onClick={guardarSvc}>✓ Guardar</button><button style={as.actBtn(TX2)} onClick={()=>setEditSvc(null)}>✕</button></td>
-                    </>
-                  ):(
-                    <>
-                      <td style={as.td}>{s.emoji}</td>
-                      <td style={{...as.td,fontWeight:600}}>{s.nombre}</td>
-                      <td style={as.td}>{s.duracionMin} min</td>
-                      <td style={{...as.td,fontWeight:700,color:A}}>€{s.precio}</td>
-                      <td style={as.td}><button style={as.actBtn(A)} onClick={()=>setEditSvc({...s})}>✏️</button><button style={as.actBtn(ER)} onClick={()=>deleteSvc(s.id,s.nombre)}>🗑</button></td>
-                    </>
-                  )}</tr>
-                ))}</tbody>
+
+            <div style={{ ...cardS, padding: 0, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead style={{ background: "#f8fafc" }}>
+                  <tr>
+                    <th style={thS}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center" }}>Precio</th>
+                    <th style={{ ...thS, textAlign: "right" }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {servicios.map(s => (
+                    <tr key={s.id} style={{ transition: "0.2s" }}>
+                      {editSvc?.id === s.id ? (
+                        <>
+                          <td style={tdS}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                              <button style={{...btnGreen, padding: "6px 12px"}} onClick={guardarSvc}>✓</button>
+                              <button style={btnCancel} onClick={() => setEditSvc(null)}>✕</button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#1e293b" }}>{s.nombre}</td>
+                          <td style={{ ...tdS, color: "#64748b", textAlign: "center" }}>{s.duracionMin} min</td>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#10b981", textAlign: "center" }}>{s.precio} €</td>
+                          <td style={{ ...tdS, textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                              <button style={btnSquareEdit} onClick={() => setEditSvc({ ...s })}>✏️</button>
+                              <button style={btnSquareDel} onClick={() => deleteSvc(s.id, s.nombre)}>🗑</button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                  {servicios.length === 0 && <tr><td colSpan="4" style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No hay servicios registrados.</td></tr>}
+                </tbody>
               </table>
-            </div>
-            <div style={{background:`${A}10`,border:`1px solid ${A}30`,borderRadius:10,padding:"10px 14px",fontSize:12,color:TX2}}>
-              💡 Los cambios de servicios se guardan en Firebase automáticamente al pulsar ✓ Guardar.
             </div>
           </div>
         )}
 
-        {configSubTab==="valoraciones"&&(
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div style={{fontSize:12,color:TX2}}>Opiniones visibles en la web</div>
-              <Btn sm onClick={()=>setShowNewVal(v=>!v)}>+ Añadir</Btn>
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 2: VALORACIONES */}
+        {configSubTab === "valoraciones" && (
+          <div className="anim">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Opiniones visibles en la página web</div>
+              <button style={btnBlue} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
             </div>
-            {showNewVal&&(
-              <div style={{...as.card,marginBottom:14,border:`1px solid ${A}44`}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                  <div><Lbl>Nombre</Lbl><Inp value={newVal.nombre} onChange={e=>setNewVal(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Laura M."/></div>
-                  <div><Lbl>Servicio</Lbl><Inp value={newVal.servicio} onChange={e=>setNewVal(f=>({...f,servicio:e.target.value}))} placeholder="Ej: Corte"/></div>
+
+            {showNewVal && (
+              <div style={{ ...cardS, border: "1px solid #93c5fd", background: "#f8fafc" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
+                  <div><label style={labelS}>Nombre del cliente</label><input style={inputS} value={newVal.nombre} onChange={e => setNewVal(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Laura M." /></div>
+                  <div>
+                    <label style={labelS}>Servicio realizado</label>
+                    <select style={inputS} value={newVal.servicio} onChange={e => setNewVal(f => ({ ...f, servicio: e.target.value }))}>
+                      <option value="">Seleccionar servicio...</option>
+                      {servicios.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div style={{marginBottom:10}}><Lbl>Valoración</Lbl><div style={{display:"flex",gap:4}}>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:22,cursor:"pointer",color:i<=newVal.estrellas?"#F59E0B":"#D1D5DB"}} onClick={()=>setNewVal(f=>({...f,estrellas:i}))}>★</span>)}</div></div>
-                <div style={{marginBottom:14}}><Lbl>Comentario</Lbl><textarea value={newVal.comentario} onChange={e=>setNewVal(f=>({...f,comentario:e.target.value}))} style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:TX,outline:"none",boxSizing:"border-box",fontFamily:FONT,minHeight:80,resize:"vertical"}}/></div>
-                <div style={{display:"flex",gap:8}}><Btn ok={false} sm onClick={()=>setShowNewVal(false)}>Cancelar</Btn><Btn sm onClick={addVal}>Guardar</Btn></div>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={labelS}>Valoración</label>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={labelS}>Comentario</label>
+                  <textarea value={newVal.comentario} onChange={e => setNewVal(f => ({ ...f, comentario: e.target.value }))} placeholder="Escribe aquí la opinión del cliente..." style={{ ...inputS, minHeight: "90px", resize: "vertical", fontFamily: "inherit" }} />
+                </div>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button style={btnCancel} onClick={() => setShowNewVal(false)}>Cancelar</button>
+                  <button style={{...btnGreen, opacity: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? 0.5 : 1, cursor: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? "not-allowed" : "pointer"}} onClick={addVal}>Guardar Opinión</button>
+                </div>
               </div>
             )}
-            {valoraciones.map(v=>(
-              <div key={v.id} style={{...as.card,marginBottom:10}}>
-                {editVal?.id===v.id?(
-                  <div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                      <div><Lbl>Nombre</Lbl><Inp value={editVal.nombre} onChange={e=>setEditVal(f=>({...f,nombre:e.target.value}))}/></div>
-                      <div><Lbl>Servicio</Lbl><Inp value={editVal.servicio} onChange={e=>setEditVal(f=>({...f,servicio:e.target.value}))}/></div>
-                    </div>
-                    <div style={{marginBottom:10}}><Lbl>Valoración</Lbl><div style={{display:"flex",gap:4}}>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:22,cursor:"pointer",color:i<=editVal.estrellas?"#F59E0B":"#D1D5DB"}} onClick={()=>setEditVal(f=>({...f,estrellas:i}))}>★</span>)}</div></div>
-                    <div style={{marginBottom:12}}><Lbl>Comentario</Lbl><textarea value={editVal.comentario} onChange={e=>setEditVal(f=>({...f,comentario:e.target.value}))} style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:TX,outline:"none",boxSizing:"border-box",fontFamily:FONT,minHeight:70,resize:"vertical"}}/></div>
-                    <div style={{display:"flex",gap:8}}><Btn ok={false} sm onClick={()=>setEditVal(null)}>Cancelar</Btn><Btn sm onClick={saveEdit}>Guardar</Btn></div>
-                  </div>
-                ):(
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-                        <span style={{fontSize:13,fontWeight:700,color:TX}}>{v.nombre}</span>
-                        <div style={{display:"flex",gap:1}}>{Array.from({length:5}).map((_,i)=><span key={i} style={{fontSize:12,color:i<v.estrellas?"#F59E0B":"#D1D5DB"}}>★</span>)}</div>
-                        <span style={{fontSize:11,color:TX2}}>{v.servicio}</span>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+              {valoraciones.map(v => (
+                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0 }}>
+                  {editVal?.id === v.id ? (
+                    <div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                        <div><label style={labelS}>Nombre</label><input style={inputS} value={editVal.nombre} onChange={e => setEditVal(f => ({ ...f, nombre: e.target.value }))} /></div>
+                        <div>
+                          <label style={labelS}>Servicio</label>
+                          <select style={inputS} value={editVal.servicio} onChange={e => setEditVal(f => ({ ...f, servicio: e.target.value }))}>
+                            <option value="">Seleccionar...</option>
+                            {servicios.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                          </select>
+                        </div>
                       </div>
-                      <p style={{fontSize:12,color:TX2,margin:0,fontStyle:"italic"}}>"{v.comentario}"</p>
+                      <div style={{ marginBottom: "12px" }}>
+                        <label style={labelS}>Valoración</label>
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "24px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={editVal.comentario} onChange={e => setEditVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "80px", resize: "vertical", fontFamily: "inherit" }} /></div>
+                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                        <button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button>
+                        <button style={btnGreen} onClick={saveEdit}>Guardar</button>
+                      </div>
                     </div>
-                    <div style={{display:"flex",gap:6,marginLeft:12}}>
-                      <button style={as.actBtn(A)} onClick={()=>setEditVal({...v})}>✏️</button>
-                      <button style={as.actBtn(ER)} onClick={async()=>{setValoraciones(p=>p.filter(x=>x.id!==v.id));await borrarValoracionFB(v);}}>🗑</button>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "44px" }}>
+                      
+                      {/* IZQUIERDA: Nombre, estrellas y servicio (En línea) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "30%", flexShrink: 0 }}>
+                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+                        <div style={{ display: "flex", gap: "2px" }}>
+                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "14px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                        </div>
+                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                      </div>
+
+                      {/* CENTRO: Comentario */}
+                      <div style={{ flex: 1, textAlign: "center", padding: "0 16px" }}>
+                        <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                      </div>
+
+                      {/* DERECHA: Botones */}
+                      <div style={{ display: "flex", gap: "8px", width: "30%", flexShrink: 0, justifyContent: "flex-end" }}>
+                        <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
+                        <button style={btnSquareDel} onClick={async () => { setValoraciones(p => p.filter(x => x.id !== v.id)); await borrarValoracionFB(v); }}>🗑</button>
+                      </div>
+                      
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              ))}
+              {valoraciones.length === 0 && <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", fontSize: "14px", background: "#fff", borderRadius: "12px", border: "1px dashed #cbd5e1" }}>No hay opiniones registradas.</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 3: HORARIOS */}
+        {configSubTab === "horarios" && (
+          <div className="anim" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5%", alignItems: "start" }}>
+            {CONFIG.peluqueros.map(p => (
+              <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
+                
+                {/* CABECERA DEL PELUQUERO */}
+                <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
+                  <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
+                  <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
+                </div>
+
+                {/* TABLA DE HORARIOS ALINEADA */}
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...thS, textAlign: "left", paddingLeft: "20px" }}>Día</th>
+                      <th style={{ ...thS, textAlign: "center" }}>Entrada</th>
+                      <th style={{ ...thS, textAlign: "center" }}>Salida</th>
+                      <th style={{ ...thS, textAlign: "center" }}>Descanso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3, 4, 5, 6].map(d => {
+                      const h = p.horario[d];
+                      return (
+                        <tr key={d} style={{ transition: "0.2s" }}>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{DIAS_FULL[d]}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8" }}>{h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ))}
-            {valoraciones.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`,fontStyle:"italic"}}>No hay opiniones.</div>}
           </div>
-        )}
-
-        {configSubTab==="horarios"&&(
-          <div>{CONFIG.peluqueros.map(p=>(
-            <div key={p.id} style={{...as.card,marginBottom:12}}>
-              <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:12,display:"flex",alignItems:"center",gap:8}}><span style={{width:10,height:10,borderRadius:2,background:p.color}}/>{p.emoji} {p.nombre}</div>
-              <table style={as.table}><thead><tr>{["Día","Entrada","Salida","Descanso"].map(h=><th key={h} style={as.th}>{h}</th>)}</tr></thead>
-              <tbody>{[1,2,3,4,5,6].map(d=>{const h=p.horario[d];return(<tr key={d}><td style={{...as.td,fontWeight:700}}>{DIAS_FULL[d]}</td><td style={as.td}>{h?h.entrada:<span style={{color:TX2}}>—</span>}</td><td style={as.td}>{h?h.salida:<span style={{color:TX2}}>—</span>}</td><td style={as.td}>{h?.descanso?`${h.descanso.inicio}–${h.descanso.fin}`:<span style={{color:TX2}}>—</span>}</td></tr>);})}</tbody>
-              </table>
-            </div>
-          ))}</div>
         )}
       </div>
     );
   };
 
   // ──────────────────────
-  // TAB COMUNICACIÓN
+  // TAB COMUNICACIÓN (VISTA PREVIA ESTILO WHATSAPP)
   // ──────────────────────
-  const TabComunicacion=()=>{
-    const msgs=[
-      {icon:"✅",titulo:"Confirmación de reserva",cuando:"Inmediatamente al reservar",msg:`Hola [Nombre] 👋\nReserva confirmada en *${CONFIG.nombre}*\n\n✂️ [Servicio]\n💈 [Peluquero]\n📅 [Fecha]\n🕐 [Hora]\n💶 €[Precio]\n\nTe esperamos 😊`},
-      {icon:"⏰",titulo:"Recordatorio 24h antes",cuando:"24h antes de la cita",msg:`Hola [Nombre] 👋\nMañana tienes cita en *${CONFIG.nombre}*\n\n✂️ [Servicio] con [Peluquero]\n🕐 [Hora]\n📍 ${CONFIG.direccion}\n\n¿Necesitas cancelar? Avísanos 🙏`},
-      {icon:"⭐",titulo:"Mensaje post-cita",cuando:"24h después de la cita",msg:`Hola [Nombre]!\nEsperamos que hayas quedado genial 💈\n\n¿Cómo fue tu experiencia?\nTu opinión nos ayuda mucho 🙏`},
-      {icon:"🔄",titulo:"Recordatorio de vuelta",cuando:"X semanas después",msg:`Hola [Nombre] 👋\n¿Toca pasar por *${CONFIG.nombre}*?\n\nReserva cuando quieras 😊\n👉 [Enlace reserva]`},
-      {icon:"📊",titulo:"Resumen diario al dueño",cuando:"Cada mañana a las 8:00",msg:`*Resumen del día — ${CONFIG.nombre}*\n📅 [Fecha]\n\nCitas: [N] · Clara: [N] · Fernando: [N] · Marta: [N]\n💶 Ingresos previstos: €[Total]`},
-      {icon:"🔔",titulo:"Aviso nueva reserva",cuando:"Cada vez que alguien reserva",msg:`*Nueva reserva 🎉*\n\n👤 [Cliente] · ✂️ [Servicio]\n💈 [Peluquero] · 📅 [Fecha] 🕐 [Hora]`},
+  const TabComunicacion = () => {
+    const msgs = [
+      { icon: "✅", titulo: "Confirmación de reserva", cuando: "Inmediatamente al reservar", msg: `Hola [Nombre] 👋\nReserva confirmada en *${CONFIG.nombre}*\n\n✂️ [Servicio]\n💈 [Peluquero]\n📅 [Fecha]\n🕐 [Hora]\n💶 €[Precio]\n\nTe esperamos 😊` },
+      { icon: "⏰", titulo: "Recordatorio 24h antes", cuando: "24h antes de la cita", msg: `Hola [Nombre] 👋\nMañana tienes cita en *${CONFIG.nombre}*\n\n✂️ [Servicio] con [Peluquero]\n🕐 [Hora]\n📍 ${CONFIG.direccion}\n\n¿Necesitas cancelar? Avísanos 🙏` },
+      { icon: "⭐", titulo: "Mensaje post-cita", cuando: "24h después de la cita", msg: `Hola [Nombre]!\nEsperamos que hayas quedado genial 💈\n\n¿Cómo fue tu experiencia?\nTu opinión nos ayuda mucho 🙏` },
+      { icon: "🔄", titulo: "Recordatorio de vuelta", cuando: "X semanas después", msg: `Hola [Nombre] 👋\n¿Toca pasar por *${CONFIG.nombre}*?\n\nReserva cuando quieras 😊\n👉 [Enlace reserva]` },
+      { icon: "📊", titulo: "Resumen diario al dueño", cuando: "Cada mañana a las 8:00", msg: `*Resumen del día — ${CONFIG.nombre}*\n📅 [Fecha]\n\nCitas: [N] · Clara: [N] · Fernando: [N] · Marta: [N]\n💶 Ingresos previstos: €[Total]` },
+      { icon: "🔔", titulo: "Aviso nueva reserva", cuando: "Cada vez que alguien reserva", msg: `*Nueva reserva 🎉*\n\n👤 [Cliente] · ✂️ [Servicio]\n💈 [Peluquero] · 📅 [Fecha] 🕐 [Hora]` },
     ];
-    return(
-      <div>
-        <div style={{background:"#25D36610",border:"1px solid #25D36633",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:24}}>💬</span>
-          <div><div style={{fontSize:13,fontWeight:700,color:TX}}>Mensajes automáticos por WhatsApp</div><div style={{fontSize:12,color:TX2}}>Vista previa de los mensajes que se enviarán automáticamente.</div></div>
-        </div>
-        {msgs.map((m,i)=>(
-          <div key={i} style={{...as.card,marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:20}}>{m.icon}</span><div><div style={{fontSize:13,fontWeight:700,color:TX}}>{m.titulo}</div><div style={{fontSize:11,color:TX2}}>{m.cuando}</div></div></div>
-              <Bdg color={OK} small>Activo</Bdg>
-            </div>
-            <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:10,padding:"12px 14px"}}>
-              <div style={{fontSize:11,color:"#166534",fontWeight:700,marginBottom:6}}>Vista previa:</div>
-              <div style={{fontSize:12,color:TX,lineHeight:1.7,whiteSpace:"pre-line",fontFamily:"monospace"}}>{m.msg}</div>
+
+    return (
+      <div style={{ width: "100%", margin: "0 auto" }}>
+        
+        {/* BANNER INFORMATIVO */}
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "16px 20px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "16px" }}>
+          <span style={{ fontSize: "32px" }}>💬</span>
+          <div>
+            <div style={{ fontSize: "15px", fontWeight: "800", color: "#166534", marginBottom: "4px" }}>Mensajes automáticos por WhatsApp</div>
+            <div style={{ fontSize: "13px", color: "#15803d", lineHeight: "1.4" }}>
+              Actualmente esto es una <b>vista previa</b> de tus comunicaciones. En una futura actualización, conectaremos la API oficial de WhatsApp para que se envíen solos.
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* GRID DE MENSAJES */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
+          {msgs.map((m, i) => (
+            <div key={i} style={{ background: "#fff", borderRadius: "12px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
+              
+              {/* CABECERA DE LA TARJETA */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ fontSize: "20px", background: "#f8fafc", width: "42px", height: "42px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                    {m.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{m.titulo}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px", fontWeight: "600" }}>Activa: {m.cuando}</div>
+                  </div>
+                </div>
+                <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: "11px", fontWeight: "800", padding: "4px 8px", borderRadius: "20px", textTransform: "uppercase" }}>Activo</span>
+              </div>
+
+              {/* SIMULACIÓN DE CHAT WHATSAPP */}
+              <div style={{ background: "#e5ddd5", padding: "16px", borderRadius: "10px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                 <div style={{ 
+                   background: "#d9fdd3", 
+                   padding: "12px 14px", 
+                   borderRadius: "0px 8px 8px 8px", // Esquina superior izquierda plana (efecto bocadillo)
+                   color: "#111b21", 
+                   fontSize: "13.5px", 
+                   lineHeight: "1.5", 
+                   whiteSpace: "pre-line", 
+                   boxShadow: "0 1px 1px rgba(0,0,0,0.1)", 
+                   position: "relative",
+                   fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif" // Fuente estilo WhatsApp
+                 }}>
+                   {/* Triangulito del bocadillo */}
+                   <div style={{ position: "absolute", top: 0, left: "-8px", width: 0, height: 0, borderTop: "0px solid transparent", borderRight: "8px solid #d9fdd3", borderBottom: "10px solid transparent" }}></div>
+                   
+                   {m.msg}
+                   
+                   {/* Simulación de la hora de envío pequeñita abajo */}
+                   <div style={{ textAlign: "right", fontSize: "10px", color: "#667781", marginTop: "4px", fontWeight: "500" }}>
+                     14:30 ✓✓
+                   </div>
+                 </div>
+              </div>
+
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
 
-  const tabs=[["citas","📅","Citas"],["clientes","👥","Clientes"],["caja","💰","Caja"],["stats","📊","Estadísticas"],["disponibilidad","🗓️","Disponibilidad"],["config","⚙️","Config"],["comunicacion","💬","WhatsApp"]];
+// 1. EL ARRAY DE PESTAÑAS
+  const tabs = [
+    ["citas", "https://i.postimg.cc/FK40ZMS2/citas.jpg", "Citas"],
+    ["clientes", "https://i.postimg.cc/TP6n9zmx/clientes.png", "Clientes"],
+    ["caja", "https://i.postimg.cc/LspjTcfp/caja.webp", "Caja"],
+    ["stats", "https://i.postimg.cc/vms5zJ9d/estadisticas.webp", "Estadísticas"],
+    ["disponibilidad", "https://i.postimg.cc/jjjnZPvj/disponibilidad.png", "Disponibilidad"],
+    ["config", "https://i.postimg.cc/0QYvSHmr/configuracion.jpg", "Configuración"],
+    ["comunicacion", "https://i.postimg.cc/0Ns7fTmg/whatsapp.jpg", "WhatsApp"]
+  ];
+
+  // --- PANEL DE CONTROL DE ESPACIOS DEL MENÚ ---
+  const TAB_ST = {
+    // 1. DIMENSIONES DE LA BARRA GENERAL
+    alturaTotal: "60px",            // Altura total del menú (El espaciador se ajustará solo a lo que pongas aquí)
+    espacioLateralPantalla: "5%",   // Distancia del menú a los bordes del móvil/pantalla
+    
+    // 2. ESPACIOS DENTRO DE CADA PESTAÑA
+    distanciaTecho: "5px",          // Distancia entre la imagen y el borde de arriba
+    distanciaSuelo: "5px",          // Distancia entre el texto y la línea azul de abajo
+    separacionImagenTexto: "5px",   // Separación vertical entre la imagen y la palabra
+    espacioLateralBoton: "8px",     // Espacio a los lados de cada botón (para que no se peguen unos a otros)
+    
+    // 3. TAMAÑOS
+    anchoMinimoBoton: "7%",       // Anchura mínima del botón para que no se apachurre el texto
+    tamanoImagen: "20px",           // Tamaño (ancho y alto) de las imágenes
+    tamanoTexto: "12px"             // Tamaño de la letra
+  };
 
   return (
     <div style={as.root}>
-      <div style={as.header} ref={el=>{if(el) document.documentElement.style.setProperty('--header-h',el.offsetHeight+'px')}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
+      
+      {/* HEADER DEL ADMIN FIJO */}
+      <div 
+        ref={el=>{if(el) document.documentElement.style.setProperty('--header-h',el.offsetHeight+'px')}}
+        style={{ 
+          position: "fixed", 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          height: "70px", 
+          background: WH, 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          padding: "0 4%", 
+          zIndex: 2000, 
+          borderBottom: `1px solid ${CR3}`,
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.05)",
+          boxSizing: "border-box" 
+        }}
+      >
+        <div style={{display:"flex",alignItems:"center",gap:15}}>
           <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
             <img 
               src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
               alt="Logo Peluquería" 
-              style={{
-                width: "100%", 
-                height: "100%", 
-                objectFit: "contain" // Esto evita que la imagen se deforme
-              }} 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }} 
             />
           </div>
-          <div><div style={{fontSize:14,fontWeight:700,color:TX}}>{CONFIG.nombre} — ADMINISTRADOR</div><div style={{fontSize:11,color:TX2}}>{fmtLarga(HOY)}</div></div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px" }}>
+              <span style={{fontSize: 17, fontWeight: 700, color: TX, lineHeight: 1, margin: 0}}>{CONFIG.nombre}</span>
+              <span style={{fontSize: 10, fontWeight: 800, color: A, letterSpacing: "0.5px", lineHeight: 1, margin: 0}}>PANEL DE ADMINISTRADOR</span>
+            </div>
+            
+            <span className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: TX2, borderLeft: `1px solid ${CR3}`, paddingLeft: 15, height: "24px", display: "flex", alignItems: "center" }}>
+              {fmtLarga(HOY)}
+            </span>
+          </div>
         </div>
-        <button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:8,padding:"6px 14px",fontSize:12,color:TX2,cursor:"pointer"}} onClick={handleLogout}>Cerrar sesión →</button>
+        
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <button 
+            style={{
+              background:CR2,
+              border:`1px solid ${CR3}`,
+              borderRadius:"8px",
+              padding:"8px 16px",
+              fontSize:"13px", 
+              fontWeight: 600, 
+              color:TX2,
+              cursor:"pointer",
+              transition: "all 0.2s ease"
+            }} 
+            onClick={handleLogout}
+          >
+            Cerrar sesión →
+          </button>
+        </div>
       </div>
-      <div style={as.tabBar}>{tabs.map(([id,ic,l])=><button key={id} style={as.tabBtn(tab===id)} onClick={()=>setTab(id)}>{ic} {l}</button>)}</div>
+      
+      {/* MENÚ DE PESTAÑAS FIJO (Totalmente Controlable desde TAB_ST) */}
+      <div style={{
+        position: "fixed",
+        top: "70px",
+        left: 0,
+        right: 0,
+        height: TAB_ST.alturaTotal, 
+        background: WH,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottom: `1px solid ${CR3}`,
+        boxShadow: "0 4px 10px rgba(0,0,0,0.03)",
+        zIndex: 1990,
+        padding: `0 ${TAB_ST.espacioLateralPantalla}`, 
+        overflowX: "auto"
+      }}>
+        {tabs.map(([id, imgUrl, label]) => (
+          <div 
+            key={id}
+            onClick={() => setTab(id)} 
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center", // Centra el contenido en base a tus variables
+              gap: TAB_ST.separacionImagenTexto,
+              cursor: "pointer",
+              minWidth: TAB_ST.anchoMinimoBoton, 
+              height: "100%",
+              paddingTop: TAB_ST.distanciaTecho,
+              paddingBottom: TAB_ST.distanciaSuelo,
+              paddingLeft: TAB_ST.espacioLateralBoton,
+              paddingRight: TAB_ST.espacioLateralBoton,
+              boxSizing: "border-box", // Evita que los paddings rompan el diseño
+              borderBottom: tab === id ? `3px solid ${A}` : "3px solid transparent",
+              color: tab === id ? A : TX2,
+              transition: "all 0.2s ease"
+            }}
+          >
+            <div style={{ width: TAB_ST.tamanoImagen, height: TAB_ST.tamanoImagen, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <img 
+                src={imgUrl} 
+                alt={label} 
+                style={{ width: "100%", height: "100%", objectFit: "contain", opacity: tab === id ? 1 : 0.4 }} 
+              />
+            </div>
+            <span style={{ fontSize: TAB_ST.tamanoTexto, fontWeight: 700, whiteSpace: "nowrap", lineHeight: 1 }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* NUEVO ESPACIADOR INTELIGENTE: Suma él solo 70px + la altura que le pongas al menú */}
+      <div style={{ height: `calc(70px + ${TAB_ST.alturaTotal})`, width: "100%" }}></div>
+
+      {/* CUERPO CENTRAL DEL PANEL */}
       <div className="admin-body" style={{...as.body, margin:"0 auto"}}>
         {tab==="citas"&&<TabCitas/>}
         {tab==="clientes"&&<TabClientes/>}
@@ -2766,6 +4234,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {tab==="config"&&<TabConfig/>}
         {tab==="comunicacion"&&<TabComunicacion/>}
       </div>
+
+      {/* NOTIFICACIONES EMERGENTES (TOASTS) */}
       {toastVisible&&(
         <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
           <span>🗑 Cita eliminada</span>
@@ -2804,14 +4274,6 @@ function AppData(){
     const t=setTimeout(()=>setCargando(false),5000);
     return()=>{ u1();u2();u3();u4();u5();clearTimeout(t); };
   },[]);
-
-  useEffect(()=>{
-    if(!cargando&&citas.length===0&&!iniciado){
-      setIniciado(true);
-      seedDatabase().then(()=>console.log("Seed OK"));
-      seedServicios().then(()=>console.log("Servicios sembrados"));
-    }
-  },[cargando,citas,iniciado]);
 
   if(cargando) return(
     <div className="cliente-wrap" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FBFF",fontFamily:FONT}}>
