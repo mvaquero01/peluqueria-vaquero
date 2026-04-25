@@ -3241,9 +3241,26 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   <div style={{ fontSize: 12, color: TX2, fontStyle: "italic" }}>Sin servicios registrados</div>
                 ) : (
                   (clienteSel.historial || []).filter(h => h.estado === "completada" || !h.estado).map((h, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${CR2}`, fontSize: 12 }}>
-                      <div><div style={{ fontWeight: 600, color: TX }}>{h.servicio}</div><div style={{ fontSize: 10, color: TX2 }}>{h.fecha} · {h.peluquero}</div></div>
-                      <div style={{ fontWeight: 700, color: A }}>{h.precio} €</div>
+                    <div key={i} style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      alignItems: "center", // Centra verticalmente el precio con el texto de la izquierda
+                      padding: "10px 0", 
+                      borderBottom: `1px solid ${CR2}`, 
+                      fontSize: 12 
+                    }}>
+                      {/* Contenedor de texto alineado a la izquierda */}
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontWeight: 600, color: TX, marginBottom: 2 }}>{h.servicio}</div>
+                        <div style={{ fontSize: 10, color: TX2 }}>
+                          {h.fecha} <span style={{ margin: "0 4px" }}>•</span> {h.peluquero}
+                        </div>
+                      </div>
+                      
+                      {/* Precio a la derecha */}
+                      <div style={{ fontWeight: 700, color: A, fontSize: 13 }}>
+                        {h.precio} €
+                      </div>
                     </div>
                   ))
                 )}
@@ -3540,23 +3557,22 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   // ──────────────────────
   // TAB DISPONIBILIDAD (CIERRES Y AUSENCIAS)
   // ──────────────────────
-  const TabDisponibilidad = () => {
+  const TabDisponibilidad = ({ isMobile }) => {
+    // --- AJUSTE DE ESPACIO (Modifica esto para separar las cajas) ---
+    const espacioEntreCajas = "24px"; 
+
     const [showFF, setShowFF] = useState(false);
     const [showBF, setShowBF] = useState(false);
-    
     const [festForm, setFestForm] = useState({ desde: "", hasta: "", motivo: "" });
     const [bloqForm, setBloqForm] = useState({ peluqueroId: "", desde: "", hasta: "", motivo: "" });
-    
     const [showFestCal, setShowFestCal] = useState(false);
     const [showFestHastaCal, setShowFestHastaCal] = useState(false);
     const [showBloqDesdeCal, setShowBloqDesdeCal] = useState(false);
     const [showBloqHastaCal, setShowBloqHastaCal] = useState(false);
 
-    // FORMATOS DE FECHA
     const toDMY = (iso) => iso ? iso.split("-").reverse().join("/") : "";
     const toSafeDMY = (iso) => iso ? iso.split("-").reverse().join("-") : "";
 
-    // LÓGICA DE DÍAS
     const obtenerDiasEntre = (inicio, fin) => {
       const fechas = [];
       let actual = new Date(inicio);
@@ -3568,17 +3584,15 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       return fechas;
     };
 
-    // FUNCIÓN ROBUSTA PARA SACAR EL MOTIVO DEL ID DEL DOCUMENTO
     const getMotivo = (item, isBloqueo) => {
       if (item.id) {
         const partes = item.id.split(" - ");
-        if (isBloqueo && partes.length >= 3) return partes[1]; // Peluquero - Motivo - Fecha
-        if (!isBloqueo && partes.length >= 2) return partes[0]; // Motivo - Fecha
+        if (isBloqueo && partes.length >= 3) return partes[1]; 
+        if (!isBloqueo && partes.length >= 2) return partes[0]; 
       }
       return item.motivo || (isBloqueo ? "Ausencia" : "Cierre");
     };
 
-    // AGRUPAR PARA LA VISTA ADMIN
     const agruparItems = (items) => {
       const agrupados = [];
       const procesados = new Set();
@@ -3586,10 +3600,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
       ordenados.forEach(item => {
         if (procesados.has(item.id)) return;
-        
         const isBloqueo = !!item.peluqueroId;
         const motivoVisual = getMotivo(item, isBloqueo);
-
         if (item.rangoId) {
           const hermanos = ordenados.filter(i => i.rangoId === item.rangoId);
           hermanos.forEach(h => procesados.add(h.id));
@@ -3615,19 +3627,33 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       return agrupados;
     };
 
-    // --- ESTILOS DE DISTRIBUCIÓN ---
+    // --- ESTILOS DINÁMICOS ---
     const containerStyle = {
-      display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10%",                   
-      maxWidth: "90%", margin: "20px auto", padding: "0 20px", alignItems: "start"
+      display: "flex", 
+      flexWrap: "wrap", // Permite que salten de línea en móvil
+      gap: espacioEntreCajas, 
+      width: "100%", 
+      padding: isMobile ? "0 16px" : "0 20px", 
+      boxSizing: "border-box"
     };
-    const colStyle = { background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" };
+
+    const colStyle = { 
+      background: "#f8fafc", 
+      padding: "16px", 
+      borderRadius: "12px", 
+      border: "1px solid #e2e8f0",
+      flex: "1 1 450px", // Crece al 100%, pero si hay menos de 450px de espacio, salta abajo
+      boxSizing: "border-box",
+      minWidth: 0 // Evita que el contenido desborde la caja
+    };
+
     const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
     const inputS = { width: "100%", padding: "8px 10px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "12px", boxSizing: "border-box", textAlign: "left" };
 
     return (
       <div style={containerStyle}>
         
-        {/* COLUMNA 1: CIERRES GLOBALES */}
+        {/* BLOQUE 1: CIERRES */}
         <div style={colStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
             <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>🗓️ Cierres</h4>
@@ -3682,7 +3708,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           ))}
         </div>
 
-        {/* COLUMNA 2: BLOQUEOS POR PELUQUERO */}
+        {/* BLOQUE 2: AUSENCIAS */}
         <div style={colStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
             <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>✂️ Ausencias</h4>
