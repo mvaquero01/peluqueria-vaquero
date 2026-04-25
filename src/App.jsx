@@ -3087,7 +3087,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   // ──────────────────────
 // TAB CLIENTES (Versión Corregida con Márgenes para Móvil)
   // ────────────────────────────────────────────────────────
-  const TabClientes = () => {
+  const TabClientes = ({ isMobile }) => {
     // Memoria persistente para el buscador y filtros
     const [busq, setBusq] = useState(() => window._busqCache || "");
     const [clienteBorrar, setClienteBorrar] = useState(null);
