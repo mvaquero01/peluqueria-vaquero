@@ -1117,120 +1117,120 @@ function ClientePage({ sharedProps, startPaso=0 }){
       </div>
       
       {/* --- SECCIÓN 2: SERVICIOS EN EL HOME --- */}
-{(() => {
-  const margenSuperiorSeccion = "0.1px"; 
-  const separacionTituloFotos = "10px"; 
-  const margenHorizontal = "4%"; 
-  const separacionCajas = "20px"; 
-  
-  return (
-    <div id="servicios" className="reveal" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "60px", backgroundColor: "transparent", width: "100%" }}>
-      
-      <div style={{ ...cs.sTitle, marginBottom: separacionTituloFotos, display: "flex", justifyContent: "center", alignItems: "center" }}>
-        ✦ Servicios
-      </div>
-
-      <div style={{ 
-        display: "flex", 
-        flexWrap: "wrap", 
-        justifyContent: "center", 
-        gap: separacionCajas, 
-        width: "100%", 
-        padding: `20px ${margenHorizontal} 40px ${margenHorizontal}` 
-      }}>
-        {CONFIG.categorias.map(cat => {
-          const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
-          const abierta = catAbierta === cat.id;
-
-          return (
-            <div 
-              key={cat.id}
-              onClick={() => setCatAbierta(abierta ? null : cat.id)}
-              className="card-hover"
-              style={{ 
-                position: "relative", 
-                flex: window.innerWidth > 768 
-                  ? `0 1 ${CONFIG_RESERVA.anchoCajaPC}` 
-                  : `0 1 ${CONFIG_RESERVA.anchoCajaMovil}`, 
-                minWidth: window.innerWidth > 768 ? "250px" : "140px",
-                aspectRatio: "1 / 1", 
-                borderRadius: "20px", 
-                overflow: "hidden", 
-                cursor: "pointer", 
-                backgroundImage: `url(${cat.foto})`, 
-                backgroundSize: "cover", 
-                backgroundPosition: "center", 
-                transition: "all 0.4s cubic-bezier(0.25, 1, 0.5, 1)", 
-                transform: abierta ? "scale(1.02)" : "scale(1)"
-              }}
-            >
-              {/* Overlay y Contenido Desplegable */}
-              <div style={{ 
-                position: "absolute", 
-                top: 0, left: 0, right: 0, bottom: 0, 
-                background: abierta ? "rgba(0,0,0,0.95)" : "linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)", 
-                display: "flex", 
-                flexDirection: "column", 
-                justifyContent: abierta ? "center" : "flex-end", 
-                alignItems: "center", 
-                padding: abierta ? "15px" : "20px", 
-                transition: "background 0.4s ease-out" 
-              }}>
-                
-                {/* Título de la Categoría */}
-                <div style={{ textAlign: "center", marginBottom: abierta ? "15px" : "5px", width: "100%" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                    <h3 style={{ color: "#FFF", margin: 0, fontSize: "18px", fontWeight: "800", textTransform: "uppercase" }}>{cat.nombre}</h3>
-                    <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
-                  </div>
-                </div>
-
-                {/* Lista de Servicios (El desplegable) */}
-                <div style={{ 
-                  width: "100%", 
-                  maxHeight: abierta ? "350px" : "0", 
-                  opacity: abierta ? 1 : 0, 
-                  transform: abierta ? "translateY(0)" : "translateY(10px)", 
-                  overflowY: "auto", 
-                  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                  scrollbarWidth: "none"
-                }}>
-                  {svcs.map(s => (
-                    <div 
-                      key={s.id} 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Acceso directo: va directo al calendario con el servicio elegido
-                        navigate(`/reservar?serviceId=${s.id}&step=2`);
-                      }}
-                      style={{ 
-                        padding: "10px 0", 
-                        borderBottom: "1px solid rgba(255,255,255,0.1)", 
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "space-between", 
-                        cursor: "pointer" 
-                      }}
-                    >
-                      <div style={{ textAlign: "left", flex: 1, paddingRight: "10px" }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-                          <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
-                          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>⏱ {s.duracionMin}'</span>
-                        </div>
-                        {s.desc && <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px", lineHeight: "1.1", marginTop: "3px" }}>{s.desc}</div>}
-                      </div>
-                      <div style={{ color: "#FFF", fontWeight: "800", fontSize: "14px" }}>{s.precio}€</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {(() => {
+        const margenSuperiorSeccion = "0.1px"; 
+        const separacionTituloFotos = "10px"; 
+        const margenHorizontal = "4%"; 
+        const separacionCajas = "20px"; 
+        
+        return (
+          <div id="servicios" className="reveal" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "60px", backgroundColor: "transparent", width: "100%" }}>
+            
+            <div style={{ ...cs.sTitle, marginBottom: separacionTituloFotos, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              ✦ Servicios
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-})()}
+
+            <div style={{ 
+              display: "flex", 
+              flexWrap: "wrap", 
+              justifyContent: "center", 
+              gap: separacionCajas, 
+              width: "100%", 
+              padding: `20px ${margenHorizontal} 40px ${margenHorizontal}` 
+            }}>
+              {CONFIG.categorias.map(cat => {
+                const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
+                const abierta = catAbierta === cat.id;
+
+                return (
+                  <div 
+                    key={cat.id}
+                    onClick={() => setCatAbierta(abierta ? null : cat.id)}
+                    className="card-hover"
+                    style={{ 
+                      position: "relative", 
+                      flex: window.innerWidth > 768 
+                        ? `0 1 ${CONFIG_RESERVA.anchoCajaPC}` 
+                        : `0 1 ${CONFIG_RESERVA.anchoCajaMovil}`, 
+                      minWidth: window.innerWidth > 768 ? "250px" : "140px",
+                      aspectRatio: "1 / 1", 
+                      borderRadius: "20px", 
+                      overflow: "hidden", 
+                      cursor: "pointer", 
+                      backgroundImage: `url(${cat.foto})`, 
+                      backgroundSize: "cover", 
+                      backgroundPosition: "center", 
+                      transition: "all 0.4s cubic-bezier(0.25, 1, 0.5, 1)", 
+                      transform: abierta ? "scale(1.02)" : "scale(1)"
+                    }}
+                  >
+                    {/* Overlay y Contenido Desplegable */}
+                    <div style={{ 
+                      position: "absolute", 
+                      top: 0, left: 0, right: 0, bottom: 0, 
+                      background: abierta ? "rgba(0,0,0,0.95)" : "linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.85) 100%)", 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      justifyContent: abierta ? "center" : "flex-end", 
+                      alignItems: "center", 
+                      padding: abierta ? "15px" : "20px", 
+                      transition: "background 0.4s ease-out" 
+                    }}>
+                      
+                      {/* Título de la Categoría */}
+                      <div style={{ textAlign: "center", marginBottom: abierta ? "15px" : "5px", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                          <h3 style={{ color: "#FFF", margin: 0, fontSize: "18px", fontWeight: "800", textTransform: "uppercase" }}>{cat.nombre}</h3>
+                          <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
+                        </div>
+                      </div>
+
+                      {/* Lista de Servicios (El desplegable) */}
+                      <div style={{ 
+                        width: "100%", 
+                        maxHeight: abierta ? "350px" : "0", 
+                        opacity: abierta ? 1 : 0, 
+                        transform: abierta ? "translateY(0)" : "translateY(10px)", 
+                        overflowY: "auto", 
+                        transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                        scrollbarWidth: "none"
+                      }}>
+                        {svcs.map(s => (
+                          <div 
+                            key={s.id} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Acceso directo: va directo al calendario con el servicio elegido
+                              navigate(`/reservar?serviceId=${s.id}&step=2`);
+                            }}
+                            style={{ 
+                              padding: "10px 0", 
+                              borderBottom: "1px solid rgba(255,255,255,0.1)", 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "space-between", 
+                              cursor: "pointer" 
+                            }}
+                          >
+                            <div style={{ textAlign: "left", flex: 1, paddingRight: "10px" }}>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                                <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
+                                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>⏱ {s.duracionMin}'</span>
+                              </div>
+                              {s.desc && <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px", lineHeight: "1.1", marginTop: "3px" }}>{s.desc}</div>}
+                            </div>
+                            <div style={{ color: "#FFF", fontWeight: "800", fontSize: "14px" }}>{s.precio}€</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <hr style={{ 
         border: "none", 
@@ -2812,7 +2812,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
         {/* 1. KPIs VISIBLES SIEMPRE */}
         <div className="admin-kpi-grid" style={as.kpiGrid}>
-          {[["€"+ingrHoy,"Ingresos hoy"],[citasHoy.length,"Citas hoy"],[pendHoy,"Pendientes"],[noShowHoy,"No shows"]].map(([v,l],i)=>(
+          {[[ingrHoy + " €","Ingresos hoy"],[citasHoy.length,"Citas hoy"],[pendHoy,"Pendientes"],[noShowHoy,"No shows"]].map(([v,l],i)=>(
             <div key={i} style={as.kpi}><div style={as.kpiVal}>{v}</div><div style={as.kpiLbl}>{l}</div></div>
           ))}
         </div>
@@ -4456,6 +4456,7 @@ function AppData(){
       <Route path="/" element={<ClientePage sharedProps={sharedProps} />} />
       <Route path="/reservar" element={<ClientePage sharedProps={sharedProps} />} />
       <Route path="/admin" element={<AdminPage {...sharedProps} />} />
+      <Route path="/login" element={<LoginPage />} />
     </Routes>
   );
 }
