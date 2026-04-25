@@ -2969,7 +2969,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     );
   };
   // ──────────────────────
-  // TAB CLIENTES
+// TAB CLIENTES
   // ──────────────────────
   const TabClientes=()=>{
     // ★ EL TRUCO: Usamos una "memoria" global para que React no olvide el buscador al recargar
@@ -3021,8 +3021,16 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             {clientesFiltrados.map(c=>(
               <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div><div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:2}}>{c.nombre}</div><div style={{fontSize:11,color:TX2}}>📞 {c.telefono}</div><div style={{fontSize:11,color:TX2}}>Última: {c.ultimaVisita}</div></div>
-                  <div style={{textAlign:"right"}}><div style={{fontSize:15,fontWeight:700,color:A}}>€{c.gasto}</div><div style={{fontSize:10,color:TX2}}>{c.visitas} visitas</div>{busq&&c.score>=60&&<div style={{marginTop:4}}><Bdg small color={c.score>=90?OK:c.score>=70?A:"#d97706"}>{c.score}%</Bdg></div>}</div>
+                  <div style={{textAlign: "left"}}>
+                    <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:2}}>{c.nombre}</div>
+                    <div style={{fontSize:11,color:TX2}}>📞 {c.telefono}</div>
+                    <div style={{fontSize:11,color:TX2}}>Última: {c.ultimaVisita}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:15,fontWeight:700,color:A}}>{c.gasto} €</div>
+                    <div style={{fontSize:10,color:TX2}}>{c.visitas} visitas</div>
+                    {busq&&c.score>=60&&<div style={{marginTop:4}}><Bdg small color={c.score>=90?OK:c.score>=70?A:"#d97706"}>{c.score}%</Bdg></div>}
+                  </div>
                 </div>
               </div>
             ))}
@@ -3039,7 +3047,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
                 <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14}}>
-                  {[["€"+clienteSel.gasto,"Total"],[clienteSel.visitas,"Visitas"],["€"+Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)),"Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
+                  {[[clienteSel.gasto + " €","Total"],[clienteSel.visitas,"Visitas"],[Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)) + " €","Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
                     <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
                   ))}
                 </div>
@@ -3053,7 +3061,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 {(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).length===0?<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin historial</div>:(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).map((h,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${CR2}`,fontSize:12}}>
                     <div><span style={{color:TX2,marginRight:8}}>{h.fecha}</span><span style={{color:TX}}>{h.servicio}</span></div>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>€{h.precio}</span></div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>{h.precio} €</span></div>
                   </div>
                 ))}
               </div>
@@ -3092,8 +3100,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       </div>
     );
   };
-  // ──────────────────────
-  // TAB CAJA - VERSIÓN POSICIÓN PERFECTA
+// ──────────────────────
+  // TAB CAJA - VERSIÓN POSICIÓN PERFECTA + FOTOS Y EUROS AL FINAL
   // ──────────────────────────────────────────────
   const TabCaja = () => {
     const [fechaCaja, setFechaCaja] = useState(HOY_ISO);
@@ -3187,7 +3195,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             <div 
               style={{
                 position: "absolute",
-                left: "10px", // Aparece a la izquierda sin empujar
+                left: "10px", 
                 pointerEvents: "auto", background: A, color: WH, 
                 padding: "8px 14px", borderRadius: "50px", fontSize: 11, 
                 fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
@@ -3237,19 +3245,19 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           {/* KPIs */}
           <div className="admin-kpi-grid" style={{ ...as.kpiGrid, marginBottom: 25 }}>
             <div style={{ ...as.kpi, borderLeft: `4px solid ${A}` }}>
-              <div style={as.kpiVal}>€{facturadoDia}</div>
+              <div style={as.kpiVal}>{facturadoDia} €</div>
               <div style={as.kpiLbl}>Facturado Hoy</div>
             </div>
             <div style={{ ...as.kpi, background: "#DEF7EC" }}>
-              <div style={{ ...as.kpiVal, color: "#059669" }}>€{efec}</div>
+              <div style={{ ...as.kpiVal, color: "#059669" }}>{efec} €</div>
               <div style={{ ...as.kpiLbl, color: "#03543F" }}>💵 Efectivo</div>
             </div>
             <div style={{ ...as.kpi, background: "#E1EFFE" }}>
-              <div style={{ ...as.kpiVal, color: "#1D4ED8" }}>€{tarj}</div>
+              <div style={{ ...as.kpiVal, color: "#1D4ED8" }}>{tarj} €</div>
               <div style={{ ...as.kpiLbl, color: "#1E429F" }}>💳 Tarjeta</div>
             </div>
             <div style={{ ...as.kpi, background: "#FCE8F3" }}>
-              <div style={{ ...as.kpiVal, color: "#BE185D" }}>€{biz}</div>
+              <div style={{ ...as.kpiVal, color: "#BE185D" }}>{biz} €</div>
               <div style={{ ...as.kpiLbl, color: "#99154B" }}>📱 Bizum</div>
             </div>
           </div>
@@ -3261,19 +3269,25 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 12, color: TX2, fontWeight: 700 }}>FONDO INICIAL</span>
-                  <Inp type="number" value={fondoCaja} onChange={e => setFondoCaja(e.target.value)} style={{ width: 80, textAlign: "right", margin: 0, fontWeight: 700 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Inp type="number" value={fondoCaja} onChange={e => setFondoCaja(e.target.value)} style={{ width: 70, textAlign: "right", margin: 0, fontWeight: 700 }} />
+                    <span style={{ fontWeight: 700 }}>€</span>
+                  </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 12, color: TX2, fontWeight: 700 }}>INGRESOS EFECTIVO</span>
-                  <span style={{ fontWeight: 700, color: "#059669" }}>+ €{efec}</span>
+                  <span style={{ fontWeight: 700, color: "#059669" }}>+ {efec} €</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 12, color: TX2, fontWeight: 700 }}>GASTOS / SALIDAS</span>
-                  <Inp type="number" value={gastosCaja} onChange={e => setGastosCaja(e.target.value)} style={{ width: 80, textAlign: "right", margin: 0, color: ER, fontWeight: 700 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Inp type="number" value={gastosCaja} onChange={e => setGastosCaja(e.target.value)} style={{ width: 70, textAlign: "right", margin: 0, color: ER, fontWeight: 700 }} />
+                    <span style={{ fontWeight: 700, color: ER }}>€</span>
+                  </div>
                 </div>
                 <div style={{ marginTop: 10, paddingTop: 15, borderTop: `2px solid ${CR2}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 14, fontWeight: 800 }}>HABER EN CAJA</span>
-                  <span style={{ fontSize: 26, fontWeight: 900, color: A }}>€{dineroFisicoEsperado}</span>
+                  <span style={{ fontSize: 26, fontWeight: 900, color: A }}>{dineroFisicoEsperado} €</span>
                 </div>
               </div>
             </div>
@@ -3306,20 +3320,30 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             </div>
           </div>
 
-          {/* REPARTO POR PROFESIONAL */}
+          {/* REPARTO POR PROFESIONAL (CON FOTOS) */}
           <div style={{ ...as.card, marginBottom: 40 }}>
             <div style={{ ...as.cardTitle, marginBottom: 20 }}>Facturación por Profesional</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
               {CONFIG.peluqueros.map(p => {
                 const t = completadas.filter(c => c.peluqueroId === p.id).reduce((s, c) => s + c.precio, 0);
                 const nc = citasDia.filter(c => c.peluqueroId === p.id).length;
                 return (
-                  <div key={p.id} style={{ background: WH, padding: "20px", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${CR2}`, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: TX, marginBottom: 4 }}>{p.nombre}</div>
-                      <div style={{ fontSize: 12, color: TX2 }}>{nc} servicios hoy</div>
+                  <div key={p.id} style={{ background: WH, padding: "16px 20px", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${CR2}`, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+                    
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      {/* FOTO CIRCULAR */}
+                      <img src={p.foto} alt={p.nombre} style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color || '#e2e8f0'}` }} />
+                      
+                      {/* NOMBRE Y CONTADOR DE SERVICIOS */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: TX }}>{p.nombre}</span>
+                        <span style={{ fontSize: 12, color: TX2, fontWeight: 600, background: CR, padding: "3px 8px", borderRadius: "20px" }}>{nc} servicios</span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 22, fontWeight: 900, color: A }}>€{t}</span>
+
+                    {/* EUROS AL FINAL */}
+                    <span style={{ fontSize: 22, fontWeight: 900, color: A }}>{t} €</span>
+                    
                   </div>
                 );
               })}
@@ -3543,7 +3567,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB STATS - VERSIÓN FINAL CON SERVICIO ESTRELLA REFINADO
+  // TAB STATS - VERSIÓN FINAL CON SERVICIO ESTRELLA REFINADO Y EUROS AL FINAL
   // ─────────────────────────────────────────────────────────
   const TabStats = () => {
     const [periodo, setPeriodo] = useState("mes");
@@ -3590,11 +3614,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* PANEL GLOBAL */}
         <div className="admin-kpi-grid" style={{ ...as.kpiGrid, marginBottom: 25 }}>
           <div style={{ ...as.kpi, borderLeft: `4px solid ${A}` }}>
-            <div style={as.kpiVal}>€{ingresosTotal}</div>
+            <div style={as.kpiVal}>{ingresosTotal} €</div>
             <div style={as.kpiLbl}>Ingresos Totales</div>
           </div>
           <div style={{ ...as.kpi, borderLeft: `4px solid #10B981` }}>
-            <div style={{ ...as.kpiVal, color: "#10B981" }}>€{ticketMedio}</div>
+            <div style={{ ...as.kpiVal, color: "#10B981" }}>{ticketMedio} €</div>
             <div style={as.kpiLbl}>Ticket Medio</div>
           </div>
           <div style={{ ...as.kpi, borderLeft: `4px solid #6366F1` }}>
@@ -3646,7 +3670,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div style={{ background: CR, padding: "12px", borderRadius: 10 }}>
                     <div style={{ fontSize: 10, color: TX2, marginBottom: 4 }}>FACTURADO</div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: p.color }}>€{ing}</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: p.color }}>{ing} €</div>
                   </div>
                   <div style={{ background: CR, padding: "12px", borderRadius: 10 }}>
                     <div style={{ fontSize: 10, color: TX2, marginBottom: 4 }}>NO-SHOWS</div>
