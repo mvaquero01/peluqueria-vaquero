@@ -3132,62 +3132,67 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         <div style={{fontSize:11,color:TX2,marginBottom:10}}>{clientesFiltrados.length} cliente{clientesFiltrados.length!==1?"s":""}</div>
         
         <div style={{...as.twoCol, width: "100%", boxSizing: "border-box"}}>
-          {/* COLUMNA 1: LA LISTA */}
-          <div style={{ width: "100%", boxSizing: "border-box" }}>
-            {clientesFiltrados.map(c=>(
-              <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer", boxSizing: "border-box", width: "100%"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start", boxSizing: "border-box"}}>
-                  <div style={{textAlign: "left", maxWidth: "60%"}}>
-                    <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:2}}>{c.nombre}</div>
-                    <div style={{fontSize:11,color:TX2}}>📞 {c.telefono}</div>
-                    <div style={{fontSize:11,color:TX2}}>Última: {c.ultimaVisita}</div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:15,fontWeight:700,color:A}}>{c.gasto} €</div>
-                    <div style={{fontSize:10,color:TX2}}>{c.visitas} visitas</div>
-                    {busq&&c.score>=60&&<div style={{marginTop:4}}><Bdg small color={c.score>=90?OK:c.score>=70?A:"#d97706"}>{c.score}%</Bdg></div>}
+          {/* CONTENEDOR FLEX INTELIGENTE (Sustituye a as.twoCol) */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", width: "100%", boxSizing: "border-box" }}>
+            
+            {/* COLUMNA 1: LA LISTA */}
+            {/* flex: "1 1 300px" hace que en PC ocupen la mitad, y en móvil el 100% */}
+            <div style={{ flex: "1 1 300px", minWidth: 0, boxSizing: "border-box" }}>
+              {clientesFiltrados.map(c=>(
+                <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer", boxSizing: "border-box", width: "100%"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start", boxSizing: "border-box"}}>
+                    <div style={{textAlign: "left", maxWidth: "60%"}}>
+                      <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:2}}>{c.nombre}</div>
+                      <div style={{fontSize:11,color:TX2}}>📞 {c.telefono}</div>
+                      <div style={{fontSize:11,color:TX2}}>Última: {c.ultimaVisita}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:15,fontWeight:700,color:A}}>{c.gasto} €</div>
+                      <div style={{fontSize:10,color:TX2}}>{c.visitas} visitas</div>
+                      {busq&&c.score>=60&&<div style={{marginTop:4}}><Bdg small color={c.score>=90?OK:c.score>=70?A:"#d97706"}>{c.score}%</Bdg></div>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {clientesFiltrados.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`, boxSizing: "border-box"}}>No se encontraron clientes</div>}
-          </div>
+              ))}
+              {clientesFiltrados.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`, boxSizing: "border-box"}}>No se encontraron clientes</div>}
+            </div>
 
-          {/* COLUMNA 2: LA FICHA (SIEMPRE PRESENTE) */}
-          <div style={{ width: "100%", boxSizing: "border-box" }}>
-            {clienteSel ? (
-              <div style={{...as.card, boxSizing: "border-box", width: "100%"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-                  <div style={{fontSize:15,fontWeight:700,color:TX}}>{clienteSel.nombre}</div>
-                  <button style={{background:ER+"15",border:`1px solid ${ER}33`,color:ER,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setClienteBorrar(clienteSel)}>🗑 Eliminar</button>
-                </div>
-                <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14, boxSizing: "border-box"}}>
-                  {[[clienteSel.gasto + " €","Total"],[clienteSel.visitas,"Visitas"],[Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)) + " €","Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
-                    <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center", boxSizing: "border-box"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
+            {/* COLUMNA 2: LA FICHA (SIEMPRE PRESENTE) */}
+            <div style={{ flex: "1 1 300px", minWidth: 0, boxSizing: "border-box" }}>
+              {clienteSel ? (
+                <div style={{...as.card, boxSizing: "border-box", width: "100%"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                    <div style={{fontSize:15,fontWeight:700,color:TX}}>{clienteSel.nombre}</div>
+                    <button style={{background:ER+"15",border:`1px solid ${ER}33`,color:ER,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setClienteBorrar(clienteSel)}>🗑 Eliminar</button>
+                  </div>
+                  <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14, boxSizing: "border-box"}}>
+                    {[[clienteSel.gasto + " €","Total"],[clienteSel.visitas,"Visitas"],[Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)) + " €","Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
+                      <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center", boxSizing: "border-box"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
+                    ))}
+                  </div>
+                  <Divider/>
+                  <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Nota</div>
+                  {editNota?(<div style={{boxSizing: "border-box", width: "100%"}}><Inp style={{boxSizing: "border-box", width: "100%"}} value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6, boxSizing: "border-box"}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
+                    <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer", boxSizing: "border-box"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
+                  )}
+                  <Divider/>
+                  <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Historial</div>
+                  {(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).length===0?<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin historial</div>:(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).map((h,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${CR2}`,fontSize:12}}>
+                      <div><span style={{color:TX2,marginRight:8}}>{h.fecha}</span><span style={{color:TX}}>{h.servicio}</span></div>
+                      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>{h.precio} €</span></div>
+                    </div>
                   ))}
                 </div>
-                <Divider/>
-                <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Nota</div>
-                {editNota?(<div style={{boxSizing: "border-box"}}><Inp style={{boxSizing: "border-box"}} value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6, boxSizing: "border-box"}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
-                  <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer", boxSizing: "border-box"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
-                )}
-                <Divider/>
-                <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Historial</div>
-                {(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).length===0?<div style={{fontSize:12,color:TX2,fontStyle:"italic"}}>Sin historial</div>:(clienteSel.historial||[]).filter(h=>h.estado==="completada"||!h.estado).map((h,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${CR2}`,fontSize:12}}>
-                    <div><span style={{color:TX2,marginRight:8}}>{h.fecha}</span><span style={{color:TX}}>{h.servicio}</span></div>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{color:TX2,fontSize:11}}>{h.peluquero}</span><span style={{fontWeight:700,color:A}}>{h.precio} €</span></div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* ESTADO VACÍO: Mantiene la estructura para que la lista izquierda no salte */
-              <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "200px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center", boxSizing: "border-box", width: "100%" }}>
-                <span style={{ fontSize: 24, marginBottom: 8 }}>👈</span>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>Selecciona un cliente para ver su ficha</span>
-              </div>
-            )}
+              ) : (
+                /* ESTADO VACÍO */
+                <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "200px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center", boxSizing: "border-box", width: "100%" }}>
+                  <span style={{ fontSize: 24, marginBottom: 8 }}>👈</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>Selecciona un cliente para ver su ficha</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
