@@ -3106,22 +3106,22 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const guardarNota=async()=>{ setClientes(prev=>prev.map(c=>c.id===clienteSel.id?{...c,nota:notaVal}:c)); setClienteSel(prev=>({...prev,nota:notaVal})); setEditNota(false); try{await actualizarCliente(clienteSel.id,{nota:notaVal});}catch(e){console.error(e);} };
     
     return(
-      <div>
-        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+      <div style={{ width: "100%", boxSizing: "border-box" }}>
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center", width: "100%", boxSizing: "border-box"}}>
           <Inp 
-            style={{flex:1,minWidth:200,marginBottom:0}} 
+            style={{flex:1,minWidth:200,marginBottom:0, boxSizing: "border-box"}} 
             value={busq} 
             onChange={e=>{
               setBusq(e.target.value);
-              window._busqCache = e.target.value; // Guardamos en memoria lo que escribes
+              window._busqCache = e.target.value; 
             }} 
             placeholder="🔍 Buscar por nombre o teléfono..."
           />
           <button 
-            style={{background:inactivos?A:CR2,color:inactivos?WH:TX,border:`1px solid ${inactivos?A:CR3}`,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} 
+            style={{background:inactivos?A:CR2,color:inactivos?WH:TX,border:`1px solid ${inactivos?A:CR3}`,borderRadius:8,padding:"9px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap", boxSizing: "border-box"}} 
             onClick={()=>{
               setInactivos(v=>{
-                window._inactivosCache = !v; // Guardamos en memoria si el filtro está activo
+                window._inactivosCache = !v; 
                 return !v;
               });
             }}
@@ -3131,13 +3131,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
         <div style={{fontSize:11,color:TX2,marginBottom:10}}>{clientesFiltrados.length} cliente{clientesFiltrados.length!==1?"s":""}</div>
         
-        <div style={as.twoCol}>
+        <div style={{...as.twoCol, width: "100%", boxSizing: "border-box"}}>
           {/* COLUMNA 1: LA LISTA */}
-          <div style={{ width: "100%" }}>
+          <div style={{ width: "100%", boxSizing: "border-box" }}>
             {clientesFiltrados.map(c=>(
-              <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div style={{textAlign: "left"}}>
+              <div key={c.id} style={{background:clienteSel?.id===c.id?`${A}0D`:WH,border:`1px solid ${clienteSel?.id===c.id?A:CR3}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer", boxSizing: "border-box", width: "100%"}} onClick={()=>{setClienteSel(c);setEditNota(false);}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start", boxSizing: "border-box"}}>
+                  <div style={{textAlign: "left", maxWidth: "60%"}}>
                     <div style={{fontSize:13,fontWeight:700,color:TX,marginBottom:2}}>{c.nombre}</div>
                     <div style={{fontSize:11,color:TX2}}>📞 {c.telefono}</div>
                     <div style={{fontSize:11,color:TX2}}>Última: {c.ultimaVisita}</div>
@@ -3150,27 +3150,27 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
               </div>
             ))}
-            {clientesFiltrados.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`}}>No se encontraron clientes</div>}
+            {clientesFiltrados.length===0&&<div style={{textAlign:"center",padding:"30px",color:TX2,fontSize:13,background:WH,borderRadius:12,border:`1px solid ${CR3}`, boxSizing: "border-box"}}>No se encontraron clientes</div>}
           </div>
 
           {/* COLUMNA 2: LA FICHA (SIEMPRE PRESENTE) */}
-          <div style={{ width: "100%" }}>
+          <div style={{ width: "100%", boxSizing: "border-box" }}>
             {clienteSel ? (
-              <div style={as.card}>
+              <div style={{...as.card, boxSizing: "border-box", width: "100%"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
                   <div style={{fontSize:15,fontWeight:700,color:TX}}>{clienteSel.nombre}</div>
                   <button style={{background:ER+"15",border:`1px solid ${ER}33`,color:ER,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setClienteBorrar(clienteSel)}>🗑 Eliminar</button>
                 </div>
                 <div style={{fontSize:12,color:TX2,marginBottom:14}}>📞 {clienteSel.telefono}</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14, boxSizing: "border-box"}}>
                   {[[clienteSel.gasto + " €","Total"],[clienteSel.visitas,"Visitas"],[Math.round(clienteSel.gasto/Math.max(clienteSel.visitas,1)) + " €","Promedio"],[clienteSel.noShows||0,"No shows"]].map(([v,l])=>(
-                    <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
+                    <div key={l} style={{background:CR,borderRadius:9,padding:"10px",textAlign:"center", boxSizing: "border-box"}}><div style={{fontSize:17,fontWeight:700,color:A}}>{v}</div><div style={{fontSize:10,color:TX2}}>{l}</div></div>
                   ))}
                 </div>
                 <Divider/>
                 <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Nota</div>
-                {editNota?(<div><Inp value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
-                  <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
+                {editNota?(<div style={{boxSizing: "border-box"}}><Inp style={{boxSizing: "border-box"}} value={notaVal} onChange={e=>setNotaVal(e.target.value)} placeholder="Añade una nota..."/><div style={{display:"flex",gap:6,marginTop:6, boxSizing: "border-box"}}><Btn ok={false} sm onClick={()=>setEditNota(false)}>Cancelar</Btn><Btn sm onClick={guardarNota}>Guardar</Btn></div></div>):(
+                  <div style={{background:CR,borderRadius:8,padding:"10px 12px",fontSize:13,color:clienteSel.nota?TX:TX2,fontStyle:clienteSel.nota?"normal":"italic",cursor:"pointer", boxSizing: "border-box"}} onClick={()=>{setEditNota(true);setNotaVal(clienteSel.nota||"");}}>{clienteSel.nota||"Sin notas. Pulsa para añadir..."}</div>
                 )}
                 <Divider/>
                 <div style={{fontSize:11,fontWeight:700,color:TX2,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Historial</div>
@@ -3183,7 +3183,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               </div>
             ) : (
               /* ESTADO VACÍO: Mantiene la estructura para que la lista izquierda no salte */
-              <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "200px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center" }}>
+              <div style={{ background: CR, border: `2px dashed ${CR3}`, borderRadius: 12, height: "100%", minHeight: "200px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: TX2, padding: 20, textAlign: "center", boxSizing: "border-box", width: "100%" }}>
                 <span style={{ fontSize: 24, marginBottom: 8 }}>👈</span>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>Selecciona un cliente para ver su ficha</span>
               </div>
@@ -3192,13 +3192,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
 
         {clienteBorrar&&(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-            <div style={{background:WH,borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20, boxSizing: "border-box"}}>
+            <div style={{background:WH,borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center", boxSizing: "border-box"}}>
               <div style={{fontSize:40,marginBottom:16}}>🗑</div>
               <h3 style={{fontSize:17,fontWeight:700,color:TX,marginBottom:8}}>¿Eliminar este cliente?</h3>
               <p style={{fontSize:13,color:TX2,marginBottom:6}}>{clienteBorrar.nombre}</p>
               <p style={{fontSize:12,color:TX2,marginBottom:24}}>📞 {clienteBorrar.telefono} · {clienteBorrar.visitas} visitas</p>
-              <div style={{display:"flex",gap:10}}>
+              <div style={{display:"flex",gap:10, boxSizing: "border-box"}}>
                 <Btn ok={false} style={{flex:1}} onClick={()=>setClienteBorrar(null)}>Cancelar</Btn>
                 <button style={{flex:1,background:`linear-gradient(135deg,${ER},#b91c1c)`,color:WH,border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={async()=>{
                   _clienteEliminadoTemp={...clienteBorrar};
