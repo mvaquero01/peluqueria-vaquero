@@ -802,7 +802,13 @@ function PeluqueroPage({citas}){
 // ─────────────────────────────────────────────
 // CLIENTE APP — página home + flujo reserva
 // ─────────────────────────────────────────────
-function ClientePage({valoraciones, citas, festivos, bloqueos, servicios, startPaso=0}){
+function ClientePage({ sharedProps, startPaso=0 }){ 
+
+  // PEGA ESTA LÍNEA AQUÍ (Justo después de la llave de apertura)
+  // Esto extrae todo lo necesario de sharedProps
+  const { valoraciones, citas, festivos, bloqueos, servicios, isMobile, sliderRef, scrollSlider } = sharedProps || {};
+
+  if (!sharedProps) return null;
 
   // --- PANEL DE CONTROL VISUAL (Modifica estos valores para ajustar distancias) ---
   const CONFIG_RESERVA = {
@@ -1387,23 +1393,133 @@ function ClientePage({valoraciones, citas, festivos, bloqueos, servicios, startP
         maxWidth: "100%"
       }} />
 
-      {/* --- SECCIÓN 3: OPINIONES --- */}
+      {/* --- SECCIÓN 3: OPINIONES (Exactamente 3 en PC, 1 en Móvil + Asomo) --- */}
       {valoraciones && valoraciones.length > 0 && (
-        <div id="opiniones" className="reveal" style={cs.sectionCompacta}>
-          <div style={cs.sTitle}>✦ Opiniones</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
-            {valoraciones.map(v => (
-              <div key={v.id} style={{background: WH, border: `1px solid ${CR3}`, borderRadius: 13, padding: "20px"}}>
-                <div style={{display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems:"center"}}>
-                  <span style={{fontSize: 13, fontWeight: 700}}>{v.nombre}</span>
-                  <div style={{display: "flex", gap: 1}}>
-                    {[1,2,3,4,5].map(i => <span key={i} style={{fontSize: 12, color: i <= v.estrellas ? "#F59E0B" : "#D1D5DB"}}>★</span>)}
+        <div id="opiniones" className="reveal" style={{...cs.sectionCompacta, paddingLeft: 0, paddingRight: 0, maxWidth: "100%"}}>
+          
+          <style>{`
+            .carrusel-opiniones::-webkit-scrollbar { display: none; }
+            .carrusel-opiniones { -ms-overflow-style: none; scrollbar-width: none; }
+          `}</style>
+
+          <div style={{ marginBottom: "40px", textAlign: "center" }}>
+            <div style={{ ...cs.sTitle, marginBottom: 0 }}>✦ Opiniones</div>
+          </div>
+
+          <div style={{ 
+            position: "relative", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            width: "100%",
+            maxWidth: "1400px", // Tope para pantallas gigantes
+            margin: "0 auto"
+          }}>
+            
+            {/* FLECHA IZQUIERDA */}
+            {!isMobile && valoraciones.length > 3 && (
+              <button 
+                onClick={() => scrollSlider("left")}
+                style={{ 
+                  position: "absolute", 
+                  left: "20px", // Se queda flotando encima de la tarjeta que asoma
+                  zIndex: 10,
+                  background: WH, 
+                  border: `1px solid ${CR3}`, 
+                  borderRadius: "50%", 
+                  width: "50px", 
+                  height: "50px", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  cursor: "pointer", 
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+                  fontSize: "24px",
+                  color: A,
+                  padding: 0,
+                  lineHeight: 1, 
+                  paddingBottom: "4px" // Centrado perfecto de la flecha
+                }}
+              >
+                ←
+              </button>
+            )}
+
+            {/* EL CARRUSEL */}
+            <div 
+              ref={sliderRef}
+              className="carrusel-opiniones"
+              style={{ 
+                display: "flex", 
+                gap: "24px", 
+                overflowX: "auto", 
+                scrollSnapType: "x mandatory",
+                scrollBehavior: "smooth",
+                // LA MAGIA: El padding define cuánto asoman. Y el scrollPadding le dice dónde "frenar".
+                padding: isMobile ? "15px 12%" : "15px 8%", 
+                scrollPadding: isMobile ? "0 12%" : "0 8%", 
+                width: "100%",
+                boxSizing: "border-box"
+              }}
+            >
+              {valoraciones.map(v => (
+                <div 
+                  key={v.id} 
+                  style={{
+                    // MATEMÁTICA EXACTA:
+                    // Móvil = 100% (cabe 1 entera).
+                    // PC = calc(33.333% - 16px) (caben exactamente 3 enteras restando los 2 huecos de 24px)
+                    flex: isMobile ? "0 0 100%" : "0 0 calc(33.333% - 16px)", 
+                    scrollSnapAlign: "start", // Anclaje perfecto al padding
+                    background: WH, 
+                    border: `1px solid ${CR3}`, 
+                    borderRadius: 16, 
+                    padding: "28px", 
+                    boxSizing: "border-box",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+                  }}
+                >
+                  <div style={{display: "flex", justifyContent: "space-between", marginBottom: 16, alignItems:"center"}}>
+                    <span style={{fontSize: 15, fontWeight: 800, color: TX}}>{v.nombre}</span>
+                    <div style={{display: "flex", gap: 1}}>
+                      {[1,2,3,4,5].map(i => <span key={i} style={{fontSize: 13, color: i <= v.estrellas ? "#F59E0B" : "#D1D5DB"}}>★</span>)}
+                    </div>
                   </div>
+                  <p style={{fontSize: 14, color: TX2, fontStyle: "italic", lineHeight: "1.6", margin: 0}}>"{v.comentario}"</p>
+                  <div style={{fontSize: 11, color: A, fontWeight: 700, marginTop: 18, textTransform: "uppercase", letterSpacing: 1}}>{v.servicio}</div>
                 </div>
-                <p style={{fontSize: 12, color: TX2, fontStyle: "italic", lineHeight: "1.5"}}>"{v.comentario}"</p>
-                <div style={{fontSize: 10, color: A, fontWeight: 700, marginTop: 10}}>{v.servicio}</div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* FLECHA DERECHA */}
+            {!isMobile && valoraciones.length > 3 && (
+              <button 
+                onClick={() => scrollSlider("right")}
+                style={{ 
+                  position: "absolute", 
+                  right: "20px", 
+                  zIndex: 10,
+                  background: WH, 
+                  border: `1px solid ${CR3}`, 
+                  borderRadius: "50%", 
+                  width: "50px", 
+                  height: "50px", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  cursor: "pointer", 
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+                  fontSize: "24px",
+                  color: A,
+                  padding: 0,
+                  lineHeight: 1, 
+                  paddingBottom: "4px" 
+                }}
+              >
+                →
+              </button>
+            )}
+
           </div>
         </div>
       )}
@@ -4288,17 +4404,39 @@ function AppData(){
   const [cargando,setCargando]=useState(true);
   const [iniciado,setIniciado]=useState(false);
 
+  // 1. NUEVOS HOOKS PARA EL CARRUSEL (Puestos aquí para evitar el error)
+  const sliderRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile(); 
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const scrollSlider = (dir) => {
+    if (sliderRef.current && sliderRef.current.children.length > 0) {
+      const cardWidth = sliderRef.current.children[0].offsetWidth;
+      const gap = 24; // Mismo gap que el CSS
+      const cardsToScroll = isMobile ? 1 : 3; // En móvil pasa 1, en PC pasa 3
+      const amount = (cardWidth + gap) * cardsToScroll; 
+      sliderRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+    }
+  };
+
+  // 2. SUSCRIPCIONES FIREBASE
   useEffect(()=>{
     const u1=suscribirCitas(data=>{setCitas(data);setCargando(false);});
     const u2=suscribirValoracionesFB(setValoraciones);
     const u3=suscribirFestivos(setFestivos);
     const u4=suscribirBloqueos(setBloqueos);
-    // ★ suscribir servicios desde Firebase
     const u5=suscribirServicios(data=>{ if(data&&data.length>0) setServicios(data); });
     const t=setTimeout(()=>setCargando(false),5000);
     return()=>{ u1();u2();u3();u4();u5();clearTimeout(t); };
   },[]);
 
+  // 3. PANTALLA DE CARGA (El if debe ir DESPUÉS de todos los hooks)
   if(cargando) return(
     <div className="cliente-wrap" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FBFF",fontFamily:FONT}}>
       <div style={{textAlign:"center"}}>
@@ -4309,31 +4447,15 @@ function AppData(){
     </div>
   );
 
-  const sharedProps={valoraciones,citas,festivos,bloqueos,servicios};
+  // ESTE ES EL FINAL DE TU FUNCIÓN AppData
+  const sharedProps = { valoraciones, citas, festivos, bloqueos, servicios, sliderRef, isMobile, scrollSlider };
 
-  return(
+  return (
     <Routes>
-      {/* Web pública */}
-      <Route path="/" element={<ClientePage {...sharedProps} startPaso={0}/>}/>
-      {/* Flujo reserva — remount limpio cada vez */}
-      <Route path="/reservar" element={<ClientePage key="reservar" {...sharedProps} startPaso={1}/>}/>
-      {/* Login */}
-      <Route path="/login" element={<LoginPage/>}/>
-      {/* Admin */}
-      <Route path="/admin" element={
-        <RequireAdmin>
-          <AdminPage
-            valoraciones={valoraciones} setValoraciones={setValoraciones}
-            festivos={festivos} setFestivos={setFestivos}
-            bloqueos={bloqueos} setBloqueos={setBloqueos}
-            servicios={servicios} setServicios={setServicios}
-          />
-        </RequireAdmin>
-      }/>
-      {/* Vista peluquero */}
-      <Route path="/mi-agenda" element={<RequirePeluquero><PeluqueroPage citas={citas}/></RequirePeluquero>}/>
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace/>}/>
+      {/* Fíjate cómo ahora le pasamos sharedProps={sharedProps} pero sin BrowserRouter */}
+      <Route path="/" element={<ClientePage sharedProps={sharedProps} />} />
+      <Route path="/reservar" element={<ClientePage sharedProps={sharedProps} />} />
+      <Route path="/admin" element={<AdminPage {...sharedProps} />} />
     </Routes>
   );
 }
