@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS 3x3, OPINIONES DESLIZABLES)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS APILADOS Y OPINIONES CENTRADAS)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -4070,7 +4070,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
 
         {/* ───────────────────────────────────────────────────────── */}
-        {/* TAB 1: SERVICIOS */}
+        {/* TAB 1: SERVICIOS (INTACTO COMO PEDISTE) */}
         {activeTab === "servicios" && (
           <div className="anim">
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
@@ -4093,13 +4093,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             )}
 
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "400px" : "100%" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "460px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    {/* Tamaños de la columna Nombre reducidos según lo pedido */}
-                    <th style={{ ...thS, textAlign: "left", width: isMobile ? "auto" : "25%", minWidth: "110px" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "25%" : "25%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "25%" : "25%" }}>Precio</th>
+                    <th style={{ ...thS, textAlign: "left", width: isMobile ? "auto" : "30%", minWidth: "140px" }}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "20%" : "25%" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "20%" : "25%" }}>Precio</th>
                     <th style={{ ...thS, textAlign: "right", width: "90px" }}></th> 
                   </tr>
                 </thead>
@@ -4153,7 +4152,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 <div style={{ marginBottom: "16px" }}>
                   <label style={labelS}>Valoración</label>
                   <div style={{ display: "flex", gap: "6px" }}>
-                    {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>)}
+                    {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>)}
                   </div>
                 </div>
                 <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={newVal.comentario} onChange={e => setNewVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "90px", resize: "vertical", fontFamily: "inherit" }} /></div>
@@ -4163,7 +4162,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
-                // OverflowX activado para que en móvil se pueda deslizar lateralmente
                 <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
                   {editVal?.id === v.id ? (
                     <div>
@@ -4176,19 +4174,19 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}><button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button><button style={btnGreen} onClick={saveEdit}>Guardar</button></div>
                     </div>
                   ) : (
-                    // LA CLAVE AQUÍ: flexDirection "row" siempre, minWidth grande para el scroll, y texto alineado a la izquierda.
-                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: "44px", minWidth: isMobile ? "480px" : "100%", gap: "16px" }}>
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: "44px", minWidth: isMobile ? "450px" : "100%", gap: "12px" }}>
                       
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "25%", minWidth: "130px", flexShrink: 0, justifyContent: "center" }}>
+                      {/* Alineación a la izquierda y tamaño ajustado para dejar más espacio al texto */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: isMobile ? "25%" : "20%", minWidth: "110px", flexShrink: 0, justifyContent: "center", alignItems: "flex-start", textAlign: "left" }}>
                         <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                         <div style={{ display: "flex", gap: "2px" }}>
                           {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
                         </div>
-                        {/* Servicio alineado a la izquierda */}
                         <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", width: "100%", textAlign: "left" }}>{v.servicio}</span>
                       </div>
 
-                      <div style={{ flex: 1, textAlign: "left", padding: "0" }}>
+                      {/* Texto del comentario alineado al centro */}
+                      <div style={{ flex: 1, textAlign: "center", padding: isMobile ? "0 8px" : "0 16px" }}>
                         <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
                       </div>
 
@@ -4209,13 +4207,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
-          <div className="anim" style={{ 
-            display: "grid", 
-            /* LA ORDEN MÁGICA: 3 en ordenador, 1 en móvil */
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
-            gap: "24px", 
-            alignItems: "start" 
-          }}>
+          <div className="anim" style={
+            /* INFALIBLE: Flexbox en columna para móvil, Grid 3x3 para ordenador */
+            isMobile 
+              ? { display: "flex", flexDirection: "column", gap: "24px", width: "100%" } 
+              : { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", alignItems: "start" }
+          }>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0 }}>
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
