@@ -4018,40 +4018,54 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* 2. OPINIONES (UNIFORMIDAD TOTAL EN MÓVIL Y PC) */}
+        {/* 2. OPINIONES (ESTRUCTURA SIMÉTRICA Y ANCHOS FIJOS) */}
         {activeTab === "valoraciones" && (
           <div className="anim">
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+              <button style={btnBlue} onClick={() => setShowNewVal(!showNewVal)}>
+                {showNewVal ? "Cancelar" : "+ Añadir Opinión"}
+              </button>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
-                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
-                  {/* Forzamos un ancho de 480px en móvil para que todas las cajas sean idénticas */}
+                <div key={v.id} style={{ 
+                  ...cardS, 
+                  padding: "12px 16px", 
+                  marginBottom: 0, 
+                  overflowX: "auto",
+                  width: "100%" // Asegura que la tarjeta exterior ocupe todo el ancho
+                }}>
+                  {/* Contenedor interno con ancho fijo para simetría total */}
                   <div style={{ 
                     display: "flex", 
                     flexDirection: "row", 
                     alignItems: "center", 
                     minHeight: "60px", 
-                    width: isMobile ? "480px" : "100%", 
+                    width: isMobile ? "480px" : "100%", // Ancho fijo en móvil para alinear botones
                     boxSizing: "border-box" 
                   }}>
-                    {/* BLOQUE IZQUIERDO: Ancho fijo */}
-                    <div style={{ width: "130px", flexShrink: 0, textAlign: "left" }}>
-                      <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", display: "block" }}>{v.nombre}</span>
+                    {/* SECCIÓN CLIENTE: Ancho fijo */}
+                    <div style={{ width: "130px", flexShrink: 0, textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                       <div style={{ display: "flex", gap: "2px" }}>
                         {Array.from({ length: 5 }).map((_, i) => (
                           <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>
                         ))}
                       </div>
-                      <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>{v.servicio}</span>
+                      <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>
+                        {v.servicio}
+                      </span>
                     </div>
 
-                    {/* BLOQUE CENTRAL: Texto centrado que ocupa el espacio restante */}
+                    {/* SECCIÓN COMENTARIO: Centrado y flexible */}
                     <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
-                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.5" }}>
+                      <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>
                         "{v.comentario}"
                       </p>
                     </div>
 
-                    {/* BLOQUE DERECHO: Ancho fijo para que los botones siempre estén alineados */}
+                    {/* SECCIÓN ACCIONES: Ancho fijo para alineación vertical perfecta */}
                     <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                       <button 
                         style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} 
