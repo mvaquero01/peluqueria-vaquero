@@ -4018,7 +4018,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* 2. TAB OPINIONES: SELECTOR DE ESTRELLAS CENTRADO Y GRANDE */}
+        {/* 2. TAB OPINIONES: LISTADO CON ANCHO AMPLIADO Y MÁRGENES DE SEGURIDAD */}
         {activeTab === "valoraciones" && (() => {
           const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
           const btnGreen = { ...btnBlue, background: "#10b981", fontSize: "12px", padding: "10px 20px" };
@@ -4047,7 +4047,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </button>
               </div>
 
-              {/* FORMULARIO COMPACTO */}
+              {/* FORMULARIO COMPACTO (INTACTO) */}
               {showNewVal && (
                 <div style={{ background: "#fff", borderRadius: "12px", padding: "16px", marginBottom: "20px", border: "1px solid #93c5fd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1.2fr 1fr", gap: "12px", marginBottom: "12px" }}>
@@ -4056,7 +4056,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <input style={{...inputSmall, marginTop: "4px"}} value={newVal.nombre} onChange={e => setNewVal({...newVal, nombre: e.target.value})} placeholder="Nombre..." />
                     </div>
                     
-                    {/* ESTRELLAS CENTRADAS CON EL TÍTULO */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "center" }}>
                       <label style={labelSmall}>VALORACIÓN</label>
                       <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
@@ -4091,17 +4090,18 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
               )}
 
-              {/* LISTADO CON TEXTO CENTRADO GEOMÉTRICO */}
+              {/* LISTADO CORREGIDO: ANCHO 650px Y TEXTO CONTROLADO */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
                 {displayVal.map(v => (
                   <div key={v.id} style={{ 
                     background: "#fff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", 
                     boxShadow: "0 2px 4px rgba(0,0,0,0.02)", overflowX: "auto", width: "100%", position: "relative"
                   }}>
-                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", width: isMobile ? "550px" : "100%", boxSizing: "border-box", position: "relative" }}>
+                    {/* Subimos a 650px para evitar solapamientos */}
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", width: isMobile ? "650px" : "100%", boxSizing: "border-box", position: "relative" }}>
                       
-                      {/* IZQUIERDA: CLIENTE */}
-                      <div style={{ width: "140px", flexShrink: 0, textAlign: "left", zIndex: 2 }}>
+                      {/* IZQUIERDA: CLIENTE (150px) */}
+                      <div style={{ width: "150px", flexShrink: 0, textAlign: "left", zIndex: 2 }}>
                         <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "14px" }}>{v.nombre}</div>
                         <div style={{ display: "flex", color: "#F59E0B", margin: "2px 0" }}>
                           {Array.from({ length: 5 }).map((_, i) => (
@@ -4111,7 +4111,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                         <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "600" }}>{v.servicio}</div>
                       </div>
 
-                      {/* CENTRO: TEXTO CENTRADO EN LA CAJA */}
+                      {/* CENTRO: TEXTO CON MARGEN DE SEGURIDAD */}
                       <div style={{ 
                         position: isMobile ? "relative" : "absolute", 
                         left: 0, right: 0, textAlign: "center", 
@@ -4120,7 +4120,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       }}>
                         <p style={{ 
                           fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", 
-                          maxWidth: isMobile ? "250px" : "400px", pointerEvents: "auto" 
+                          // Reducimos el maxWidth para que no se acerque a los bordes
+                          maxWidth: isMobile ? "280px" : "450px", 
+                          pointerEvents: "auto",
+                          lineHeight: "1.4"
                         }}>
                           "{v.comentario}"
                         </p>
@@ -4128,8 +4131,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
                       <div style={{ flex: 1 }}></div>
 
-                      {/* DERECHA: ACCIONES */}
-                      <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end", zIndex: 2 }}>
+                      {/* DERECHA: ACCIONES (120px) */}
+                      <div style={{ width: "120px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end", zIndex: 2 }}>
                         <button style={{ ...btnSquareBase, background: "#e0e7ff", color: "#4f46e5" }} onClick={() => setEditVal({...v})}>✏️</button>
                         <button style={{ ...btnSquareBase, background: "#fee2e2", color: "#ef4444" }} onClick={() => setItemBorrar({item:v, tipo:"opinión"})} >🗑</button>
                       </div>
