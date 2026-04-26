@@ -4019,73 +4019,80 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         )}
 
         {/* 2. OPINIONES (ESTRUCTURA SIMÉTRICA Y ANCHOS FIJOS) */}
-        {activeTab === "valoraciones" && (
-          <div className="anim">
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-              <button style={btnBlue} onClick={() => setShowNewVal(!showNewVal)}>
-                {showNewVal ? "Cancelar" : "+ Añadir Opinión"}
+{activeTab === "valoraciones" && (
+  <div className="anim">
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+      <button 
+        style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} 
+        onClick={() => setShowNewVal(!showNewVal)}
+      >
+        {showNewVal ? "Cancelar" : "+ Añadir Opinión"}
+      </button>
+    </div>
+
+    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+      {displayVal.map(v => (
+        <div key={v.id} style={{ 
+          background: "#fff", 
+          borderRadius: "12px", 
+          padding: "12px 16px", 
+          marginBottom: 0, 
+          border: "1px solid #e2e8f0", 
+          boxShadow: "0 2px 8px rgba(0,0,0,0.03)", 
+          boxSizing: "border-box",
+          overflowX: "auto",
+          width: "100%" 
+        }}>
+          {/* Contenedor interno con ancho fijo de 480px en móvil para alinear botones perfectamente */}
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "row", 
+            alignItems: "center", 
+            minHeight: "60px", 
+            width: isMobile ? "480px" : "100%", 
+            boxSizing: "border-box" 
+          }}>
+            {/* SECCIÓN CLIENTE: Bloque fijo de 130px */}
+            <div style={{ width: "130px", flexShrink: 0, textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+              <div style={{ display: "flex", gap: "2px" }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>
+                ))}
+              </div>
+              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>
+                {v.servicio}
+              </span>
+            </div>
+
+            {/* SECCIÓN COMENTARIO: Centrado geométrico */}
+            <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
+              <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>
+                "{v.comentario}"
+              </p>
+            </div>
+
+            {/* SECCIÓN ACCIONES: Bloque fijo de 100px para que los botones siempre coincidan verticalmente */}
+            <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <button 
+                style={{ border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#e0e7ff", color: "#4f46e5" }} 
+                onClick={() => setEditVal({...v})}
+              >
+                ✏️
+              </button>
+              <button 
+                style={{ border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#fee2e2", color: "#ef4444" }} 
+                onClick={() => setItemBorrar({item:v, tipo:"opinión"})}
+              >
+                🗑
               </button>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
-              {displayVal.map(v => (
-                <div key={v.id} style={{ 
-                  ...cardS, 
-                  padding: "12px 16px", 
-                  marginBottom: 0, 
-                  overflowX: "auto",
-                  width: "100%" // Asegura que la tarjeta exterior ocupe todo el ancho
-                }}>
-                  {/* Contenedor interno con ancho fijo para simetría total */}
-                  <div style={{ 
-                    display: "flex", 
-                    flexDirection: "row", 
-                    alignItems: "center", 
-                    minHeight: "60px", 
-                    width: isMobile ? "480px" : "100%", // Ancho fijo en móvil para alinear botones
-                    boxSizing: "border-box" 
-                  }}>
-                    {/* SECCIÓN CLIENTE: Ancho fijo */}
-                    <div style={{ width: "130px", flexShrink: 0, textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" }}>
-                      <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-                      <div style={{ display: "flex", gap: "2px" }}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>
-                        ))}
-                      </div>
-                      <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>
-                        {v.servicio}
-                      </span>
-                    </div>
-
-                    {/* SECCIÓN COMENTARIO: Centrado y flexible */}
-                    <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
-                      <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>
-                        "{v.comentario}"
-                      </p>
-                    </div>
-
-                    {/* SECCIÓN ACCIONES: Ancho fijo para alineación vertical perfecta */}
-                    <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                      <button 
-                        style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} 
-                        onClick={() => setEditVal({...v})}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} 
-                        onClick={() => setItemBorrar({item:v, tipo:"opinión"})}
-                      >
-                        🗑
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-        )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
