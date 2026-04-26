@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: CENTRADO ABSOLUTO Y HORARIOS 1x1 / 3x3)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS 1FR / 3FR Y OPINIONES UNIFORMES)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -4070,7 +4070,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
 
         {/* ───────────────────────────────────────────────────────── */}
-        {/* TAB 1: SERVICIOS (INTACTO) */}
+        {/* TAB 1: SERVICIOS */}
         {activeTab === "servicios" && (
           <div className="anim">
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
@@ -4174,23 +4174,24 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}><button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button><button style={btnGreen} onClick={saveEdit}>Guardar</button></div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "44px", minWidth: isMobile ? "450px" : "100%" }}>
+                    // width EXACTO en vez de minWidth para asegurar uniformidad total de las cajas
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "44px", width: isMobile ? "480px" : "100%" }}>
                       
-                      {/* BLOQUE IZQUIERDO FIJO A 120px: Nombre y Servicio alineados a la izquierda */}
+                      {/* BLOQUE IZQUIERDO FIJO A 120px: Alineado a la izquierda, sin recortar servicio */}
                       <div style={{ width: "120px", flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", justifyContent: "center", alignItems: "flex-start", textAlign: "left" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{v.nombre}</span>
+                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                         <div style={{ display: "flex", gap: "2px" }}>
                           {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
                         </div>
-                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{v.servicio}</span>
+                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", width: "100%", textAlign: "left" }}>{v.servicio}</span>
                       </div>
 
-                      {/* TEXTO DEL MEDIO: Ocupa todo el espacio sobrante y se centra milimétricamente */}
+                      {/* TEXTO DEL MEDIO: Centrado geométricamente en la caja gracias a los lados fijos */}
                       <div style={{ flex: 1, textAlign: "center", padding: "0 16px" }}>
                         <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
                       </div>
 
-                      {/* BLOQUE DERECHO FIJO A 120px: Igual que el izquierdo para que el centro sea perfecto */}
+                      {/* BLOQUE DERECHO FIJO A 120px: Igual que el izquierdo */}
                       <div style={{ width: "120px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                         <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
                         <button style={btnSquareDel} onClick={() => setItemBorrar({ item: v, tipo: "opinión" })}>🗑</button>
@@ -4209,8 +4210,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
-            /* LA ORDEN MÁGICA Y BLINDADA: 1 COLUMNA EN MÓVIL, 3 EN ORDENADOR */
             display: "grid", 
+            /* REJILLA ESTRICTA: 1 en móvil, 3 en ordenador */
             gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
             gap: "24px", 
             alignItems: "start" 
