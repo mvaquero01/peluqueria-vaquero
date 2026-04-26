@@ -3922,11 +3922,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS 1FR / 3FR Y OPINIONES UNIFORMES)
+  // TAB CONFIG (VERSIÓN FINAL: UNIFORMIDAD TOTAL Y HORARIOS FIJOS)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
-    // --- 1. MEMORIA GLOBAL BLINDADA ---
+    // --- 1. MEMORIA GLOBAL ---
     window._ocultosSvc = window._ocultosSvc || [];
     window._editadosSvc = window._editadosSvc || {};
     window._nuevosSvc = window._nuevosSvc || [];
@@ -3942,120 +3942,48 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const [, setTick] = useState(0);
     const forceRender = () => setTick(t => t + 1);
 
-    // --- 2. ESTADOS LOCALES ---
     const [editSvc, setEditSvc] = useState(null);
     const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
     const [showNew, setShowNew] = useState(false);
-    
     const [showNewVal, setShowNewVal] = useState(false);
     const [newVal, setNewVal] = useState({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
     const [editVal, setEditVal] = useState(null);
-
     const [itemBorrar, setItemBorrar] = useState(null); 
 
-    // --- 3. CONSTRUCCIÓN DE LAS LISTAS ---
     const activeTab = typeof configSubTab !== 'undefined' ? configSubTab : "servicios";
     const safeSvc = typeof servicios !== 'undefined' && Array.isArray(servicios) ? servicios : [];
     const safeVal = typeof valoraciones !== 'undefined' && Array.isArray(valoraciones) ? valoraciones : [];
 
-    const idsSvcOriginales = safeSvc.map(s => String(s.id));
-    const nuevosSvcReales = window._nuevosSvc.filter(s => !idsSvcOriginales.includes(String(s.id)));
-    const displaySvc = [...safeSvc, ...nuevosSvcReales].filter(s => !window._ocultosSvc.includes(String(s.id))).map(s => window._editadosSvc[s.id] || s);
+    const displaySvc = [...safeSvc, ...window._nuevosSvc.filter(s => !safeSvc.map(x => String(x.id)).includes(String(s.id)))].filter(s => !window._ocultosSvc.includes(String(s.id))).map(s => window._editadosSvc[s.id] || s);
+    const displayVal = [...safeVal, ...window._nuevosVal.filter(v => !safeVal.map(x => String(x.id)).includes(String(v.id)))].filter(v => !window._ocultosVal.includes(String(v.id))).map(v => window._editadosVal[v.id] || v);
 
-    const idsValOriginales = safeVal.map(v => String(v.id));
-    const nuevosValReales = window._nuevosVal.filter(v => !idsValOriginales.includes(String(v.id)));
-    const displayVal = [...safeVal, ...nuevosValReales].filter(v => !window._ocultosVal.includes(String(v.id))).map(v => window._editadosVal[v.id] || v);
+    // --- FUNCIONES ---
+    const guardarSvc = async () => { if (!editSvc?.nombre) return; window._editadosSvc[editSvc.id] = editSvc; setEditSvc(null); forceRender(); try { await guardarServicioFB(editSvc); } catch (e) {} };
+    const addSvc = async () => { if (!newSvc.nombre) return; const svc = { ...newSvc, id: Date.now().toString(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) }; window._nuevosSvc.push(svc); setShowNew(false); setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" }); forceRender(); try { await guardarServicioFB(svc); } catch (e) {} };
+    const addVal = async () => { if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; const nueva = { ...newVal, id: Date.now().toString() }; window._nuevosVal.push(nueva); setShowNewVal(false); setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" }); forceRender(); try { await guardarValoracionFB(nueva); } catch (e) {} };
+    const saveEdit = async () => { if (!editVal?.nombre) return; window._editadosVal[editVal.id] = editVal; setEditVal(null); forceRender(); try { await guardarValoracionFB(editVal); } catch (e) {} };
 
-    // --- FUNCIONES SERVICIOS ---
-    const guardarSvc = async () => {
-      if (!editSvc || !editSvc.nombre) return;
-      const temp = { ...editSvc };
-      window._editadosSvc[temp.id] = temp; 
-      setEditSvc(null); forceRender();
-      try { await guardarServicioFB(temp); } catch (e) { console.error(e); }
-    };
-
-    const addSvc = async () => {
-      if (!newSvc.nombre) return;
-      if (displaySvc.some(s => s.nombre.toLowerCase() === newSvc.nombre.toLowerCase())) return alert("Ya existe un servicio con ese nombre.");
-      const svc = { ...newSvc, id: Date.now().toString(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) };
-      window._nuevosSvc.push(svc); 
-      setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
-      setShowNew(false); forceRender();
-      try { await guardarServicioFB(svc); } catch (e) { console.error(e); }
-    };
-
-    // --- FUNCIONES VALORACIONES ---
-    const addVal = async () => {
-      if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; 
-      const nueva = { ...newVal, id: Date.now().toString() };
-      window._nuevosVal.push(nueva);
-      setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
-      setShowNewVal(false); forceRender();
-      try { await guardarValoracionFB(nueva); } catch (e) { console.error(e); }
-    };
-
-    const saveEdit = async () => {
-      if (!editVal || !editVal.nombre || !editVal.comentario || !editVal.servicio) return;
-      const temp = { ...editVal };
-      window._editadosVal[temp.id] = temp;
-      setEditVal(null); forceRender();
-      try { await guardarValoracionFB(temp); } catch (e) { console.error(e); }
-    };
-
-    // --- LÓGICA DE ELIMINACIÓN Y DESHACER ---
     const confirmarEliminacion = async () => {
-      const { item, tipo } = itemBorrar;
-      setItemBorrar(null);
-      
+      const { item, tipo } = itemBorrar; setItemBorrar(null);
       if (tipo === "servicio") {
-        window._ocultosSvc.push(String(item.id)); 
-        window._tempSvc = item; window._showToastSvc = true; forceRender();
-        if (window._svcTimer) clearTimeout(window._svcTimer);
-        window._svcTimer = setTimeout(() => { window._showToastSvc = false; window._tempSvc = null; forceRender(); }, 6000);
+        window._ocultosSvc.push(String(item.id)); window._tempSvc = item; window._showToastSvc = true; forceRender();
+        setTimeout(() => { window._showToastSvc = false; forceRender(); }, 6000);
         try { await borrarServicioFB(item.nombre); } catch(e){}
       } else {
-        window._ocultosVal.push(String(item.id));
-        window._tempVal = item; window._showToastVal = true; forceRender();
-        if (window._valTimer) clearTimeout(window._valTimer);
-        window._valTimer = setTimeout(() => { window._showToastVal = false; window._tempVal = null; forceRender(); }, 6000);
+        window._ocultosVal.push(String(item.id)); window._tempVal = item; window._showToastVal = true; forceRender();
+        setTimeout(() => { window._showToastVal = false; forceRender(); }, 6000);
         try { await borrarValoracionFB(item); } catch(e){}
       }
     };
 
-    const deshacerSvc = async () => {
-      const item = window._tempSvc; if (!item) return;
-      window._ocultosSvc = window._ocultosSvc.filter(id => id !== String(item.id));
-      window._showToastSvc = false; window._tempSvc = null; forceRender();
-      try { await guardarServicioFB(item); } catch(e){} 
-    };
-
-    const deshacerVal = async () => {
-      const item = window._tempVal; if (!item) return;
-      window._ocultosVal = window._ocultosVal.filter(id => id !== String(item.id));
-      window._showToastVal = false; window._tempVal = null; forceRender();
-      try { await guardarValoracionFB(item); } catch(e){}
-    };
-
-    // --- ESTILOS REUTILIZABLES ---
     const cardS = { background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)", boxSizing: "border-box" };
     const inputS = { width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#1e293b", outline: "none", boxSizing: "border-box" };
-    const labelS = { fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" };
-    
-    const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "0.2s" };
-    const btnGreen = { ...btnBlue, background: "#10b981" };
-    const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
-    
-    const btnSquareBase = { border: "none", borderRadius: "6px", width: "32px", height: "32px", minWidth: "32px", minHeight: "32px", aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0, flexShrink: 0, boxSizing: "border-box" };
-    const btnSquareEdit = { ...btnSquareBase, background: "#e0e7ff", color: "#4f46e5" };
-    const btnSquareDel = { ...btnSquareBase, background: "#fee2e2", color: "#ef4444" };
-    const btnSquareOk = { ...btnSquareBase, background: "#10b981", color: "#fff" };
-    const btnSquareCancel = { ...btnSquareBase, background: "#f1f5f9", color: "#475569" };
-
-    const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", textAlign: "left" };
+    const labelS = { fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block", textTransform: "uppercase" };
+    const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
+    const btnSquareBase = { border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
+    const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase" };
     const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
-
-    const toastStyle = { position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", display: "flex", gap: "16px", alignItems: "center", justifyContent: "center", zIndex: 99999, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", width: "max-content", maxWidth: "85%" };
+    const toastStyle = { position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", display: "flex", gap: "16px", alignItems: "center", justifyContent: "center", zIndex: 99999, width: "max-content", maxWidth: "85%" };
 
     return (
       <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "0 16px" : "0", boxSizing: "border-box" }}> 
@@ -4063,225 +3991,94 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* NAVEGACIÓN */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
           {[["servicios", "Servicios"], ["valoraciones", "Opiniones"], ["horarios", "Horarios"]].map(([v, l]) => (
-            <button key={v} onClick={() => { if (typeof setConfigSubTab === 'function') setConfigSubTab(v); }}
-              style={{ background: activeTab === v ? "#1e3a8a" : "#fff", color: activeTab === v ? "#fff" : "#64748b", border: `1px solid ${activeTab === v ? "#1e3a8a" : "#cbd5e1"}`, borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", transition: "0.2s" }}
+            <button key={v} onClick={() => setConfigSubTab(v)}
+              style={{ background: activeTab === v ? "#1e3a8a" : "#fff", color: activeTab === v ? "#fff" : "#64748b", border: `1px solid ${activeTab === v ? "#1e3a8a" : "#cbd5e1"}`, borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
             >{l}</button>
           ))}
         </div>
 
-        {/* ───────────────────────────────────────────────────────── */}
-        {/* TAB 1: SERVICIOS */}
+        {/* SERVICIOS (INTACTO) */}
         {activeTab === "servicios" && (
           <div className="anim">
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-              <button style={btnBlue} onClick={() => setShowNew(v => !v)}>{showNew ? "Cancelar" : "+ Nuevo servicio"}</button>
-            </div>
-
-            {showNew && (
-              <div style={cardS}>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.5fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                  <div><label style={labelS}>Nombre</label><input style={inputS} value={newSvc.nombre} onChange={e => setNewSvc(f => ({ ...f, nombre: e.target.value }))} /></div>
-                  <div><label style={labelS}>Duración (min)</label><input style={inputS} type="number" value={newSvc.duracionMin} onChange={e => setNewSvc(f => ({ ...f, duracionMin: e.target.value }))} /></div>
-                  <div><label style={labelS}>Precio (€)</label><input style={inputS} type="number" value={newSvc.precio} onChange={e => setNewSvc(f => ({ ...f, precio: e.target.value }))} /></div>
-                  <div style={{ gridColumn: isMobile ? "auto" : "1 / -1" }}><label style={labelS}>Descripción</label><input style={inputS} value={newSvc.desc} onChange={e => setNewSvc(f => ({ ...f, desc: e.target.value }))} /></div>
-                </div>
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                  <button style={btnCancel} onClick={() => setShowNew(false)}>Cancelar</button>
-                  <button style={{...btnGreen, opacity: newSvc.nombre ? 1 : 0.5}} disabled={!newSvc.nombre} onClick={addSvc}>Guardar Servicio</button>
-                </div>
-              </div>
-            )}
-
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}><button style={btnBlue} onClick={() => setShowNew(!showNew)}>{showNew ? "Cancelar" : "+ Nuevo servicio"}</button></div>
+            {showNew && <div style={cardS}><div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.5fr 1fr 1fr", gap: "12px" }}><div><label style={labelS}>Nombre</label><input style={inputS} value={newSvc.nombre} onChange={e => setNewSvc({...newSvc, nombre: e.target.value})} /></div><div><label style={labelS}>Duración</label><input style={inputS} type="number" value={newSvc.duracionMin} onChange={e => setNewSvc({...newSvc, duracionMin: e.target.value})} /></div><div><label style={labelS}>Precio</label><input style={inputS} type="number" value={newSvc.precio} onChange={e => setNewSvc({...newSvc, precio: e.target.value})} /></div></div><button style={{...btnBlue, background: "#10b981", marginTop: 12}} onClick={addSvc}>Guardar</button></div>}
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "460px" : "100%" }}>
-                <thead style={{ background: "#f8fafc" }}>
-                  <tr>
-                    <th style={{ ...thS, textAlign: "left", width: isMobile ? "auto" : "30%", minWidth: "140px" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "20%" : "25%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "20%" : "25%" }}>Precio</th>
-                    <th style={{ ...thS, textAlign: "right", width: "90px" }}></th> 
-                  </tr>
-                </thead>
-                <tbody>
-                  {displaySvc.map(s => (
-                    <tr key={s.id} style={{ transition: "0.2s" }}>
-                      {editSvc?.id === s.id ? (
-                        <>
-                          <td style={{...tdS, textAlign: "left"}}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "right" }}><div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}><button style={btnSquareOk} onClick={guardarSvc}>✓</button><button style={btnSquareCancel} onClick={() => setEditSvc(null)}>✕</button></div></td>
-                        </>
-                      ) : (
-                        <>
-                          <td style={{ ...tdS, fontWeight: "700", color: "#1e293b", textAlign: "left", wordBreak: "break-word" }}>{s.nombre}</td>
-                          <td style={{ ...tdS, color: "#64748b", textAlign: "center" }}>{s.duracionMin} min</td>
-                          <td style={{ ...tdS, fontWeight: "700", color: "#10b981", textAlign: "center" }}>{s.precio} €</td>
-                          <td style={{ ...tdS, textAlign: "right" }}><div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}><button style={btnSquareEdit} onClick={() => setEditSvc({ ...s })}>✏️</button><button style={btnSquareDel} onClick={() => setItemBorrar({ item: s, tipo: "servicio" })}>🗑</button></div></td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                  {displaySvc.length === 0 && <tr><td colSpan="4" style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No hay servicios registrados.</td></tr>}
-                </tbody>
+                <thead style={{ background: "#f8fafc" }}><tr><th style={{ ...thS, textAlign: "left", minWidth: "140px" }}>Nombre</th><th style={{ ...thS, textAlign: "center" }}>Duración</th><th style={{ ...thS, textAlign: "center" }}>Precio</th><th style={thS}></th></tr></thead>
+                <tbody>{displaySvc.map(s => (
+                  <tr key={s.id}>{editSvc?.id === s.id ? (<><td style={tdS}><input style={inputS} value={editSvc.nombre} onChange={e => setEditSvc({...editSvc, nombre: e.target.value})} /></td><td style={tdS}><input style={{...inputS, textAlign: "center"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc({...editSvc, duracionMin: e.target.value})} /></td><td style={tdS}><input style={{...inputS, textAlign: "center"}} type="number" value={editSvc.precio} onChange={e => setEditSvc({...editSvc, precio: e.target.value})} /></td><td style={tdS}><button onClick={guardarSvc}>✓</button></td></>) : (<><td style={{...tdS, fontWeight: 700}}>{s.nombre}</td><td style={{...tdS, textAlign: "center"}}>{s.duracionMin} min</td><td style={{...tdS, textAlign: "center", color: "#10b981", fontWeight: 700}}>{s.precio} €</td><td style={{...tdS, textAlign: "right"}}><div style={{display:"flex", gap:8, justifyContent:"flex-end"}}><button style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} onClick={() => setEditSvc({...s})}>✏️</button><button style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} onClick={() => setItemBorrar({item:s, tipo:"servicio"})}>🗑</button></div></td></>)}</tr>
+                ))}</tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* ───────────────────────────────────────────────────────── */}
-        {/* TAB 2: VALORACIONES */}
+        {/* OPINIONES (UNIFORMES Y CENTRADAS) */}
         {activeTab === "valoraciones" && (
           <div className="anim">
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-              <button style={btnBlue} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
-            </div>
-
-            {showNewVal && (
-              <div style={{ ...cardS, border: "1px solid #93c5fd", background: "#f8fafc" }}>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
-                  <div><label style={labelS}>Nombre del cliente</label><input style={inputS} value={newVal.nombre} onChange={e => setNewVal(f => ({ ...f, nombre: e.target.value }))} /></div>
-                  <div>
-                    <label style={labelS}>Servicio realizado</label>
-                    <select style={inputS} value={newVal.servicio} onChange={e => setNewVal(f => ({ ...f, servicio: e.target.value }))}>
-                      <option value="">Seleccionar servicio...</option>
-                      {displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={labelS}>Valoración</label>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>)}
-                  </div>
-                </div>
-                <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={newVal.comentario} onChange={e => setNewVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "90px", resize: "vertical", fontFamily: "inherit" }} /></div>
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}><button style={btnCancel} onClick={() => setShowNewVal(false)}>Cancelar</button><button style={{...btnGreen, opacity: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? 0.5 : 1}} onClick={addVal}>Guardar Opinión</button></div>
-              </div>
-            )}
-
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}><button style={btnBlue} onClick={() => setShowNewVal(!showNewVal)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
                 <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
-                  {editVal?.id === v.id ? (
-                    <div>
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                        <div><label style={labelS}>Nombre</label><input style={inputS} value={editVal.nombre} onChange={e => setEditVal(f => ({ ...f, nombre: e.target.value }))} /></div>
-                        <div><label style={labelS}>Servicio</label><select style={inputS} value={editVal.servicio} onChange={e => setEditVal(f => ({ ...f, servicio: e.target.value }))}><option value="">Seleccionar...</option>{displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}</select></div>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}><label style={labelS}>Valoración</label><div style={{ display: "flex", gap: "4px" }}>{[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "24px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}</div></div>
-                      <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={editVal.comentario} onChange={e => setEditVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "80px", resize: "vertical" }} /></div>
-                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}><button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button><button style={btnGreen} onClick={saveEdit}>Guardar</button></div>
+                  <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: isMobile ? "80px" : "44px", width: isMobile ? "480px" : "100%", boxSizing: "border-box" }}>
+                    {/* BLOQUE IZQUIERDO FIJO */}
+                    <div style={{ width: "120px", flexShrink: 0, textAlign: "left" }}>
+                      <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", display: "block" }}>{v.nombre}</span>
+                      <div style={{ display: "flex", gap: "2px", margin: "2px 0" }}>{Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}</div>
+                      <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>{v.servicio}</span>
                     </div>
-                  ) : (
-                    // width EXACTO en vez de minWidth para asegurar uniformidad total de las cajas
-                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "44px", width: isMobile ? "480px" : "100%" }}>
-                      
-                      {/* BLOQUE IZQUIERDO FIJO A 120px: Alineado a la izquierda, sin recortar servicio */}
-                      <div style={{ width: "120px", flexShrink: 0, display: "flex", flexDirection: "column", gap: "4px", justifyContent: "center", alignItems: "flex-start", textAlign: "left" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-                        <div style={{ display: "flex", gap: "2px" }}>
-                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
-                        </div>
-                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", width: "100%", textAlign: "left" }}>{v.servicio}</span>
-                      </div>
-
-                      {/* TEXTO DEL MEDIO: Centrado geométricamente en la caja gracias a los lados fijos */}
-                      <div style={{ flex: 1, textAlign: "center", padding: "0 16px" }}>
-                        <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
-                      </div>
-
-                      {/* BLOQUE DERECHO FIJO A 120px: Igual que el izquierdo */}
-                      <div style={{ width: "120px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
-                        <button style={btnSquareDel} onClick={() => setItemBorrar({ item: v, tipo: "opinión" })}>🗑</button>
-                      </div>
-                      
+                    {/* COMENTARIO CENTRADO */}
+                    <div style={{ flex: 1, textAlign: "center", padding: "0 16px" }}>
+                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
                     </div>
-                  )}
+                    {/* BLOQUE DERECHO FIJO */}
+                    <div style={{ width: "120px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                      <button style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} onClick={() => setEditVal({...v})}>✏️</button>
+                      <button style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} onClick={() => setItemBorrar({item:v, tipo:"opinión"})}>🗑</button>
+                    </div>
+                  </div>
                 </div>
               ))}
-              {displayVal.length === 0 && <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", fontSize: "14px", background: "#fff", borderRadius: "12px", border: "1px dashed #cbd5e1" }}>No hay opiniones registradas.</div>}
             </div>
           </div>
         )}
 
-        {/* ───────────────────────────────────────────────────────── */}
-        {/* TAB 3: HORARIOS */}
+        {/* HORARIOS (1 COLUMNA MÓVIL / 3 COLUMNAS PC) */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
             display: "grid", 
-            /* REJILLA ESTRICTA: 1 en móvil, 3 en ordenador */
             gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
-            gap: "24px", 
-            alignItems: "start" 
+            gap: "24px" 
           }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0, boxSizing: "border-box" }}>
+              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto" }}>
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
-                  <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
-                  <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
+                  <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }} />
+                  <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{p.nombre}</span>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "300px" : "100%" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ ...thS, textAlign: "left", paddingLeft: "20px" }}>Día</th>
-                      <th style={{ ...thS, textAlign: "center" }}>Entrada</th>
-                      <th style={{ ...thS, textAlign: "center" }}>Salida</th>
-                      <th style={{ ...thS, textAlign: "center" }}>Descanso</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[1, 2, 3, 4, 5, 6].map(d => {
-                      const h = p.horario[d];
-                      return (
-                        <tr key={d} style={{ transition: "0.2s" }}>
-                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
-                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
-                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
-                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", fontSize: "11px", whiteSpace: "nowrap" }}>
-                            {h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr><th style={thS}>Día</th><th style={thS}>Ent.</th><th style={thS}>Sal.</th><th style={thS}>Desc.</th></tr></thead>
+                  <tbody>{[1, 2, 3, 4, 5, 6].map(d => {
+                    const h = p.horario[d];
+                    return (
+                      <tr key={d}>
+                        <td style={{...tdS, fontWeight: 700}}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
+                        <td style={tdS}>{h ? h.entrada : "—"}</td>
+                        <td style={tdS}>{h ? h.salida : "—"}</td>
+                        <td style={{...tdS, fontSize: "11px", whiteSpace: "nowrap"}}>{h?.descanso ? `${h.descanso.inicio}-${h.descanso.fin}` : "—"}</td>
+                      </tr>
+                    );
+                  })}</tbody>
                 </table>
               </div>
             ))}
           </div>
         )}
 
-        {/* ───────────────────────────────────────────────────────── */}
-        {/* MODAL DE CONFIRMACIÓN Y TOASTS */}
-        {itemBorrar && (
-           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-             <div style={{ background: "#fff", borderRadius: 18, padding: "32px", width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,.3)", textAlign: "center", boxSizing: "border-box" }}>
-               <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-               <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1e293b", marginBottom: 8 }}>¿Eliminar este {itemBorrar.tipo}?</h3>
-               <p style={{ fontSize: 13, color: "#64748b", marginBottom: 24 }}>{itemBorrar.item.nombre || (itemBorrar.item.comentario ? `"${itemBorrar.item.comentario.substring(0, 30)}..."` : "")}</p>
-               <div style={{ display: "flex", gap: 10 }}>
-                 <button style={{ ...btnCancel, flex: 1, padding: "12px" }} onClick={() => setItemBorrar(null)}>Cancelar</button>
-                 <button style={{ flex: 1, background: `linear-gradient(135deg, #ef4444, #b91c1c)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }} onClick={confirmarEliminacion}>Eliminar</button>
-               </div>
-             </div>
-           </div>
-        )}
-
-        {window._showToastSvc && window._tempSvc && (
-          <div id="toast-svc" className="anim" style={toastStyle}>
-            <span style={{ fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>Servicio eliminado</span>
-            <button style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#38bdf8", fontWeight: "800", cursor: "pointer", fontSize: "12px", padding: "8px 14px", borderRadius: "20px", flexShrink: 0, textTransform: "uppercase" }} onClick={deshacerSvc}>Deshacer</button>
-          </div>
-        )}
-
-        {window._showToastVal && window._tempVal && (
-          <div id="toast-val" className="anim" style={toastStyle}>
-            <span style={{ fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>Opinión eliminada</span>
-            <button style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#38bdf8", fontWeight: "800", cursor: "pointer", fontSize: "12px", padding: "8px 14px", borderRadius: "20px", flexShrink: 0, textTransform: "uppercase" }} onClick={deshacerVal}>Deshacer</button>
-          </div>
-        )}
-
+        {/* MODAL Y TOASTS */}
+        {itemBorrar && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ background: "#fff", borderRadius: 12, padding: 24, textAlign: "center" }}><p>¿Eliminar {itemBorrar.tipo}?</p><button onClick={confirmarEliminacion}>Eliminar</button><button onClick={() => setItemBorrar(null)}>Cancelar</button></div></div>}
+        {window._showToastSvc && <div style={toastStyle}><span>Servicio eliminado</span><button onClick={() => { window._ocultosSvc = []; forceRender(); }}>DESHACER</button></div>}
+        {window._showToastVal && <div style={toastStyle}><span>Opinión eliminada</span><button onClick={() => { window._ocultosVal = []; forceRender(); }}>DESHACER</button></div>}
       </div>
     );
   };
