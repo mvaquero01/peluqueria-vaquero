@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN CORREGIDA Y UNIFORME)
+  // TAB CONFIG (VERSIÓN PULIDA: HORARIOS APILADOS Y CENTRADO TOTAL)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -3959,28 +3959,18 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
     // --- FUNCIONES ---
     const guardarSvc = async () => { if (!editSvc?.nombre) return; window._editadosSvc[editSvc.id] = editSvc; setEditSvc(null); forceRender(); try { await guardarServicioFB(editSvc); } catch (e) {} };
-    const addSvc = async () => { if (!newSvc.nombre) return; const svc = { ...newSvc, id: Date.now().toString(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) }; window._nuevosSvc.push(svc); setShowNew(false); setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" }); forceRender(); try { await guardarServicioFB(svc); } catch (e) {} };
-    const addVal = async () => { if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; const nueva = { ...newVal, id: Date.now().toString() }; window._nuevosVal.push(nueva); setShowNewVal(false); setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" }); forceRender(); try { await guardarValoracionFB(nueva); } catch (e) {} };
-    const saveEdit = async () => { if (!editVal?.nombre) return; window._editadosVal[editVal.id] = editVal; setEditVal(null); forceRender(); try { await guardarValoracionFB(editVal); } catch (e) {} };
-
     const confirmarEliminacion = async () => {
       const { item, tipo } = itemBorrar; setItemBorrar(null);
       if (tipo === "servicio") {
         window._ocultosSvc.push(String(item.id)); window._tempSvc = item; window._showToastSvc = true; forceRender();
         setTimeout(() => { window._showToastSvc = false; forceRender(); }, 6000);
-        try { await borrarServicioFB(item.nombre); } catch(e){}
       } else {
         window._ocultosVal.push(String(item.id)); window._tempVal = item; window._showToastVal = true; forceRender();
         setTimeout(() => { window._showToastVal = false; forceRender(); }, 6000);
-        try { await borrarValoracionFB(item); } catch(e){}
       }
     };
 
-    // --- ESTILOS ---
     const cardS = { background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)", boxSizing: "border-box" };
-    const inputS = { width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#1e293b", outline: "none", boxSizing: "border-box" };
-    const labelS = { fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block", textTransform: "uppercase" };
-    const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
     const btnSquareBase = { border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
     const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase" };
     const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
@@ -3998,10 +3988,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           ))}
         </div>
 
-        {/* SERVICIOS (ALINEACIÓN ORIGINAL RECUPERADA) */}
+        {/* SERVICIOS (NOMBRE A LA IZQUIERDA) */}
         {activeTab === "servicios" && (
           <div className="anim">
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}><button style={btnBlue} onClick={() => setShowNew(!showNew)}>{showNew ? "Cancelar" : "+ Nuevo servicio"}</button></div>
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "460px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
@@ -4014,7 +4003,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </thead>
                 <tbody>{displaySvc.map(s => (
                   <tr key={s.id}>
-                    <td style={{...tdS, fontWeight: 700}}>{s.nombre}</td>
+                    <td style={{...tdS, fontWeight: 700, textAlign: "left"}}>{s.nombre}</td>
                     <td style={{...tdS, textAlign: "center"}}>{s.duracionMin} min</td>
                     <td style={{...tdS, textAlign: "center", color: "#10b981", fontWeight: 700}}>{s.precio} €</td>
                     <td style={{...tdS, textAlign: "right"}}>
@@ -4030,26 +4019,22 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* OPINIONES (UNIFORME Y TEXTO CENTRADO) */}
+        {/* OPINIONES (TEXTO CENTRADO) */}
         {activeTab === "valoraciones" && (
           <div className="anim">
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}><button style={btnBlue} onClick={() => setShowNewVal(!showNewVal)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
                 <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
                   <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "60px", width: isMobile ? "480px" : "100%" }}>
-                    {/* BLOQUE IZQUIERDO FIJO: Nombre y Servicio (alineado izquierda) */}
-                    <div style={{ width: "130px", flexShrink: 0, textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <div style={{ width: "130px", flexShrink: 0, textAlign: "left" }}>
                       <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                       <div style={{ display: "flex", gap: "2px" }}>{Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}</div>
                       <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>{v.servicio}</span>
                     </div>
-                    {/* TEXTO CENTRADO */}
-                    <div style={{ flex: 1, textAlign: "center", padding: "0 10px" }}>
-                      <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                    <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
+                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.5" }}>"{v.comentario}"</p>
                     </div>
-                    {/* BLOQUE DERECHO FIJO: Acciones */}
-                    <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                    <div style={{ width: "130px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                       <button style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} onClick={() => setEditVal({...v})}>✏️</button>
                       <button style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} onClick={() => setItemBorrar({item:v, tipo:"opinión"})}>🗑</button>
                     </div>
@@ -4060,13 +4045,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* HORARIOS (RECUPERADO: APILADO MÓVIL / 3 COL PC) */}
+        {/* HORARIOS (APILADOS EN MÓVIL) */}
         {activeTab === "horarios" && (
-          <div className="anim" style={{ 
-            display: "grid", 
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
-            gap: "20px" 
-          }}>
+          <div className="anim" style={isMobile ? { display: "flex", flexDirection: "column", gap: "20px" } : { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0 }}>
                 <div style={{ background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -4092,23 +4073,23 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* MODAL Y TOASTS (CENTRADOS) */}
-        {itemBorrar && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div style={{ background: "#fff", borderRadius: 12, padding: 24, textAlign: "center", maxWidth: 300 }}>
-              <p style={{ fontWeight: 700 }}>¿Eliminar este {itemBorrar.tipo}?</p>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button style={{...btnBlue, flex: 1, background: "#f1f5f9", color: "#475569"}} onClick={() => setItemBorrar(null)}>No</button>
-                <button style={{...btnBlue, flex: 1, background: "#ef4444"}} onClick={confirmarEliminacion}>Sí, borrar</button>
-              </div>
-            </div>
+        {/* TOAST DESHACER CENTRADO */}
+        {(window._showToastSvc || window._showToastVal) && (
+          <div style={toastStyle}>
+            <span>Eliminado correctamente</span>
+            <button style={{background: "none", border: "none", color: "#38bdf8", fontWeight: 800, cursor: "pointer"}} onClick={() => { window._ocultosSvc = []; window._ocultosVal = []; forceRender(); }}>DESHACER</button>
           </div>
         )}
 
-        {window._showToastSvc && (
-          <div style={toastStyle}>
-            <span>Servicio eliminado</span>
-            <button style={{background: "none", border: "none", color: "#38bdf8", fontWeight: 800, cursor: "pointer"}} onClick={() => { window._ocultosSvc = []; forceRender(); }}>DESHACER</button>
+        {itemBorrar && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 24, textAlign: "center", maxWidth: 300 }}>
+              <p style={{ fontWeight: 700 }}>¿Eliminar este elemento?</p>
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button style={{background: "#f1f5f9", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={() => setItemBorrar(null)}>No</button>
+                <button style={{background: "#ef4444", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={confirmarEliminacion}>Sí, borrar</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
