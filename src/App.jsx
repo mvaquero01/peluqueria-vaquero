@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: DISEÑO MÓVIL BLINDADO)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: RESPONSIVO NATURAL)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -4096,7 +4096,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const btnGreen = { ...btnBlue, background: "#10b981" };
     const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
     
-    // BOTONES CUADRADOS BLINDADOS (No se deforman)
+    // BOTONES CUADRADOS BLINDADOS
     const btnSquareBase = {
       border: "none", borderRadius: "6px",
       width: "32px", height: "32px", minWidth: "32px", minHeight: "32px", aspectRatio: "1/1",
@@ -4163,14 +4163,14 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             )}
 
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: isMobile ? "340px" : "100%" }}>
+              {/* QUITE tableLayout: fixed Y AUMENTE EL minWidth PARA QUE RESPIREN */}
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "500px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    {/* TÍTULOS ALINEADOS Y SIN LA PALABRA "ACCIONES" */}
-                    <th style={{ ...thS, textAlign: "left", width: "40%" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Precio</th>
-                    <th style={{ ...thS, width: "20%" }}></th> 
+                    <th style={{ ...thS, textAlign: "left" }}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center", width: "22%" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center", width: "22%" }}>Precio</th>
+                    <th style={{ ...thS, textAlign: "right", width: "90px" }}></th> 
                   </tr>
                 </thead>
                 <tbody>
@@ -4179,8 +4179,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       {editSvc?.id === s.id ? (
                         <>
                           <td style={{...tdS, textAlign: "left"}}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
                           <td style={{ ...tdS, textAlign: "right" }}>
                             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                               <button style={btnSquareOk} onClick={guardarSvc}>✓</button>
@@ -4309,21 +4309,14 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
-            /* LA CLAVE ANTI-FALLOS: Flexbox con math puro para los anchos */
-            display: "flex", 
-            flexDirection: isMobile ? "column" : "row", 
-            flexWrap: "wrap",
+            /* LA SOLUCIÓN INFALIBLE DE CSS GRID */
+            display: "grid", 
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(340px, 1fr))", 
             gap: "24px", 
-            alignItems: "flex-start" 
+            alignItems: "start" 
           }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ 
-                ...cardS, 
-                padding: 0, 
-                overflowX: "auto", 
-                width: isMobile ? "100%" : "calc(50% - 12px)", /* El calc evita que se bajen de línea en PC */
-                marginBottom: 0 
-              }}>
+              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0 }}>
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
                   <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
                   <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
