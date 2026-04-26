@@ -4018,80 +4018,107 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* 2. OPINIONES (ESTRUCTURA CON ORDEN TOTAL Y ANCHOS FIJOS) */}
-{activeTab === "valoraciones" && (
-  <div className="anim">
-    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-      <button 
-        style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} 
-        onClick={() => setShowNewVal(!showNewVal)}
-      >
-        {showNewVal ? "Cancelar" : "+ Añadir Opinión"}
-      </button>
-    </div>
+        {/* 2. TAB OPINIONES: FORMULARIO + LISTADO SIMÉTRICO */}
+        {activeTab === "valoraciones" && (
+          <div className="anim">
+            {/* BOTÓN SUPERIOR */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+              <button 
+                style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 20px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} 
+                onClick={() => setShowNewVal(!showNewVal)}
+              >
+                {showNewVal ? "✕ Cancelar" : "+ Añadir Opinión"}
+              </button>
+            </div>
 
-    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
-      {displayVal.map(v => (
-        <div key={v.id} style={{ 
-          background: "#fff", 
-          borderRadius: "12px", 
-          padding: "12px 16px", 
-          border: "1px solid #e2e8f0", 
-          boxShadow: "0 2px 8px rgba(0,0,0,0.03)", 
-          boxSizing: "border-box",
-          overflowX: "auto", // Esto permite deslizar si el móvil es estrecho
-          width: "100%" 
-        }}>
-          {/* LA CLAVE: width fijo de 500px para que todas las celdas midan lo mismo */}
-          <div style={{ 
-            display: "flex", 
-            flexDirection: "row", 
-            alignItems: "center", 
-            minHeight: "70px", 
-            width: isMobile ? "500px" : "100%", 
-            boxSizing: "border-box" 
-          }}>
-            {/* 1. SECCIÓN CLIENTE (FIJA A 140px) */}
-            <div style={{ width: "140px", flexShrink: 0, textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-              <div style={{ display: "flex", gap: "2px" }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>
-                ))}
+            {/* FORMULARIO PARA NUEVA OPINIÓN (La cuadrícula que faltaba) */}
+            {showNewVal && (
+              <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "20px", border: "1px solid #93c5fd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
+                  <div>
+                    <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>NOMBRE DEL CLIENTE</label>
+                    <input style={{ width: "100%", padding: "10px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px" }} value={newVal.nombre} onChange={e => setNewVal({...newVal, nombre: e.target.value})} placeholder="Ej: Juan Pérez" />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>SERVICIO</label>
+                    <select style={{ width: "100%", padding: "10px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px" }} value={newVal.servicio} onChange={e => setNewVal({...newVal, servicio: e.target.value})}>
+                      <option value="">Seleccionar...</option>
+                      {displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>COMENTARIO</label>
+                  <textarea style={{ width: "100%", padding: "10px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", minHeight: "80px" }} value={newVal.comentario} onChange={e => setNewVal({...newVal, comentario: e.target.value})} placeholder="Escribe la opinión aquí..." />
+                </div>
+                <button 
+                  style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "700", cursor: "pointer", width: isMobile ? "100%" : "auto" }}
+                  onClick={addVal}
+                >
+                  Guardar Opinión
+                </button>
               </div>
-              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
-                {v.servicio}
-              </span>
-            </div>
+            )}
 
-            {/* 2. SECCIÓN COMENTARIO (CENTRO FLEXIBLE) */}
-            <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
-              <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>
-                "{v.comentario}"
-              </p>
-            </div>
+            {/* LISTADO DE OPINIONES: ALINEACIÓN MILIMÉTRICA */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
+              {displayVal.map(v => (
+                <div key={v.id} style={{ 
+                  background: "#fff", 
+                  borderRadius: "12px", 
+                  padding: "16px", 
+                  border: "1px solid #e2e8f0", 
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                  overflowX: "auto", // Permitir deslizamiento si no cabe
+                  width: "100%"
+                }}>
+                  {/* Contenedor con ANCHO FIJO en móvil para que los botones no bailen */}
+                  <div style={{ 
+                    display: "flex", 
+                    flexDirection: "row", 
+                    alignItems: "center", 
+                    width: isMobile ? "550px" : "100%", 
+                    boxSizing: "border-box" 
+                  }}>
+                    {/* BLOQUE CLIENTE (Ancho Reservado) */}
+                    <div style={{ width: "140px", flexShrink: 0, textAlign: "left" }}>
+                      <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "14px" }}>{v.nombre}</div>
+                      <div style={{ display: "flex", color: "#F59E0B", margin: "2px 0" }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} style={{ fontSize: "12px" }}>{i < v.estrellas ? "★" : "☆"}</span>
+                        ))}
+                      </div>
+                      <div style={{ color: "#64748b", fontSize: "12px", fontWeight: "600" }}>{v.servicio}</div>
+                    </div>
 
-            {/* 3. SECCIÓN BOTONES (FIJA A 100px) - Aquí es donde se alinean todos perfectamente */}
-            <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-              <button 
-                style={{ border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#e0e7ff", color: "#4f46e5" }} 
-                onClick={() => setEditVal({...v})}
-              >
-                ✏️
-              </button>
-              <button 
-                style={{ border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#fee2e2", color: "#ef4444" }} 
-                onClick={() => setItemBorrar({item:v, tipo:"opinión"})}
-              >
-                🗑
-              </button>
+                    {/* BLOQUE COMENTARIO (Centro) */}
+                    <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
+                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic" }}>
+                        "{v.comentario}"
+                      </p>
+                    </div>
+
+                    {/* BLOQUE ACCIONES (Alineación perfecta a la derecha) */}
+                    <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                      <button 
+                        style={{ border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#e0e7ff", color: "#4f46e5" }} 
+                        onClick={() => setEditVal({...v})}
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        style={{ border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#fee2e2", color: "#ef4444" }} 
+                        onClick={() => setItemBorrar({item:v, tipo:"opinión"})}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+        )}
 
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
