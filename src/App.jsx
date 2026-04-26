@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN PULIDA: HORARIOS APILADOS Y CENTRADO TOTAL)
+  // TAB CONFIG (VERSIÓN FINAL: HORARIOS APILADOS Y OPINIONES UNIFORMES)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -3957,24 +3957,23 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const displaySvc = [...safeSvc, ...window._nuevosSvc.filter(s => !safeSvc.map(x => String(x.id)).includes(String(s.id)))].filter(s => !window._ocultosSvc.includes(String(s.id))).map(s => window._editadosSvc[s.id] || s);
     const displayVal = [...safeVal, ...window._nuevosVal.filter(v => !safeVal.map(x => String(x.id)).includes(String(v.id)))].filter(v => !window._ocultosVal.includes(String(v.id))).map(v => window._editadosVal[v.id] || v);
 
-    // --- FUNCIONES ---
-    const guardarSvc = async () => { if (!editSvc?.nombre) return; window._editadosSvc[editSvc.id] = editSvc; setEditSvc(null); forceRender(); try { await guardarServicioFB(editSvc); } catch (e) {} };
-    const confirmarEliminacion = async () => {
-      const { item, tipo } = itemBorrar; setItemBorrar(null);
-      if (tipo === "servicio") {
-        window._ocultosSvc.push(String(item.id)); window._tempSvc = item; window._showToastSvc = true; forceRender();
-        setTimeout(() => { window._showToastSvc = false; forceRender(); }, 6000);
-      } else {
-        window._ocultosVal.push(String(item.id)); window._tempVal = item; window._showToastVal = true; forceRender();
-        setTimeout(() => { window._showToastVal = false; forceRender(); }, 6000);
-      }
-    };
-
+    // --- ESTILOS BASE ---
     const cardS = { background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)", boxSizing: "border-box" };
     const btnSquareBase = { border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
     const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase" };
     const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
     const toastStyle = { position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", display: "flex", gap: "16px", alignItems: "center", justifyContent: "center", zIndex: 99999, width: "max-content", maxWidth: "85%" };
+
+    const confirmarEliminacion = async () => {
+      const { item, tipo } = itemBorrar; setItemBorrar(null);
+      if (tipo === "servicio") {
+        window._ocultosSvc.push(String(item.id)); window._showToastSvc = true; forceRender();
+        setTimeout(() => { window._showToastSvc = false; forceRender(); }, 6000);
+      } else {
+        window._ocultosVal.push(String(item.id)); window._showToastVal = true; forceRender();
+        setTimeout(() => { window._showToastVal = false; forceRender(); }, 6000);
+      }
+    };
 
     return (
       <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "0 16px" : "0", boxSizing: "border-box" }}> 
@@ -3988,7 +3987,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           ))}
         </div>
 
-        {/* SERVICIOS (NOMBRE A LA IZQUIERDA) */}
+        {/* 1. SERVICIOS (INTACTO POR COMPLETO) */}
         {activeTab === "servicios" && (
           <div className="anim">
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
@@ -4019,13 +4018,14 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* OPINIONES (TEXTO CENTRADO) */}
+        {/* 2. OPINIONES (LARGO UNIFORME EN MÓVIL) */}
         {activeTab === "valoraciones" && (
           <div className="anim">
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
                 <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
-                  <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "60px", width: isMobile ? "480px" : "100%" }}>
+                  {/* width FIJO de 480px en móvil para uniformidad total de las cajas */}
+                  <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "60px", width: isMobile ? "480px" : "100%", boxSizing: "border-box" }}>
                     <div style={{ width: "130px", flexShrink: 0, textAlign: "left" }}>
                       <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                       <div style={{ display: "flex", gap: "2px" }}>{Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}</div>
@@ -4045,11 +4045,16 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* HORARIOS (APILADOS EN MÓVIL) */}
+        {/* 3. HORARIOS (UNO ENCIMA DE OTRO EN MÓVIL) */}
         {activeTab === "horarios" && (
-          <div className="anim" style={isMobile ? { display: "flex", flexDirection: "column", gap: "20px" } : { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+          <div className="anim" style={{ 
+            display: isMobile ? "flex" : "grid", 
+            flexDirection: isMobile ? "column" : undefined,
+            gridTemplateColumns: isMobile ? undefined : "repeat(3, 1fr)", 
+            gap: "20px" 
+          }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ ...cardS, padding: 0 }}>
+              <div key={p.id} style={{ ...cardS, padding: 0, width: "100%" }}>
                 <div style={{ background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "10px" }}>
                   <img src={p.foto} alt="" style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
                   <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{p.nombre}</span>
@@ -4073,21 +4078,21 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* TOAST DESHACER CENTRADO */}
+        {/* TOASTS Y MODALES */}
         {(window._showToastSvc || window._showToastVal) && (
           <div style={toastStyle}>
-            <span>Eliminado correctamente</span>
-            <button style={{background: "none", border: "none", color: "#38bdf8", fontWeight: 800, cursor: "pointer"}} onClick={() => { window._ocultosSvc = []; window._ocultosVal = []; forceRender(); }}>DESHACER</button>
+            <span>Eliminado</span>
+            <button style={{background: "none", border: "none", color: "#38bdf8", fontWeight: 800}} onClick={() => { window._ocultosSvc = []; window._ocultosVal = []; forceRender(); }}>DESHACER</button>
           </div>
         )}
 
         {itemBorrar && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 24, textAlign: "center", maxWidth: 300 }}>
-              <p style={{ fontWeight: 700 }}>¿Eliminar este elemento?</p>
+              <p>¿Borrar elemento?</p>
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                 <button style={{background: "#f1f5f9", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={() => setItemBorrar(null)}>No</button>
-                <button style={{background: "#ef4444", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={confirmarEliminacion}>Sí, borrar</button>
+                <button style={{background: "#ef4444", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={confirmarEliminacion}>Sí</button>
               </div>
             </div>
           </div>
