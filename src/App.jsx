@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: RESPONSIVO NATURAL)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: SCROLL SERVICIOS Y HORARIOS NOWRAP)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -4163,13 +4163,14 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             )}
 
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
-              {/* QUITE tableLayout: fixed Y AUMENTE EL minWidth PARA QUE RESPIREN */}
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "500px" : "100%" }}>
+              {/* minWidth aumentado a 550px para dar más espacio general en móvil y forzar el scroll suave */}
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "550px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    <th style={{ ...thS, textAlign: "left" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: "22%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: "22%" }}>Precio</th>
+                    {/* minWidth fijo para que Nombre nunca se corte */}
+                    <th style={{ ...thS, textAlign: "left", width: isMobile ? "auto" : "40%", minWidth: "200px" }}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Precio</th>
                     <th style={{ ...thS, textAlign: "right", width: "90px" }}></th> 
                   </tr>
                 </thead>
@@ -4179,8 +4180,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       {editSvc?.id === s.id ? (
                         <>
                           <td style={{...tdS, textAlign: "left"}}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
                           <td style={{ ...tdS, textAlign: "right" }}>
                             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                               <button style={btnSquareOk} onClick={guardarSvc}>✓</button>
@@ -4309,7 +4310,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
-            /* LA SOLUCIÓN INFALIBLE DE CSS GRID */
             display: "grid", 
             gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(340px, 1fr))", 
             gap: "24px", 
@@ -4338,7 +4338,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
                           <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
                           <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
-                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", fontSize: "11px" }}>{h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}</td>
+                          {/* AÑADIDO whiteSpace: "nowrap" para prohibir que el horario se parta en dos líneas */}
+                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", fontSize: "11px", whiteSpace: "nowrap" }}>
+                            {h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}
+                          </td>
                         </tr>
                       );
                     })}
