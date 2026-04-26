@@ -4045,33 +4045,45 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* 3. HORARIOS (UNO ENCIMA DE OTRO EN MÓVIL) */}
+        {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
-            display: isMobile ? "flex" : "grid", 
-            flexDirection: isMobile ? "column" : undefined,
-            gridTemplateColumns: isMobile ? undefined : "repeat(3, 1fr)", 
-            gap: "20px" 
+            display: "grid", 
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(340px, 1fr))", 
+            gap: "24px", 
+            alignItems: "start" 
           }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ ...cardS, padding: 0, width: "100%" }}>
-                <div style={{ background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "10px" }}>
-                  <img src={p.foto} alt="" style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
-                  <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{p.nombre}</span>
+              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0 }}>
+                <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
+                  <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
+                  <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr><th style={thS}>Día</th><th style={thS}>Ent.</th><th style={thS}>Sal.</th><th style={thS}>Desc.</th></tr></thead>
-                  <tbody>{[1, 2, 3, 4, 5, 6].map(d => {
-                    const h = p.horario[d];
-                    return (
-                      <tr key={d}>
-                        <td style={{...tdS, fontWeight: 700}}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
-                        <td style={{...tdS, textAlign: "center"}}>{h ? h.entrada : "—"}</td>
-                        <td style={{...tdS, textAlign: "center"}}>{h ? h.salida : "—"}</td>
-                        <td style={{...tdS, fontSize: "11px", whiteSpace: "nowrap", textAlign: "center"}}>{h?.descanso ? `${h.descanso.inicio}-${h.descanso.fin}` : "—"}</td>
-                      </tr>
-                    );
-                  })}</tbody>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "300px" : "100%" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...thS, textAlign: "left", paddingLeft: "20px" }}>Día</th>
+                      <th style={{ ...thS, textAlign: "center" }}>Entrada</th>
+                      <th style={{ ...thS, textAlign: "center" }}>Salida</th>
+                      <th style={{ ...thS, textAlign: "center" }}>Descanso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3, 4, 5, 6].map(d => {
+                      const h = p.horario[d];
+                      return (
+                        <tr key={d} style={{ transition: "0.2s" }}>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
+                          {/* AÑADIDO whiteSpace: "nowrap" para prohibir que el horario se parta en dos líneas */}
+                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", fontSize: "11px", whiteSpace: "nowrap" }}>
+                            {h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
                 </table>
               </div>
             ))}
