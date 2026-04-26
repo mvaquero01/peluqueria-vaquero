@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (SOLUCIÓN DEFINITIVA: MEMORIA GLOBAL ANTI-RESETEOS)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: TOAST CENTRADO INFALIBLE)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -3955,12 +3955,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const [itemBorrar, setItemBorrar] = useState(null); 
 
     // --- 3. CONSTRUCCIÓN DE LAS LISTAS VISUALES EN TIEMPO REAL ---
-    // Atrapamos las variables del padre (AdminPage) de forma segura
     const activeTab = typeof configSubTab !== 'undefined' ? configSubTab : "servicios";
     const safeSvc = typeof servicios !== 'undefined' && Array.isArray(servicios) ? servicios : [];
     const safeVal = typeof valoraciones !== 'undefined' && Array.isArray(valoraciones) ? valoraciones : [];
 
-    // Evitamos duplicados si Firebase ya nos devuelve el servicio que acabamos de crear
     const idsSvcOriginales = safeSvc.map(s => String(s.id));
     const nuevosSvcReales = window._nuevosSvc.filter(s => !idsSvcOriginales.includes(String(s.id)));
     
@@ -3975,13 +3973,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       .filter(v => !window._ocultosVal.includes(String(v.id)))
       .map(v => window._editadosVal[v.id] || v);
 
-
     // --- FUNCIONES SERVICIOS ---
     const guardarSvc = async () => {
       if (!editSvc || !editSvc.nombre) return;
       const temp = { ...editSvc };
       
-      window._editadosSvc[temp.id] = temp; // Cambia el 15 por 17 al milisegundo
+      window._editadosSvc[temp.id] = temp; 
       setEditSvc(null); 
       forceRender();
       
@@ -3996,7 +3993,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       }
       const svc = { ...newSvc, id: Date.now().toString(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) };
       
-      window._nuevosSvc.push(svc); // Aparece instantáneamente en la lista
+      window._nuevosSvc.push(svc); 
       setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
       setShowNew(false);
       forceRender();
@@ -4034,7 +4031,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       setItemBorrar(null);
       
       if (tipo === "servicio") {
-        window._ocultosSvc.push(String(item.id)); // Lo borra visualmente al instante
+        window._ocultosSvc.push(String(item.id)); 
         window._tempSvc = item;
         window._showToastSvc = true;
         forceRender();
@@ -4043,7 +4040,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         window._svcTimer = setTimeout(() => {
           window._showToastSvc = false;
           window._tempSvc = null;
-          // Ocultamos directamente el HTML para que no falle si React reinicia el componente
           const el = document.getElementById("toast-svc");
           if (el) el.style.display = "none";
         }, 6000);
@@ -4071,7 +4067,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       const item = window._tempSvc;
       if (!item) return;
       
-      // Lo quitamos de la lista de ocultos para que vuelva a aparecer
       window._ocultosSvc = window._ocultosSvc.filter(id => id !== String(item.id));
       window._showToastSvc = false;
       window._tempSvc = null;
@@ -4101,7 +4096,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const btnGreen = { ...btnBlue, background: "#10b981" };
     const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
     
-    // BOTONES CUADRADOS 32x32px
     const btnSquareEdit = { background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
     const btnSquareDel = { background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
     const btnSquareOk = { background: "#10b981", color: "#fff", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
@@ -4109,6 +4103,27 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
     const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", textAlign: "left" };
     const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
+
+    // --- ESTILO INFALIBLE PARA EL TOAST CENTRADO ---
+    const toastStyle = {
+      position: "fixed",
+      bottom: "30px", // Separación desde abajo
+      left: "0",
+      right: "0",
+      margin: "0 auto", // Esto centra elementos absolutos/fijos de forma infalible
+      background: "#1e293b",
+      color: "#f8fafc",
+      padding: "14px 24px",
+      borderRadius: "50px", // Diseño tipo píldora moderna
+      display: "flex",
+      gap: "16px",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 99999,
+      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+      width: "max-content",
+      maxWidth: "85%"
+    };
 
     return (
       <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "0 16px" : "0", boxSizing: "border-box" }}> 
@@ -4155,13 +4170,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             )}
 
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: isMobile ? "400px" : "100%" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: isMobile ? "340px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    <th style={{...thS, textAlign: "left"}}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center" }}>Precio</th>
-                    <th style={{ ...thS, textAlign: "right" }}>Acciones</th>
+                    <th style={{ ...thS, textAlign: "left", width: "35%" }}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center", width: "22.5%" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center", width: "22.5%" }}>Precio</th>
+                    <th style={{ ...thS, textAlign: "right", width: "20%" }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -4170,8 +4185,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       {editSvc?.id === s.id ? (
                         <>
                           <td style={{...tdS, textAlign: "left"}}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
                           <td style={{ ...tdS, textAlign: "right" }}>
                             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                               <button style={btnSquareOk} onClick={guardarSvc}>✓</button>
@@ -4181,7 +4196,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                         </>
                       ) : (
                         <>
-                          <td style={{ ...tdS, fontWeight: "700", color: "#1e293b", textAlign: "left" }}>{s.nombre}</td>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#1e293b", textAlign: "left", wordBreak: "break-word" }}>{s.nombre}</td>
                           <td style={{ ...tdS, color: "#64748b", textAlign: "center" }}>{s.duracionMin} min</td>
                           <td style={{ ...tdS, fontWeight: "700", color: "#10b981", textAlign: "center" }}>{s.precio} €</td>
                           <td style={{ ...tdS, textAlign: "right" }}>
@@ -4299,9 +4314,15 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
-          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "5%", alignItems: "start" }}>
+          <div className="anim" style={{ 
+            display: isMobile ? "flex" : "grid", 
+            flexDirection: isMobile ? "column" : undefined, 
+            gridTemplateColumns: isMobile ? undefined : "1fr 1fr", 
+            gap: "24px", 
+            alignItems: "start" 
+          }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto" }}>
+              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0 }}>
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
                   <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
                   <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
@@ -4358,18 +4379,18 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         )}
 
         {/* ───────────────────────────────────────────────────────── */}
-        {/* TOASTS (MENSAJES DE DESHACER BLINDADOS CON ID) */}
+        {/* TOASTS (CENTRADOS INFALIBLES Y EN FORMATO PÍLDORA) */}
         {window._showToastSvc && window._tempSvc && (
-          <div id="toast-svc" className="anim" style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)", background: "#1e293b", color: "#f8fafc", padding: "12px 20px", borderRadius: "8px", display: "flex", gap: "16px", alignItems: "center", zIndex: 9999, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
-            <span style={{ fontSize: "13px", fontWeight: "600" }}>Servicio eliminado.</span>
-            <button style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#38bdf8", fontWeight: "700", cursor: "pointer", fontSize: "12px", padding: "6px 12px", borderRadius: "6px" }} onClick={deshacerSvc}>DESHACER</button>
+          <div id="toast-svc" className="anim" style={toastStyle}>
+            <span style={{ fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>Servicio eliminado</span>
+            <button style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#38bdf8", fontWeight: "800", cursor: "pointer", fontSize: "12px", padding: "8px 14px", borderRadius: "20px", flexShrink: 0, textTransform: "uppercase" }} onClick={deshacerSvc}>Deshacer</button>
           </div>
         )}
 
         {window._showToastVal && window._tempVal && (
-          <div id="toast-val" className="anim" style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)", background: "#1e293b", color: "#f8fafc", padding: "12px 20px", borderRadius: "8px", display: "flex", gap: "16px", alignItems: "center", zIndex: 9999, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
-            <span style={{ fontSize: "13px", fontWeight: "600" }}>Opinión eliminada.</span>
-            <button style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#38bdf8", fontWeight: "700", cursor: "pointer", fontSize: "12px", padding: "6px 12px", borderRadius: "6px" }} onClick={deshacerVal}>DESHACER</button>
+          <div id="toast-val" className="anim" style={toastStyle}>
+            <span style={{ fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>Opinión eliminada</span>
+            <button style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#38bdf8", fontWeight: "800", cursor: "pointer", fontSize: "12px", padding: "8px 14px", borderRadius: "20px", flexShrink: 0, textTransform: "uppercase" }} onClick={deshacerVal}>Deshacer</button>
           </div>
         )}
 
