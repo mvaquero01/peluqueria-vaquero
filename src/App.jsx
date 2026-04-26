@@ -4018,107 +4018,129 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* 2. TAB OPINIONES: FORMULARIO + LISTADO SIMÉTRICO */}
-        {activeTab === "valoraciones" && (
-          <div className="anim">
-            {/* BOTÓN SUPERIOR */}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-              <button 
-                style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 20px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} 
-                onClick={() => setShowNewVal(!showNewVal)}
-              >
-                {showNewVal ? "✕ Cancelar" : "+ Añadir Opinión"}
-              </button>
-            </div>
+        {/* 2. TAB OPINIONES: SELECTOR DE ESTRELLAS CENTRADO Y GRANDE */}
+        {activeTab === "valoraciones" && (() => {
+          const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
+          const btnGreen = { ...btnBlue, background: "#10b981", fontSize: "12px", padding: "10px 20px" };
+          const btnSquareBase = { border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
+          const labelSmall = { fontSize: "10px", fontWeight: "800", color: "#64748b", display: "block", textTransform: "uppercase" };
+          const inputSmall = { width: "100%", padding: "8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px" };
+          
+          const handleAddVal = async () => {
+            if (!newVal.nombre || !newVal.comentario || !newVal.servicio) {
+              alert("Por favor, rellena todos los campos.");
+              return;
+            }
+            const nueva = { ...newVal, id: Date.now().toString() };
+            window._nuevosVal.push(nueva);
+            setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
+            setShowNewVal(false);
+            forceRender();
+            try { await guardarValoracionFB(nueva); } catch (e) { console.error(e); }
+          };
 
-            {/* FORMULARIO PARA NUEVA OPINIÓN (La cuadrícula que faltaba) */}
-            {showNewVal && (
-              <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "20px", border: "1px solid #93c5fd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
-                  <div>
-                    <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>NOMBRE DEL CLIENTE</label>
-                    <input style={{ width: "100%", padding: "10px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px" }} value={newVal.nombre} onChange={e => setNewVal({...newVal, nombre: e.target.value})} placeholder="Ej: Juan Pérez" />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>SERVICIO</label>
-                    <select style={{ width: "100%", padding: "10px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px" }} value={newVal.servicio} onChange={e => setNewVal({...newVal, servicio: e.target.value})}>
-                      <option value="">Seleccionar...</option>
-                      {displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ marginBottom: "12px" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>COMENTARIO</label>
-                  <textarea style={{ width: "100%", padding: "10px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", minHeight: "80px" }} value={newVal.comentario} onChange={e => setNewVal({...newVal, comentario: e.target.value})} placeholder="Escribe la opinión aquí..." />
-                </div>
-                <button 
-                  style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "700", cursor: "pointer", width: isMobile ? "100%" : "auto" }}
-                  onClick={addVal}
-                >
-                  Guardar Opinión
+          return (
+            <div className="anim">
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+                <button style={btnBlue} onClick={() => setShowNewVal(!showNewVal)}>
+                  {showNewVal ? "✕ Cancelar" : "+ Añadir Opinión"}
                 </button>
               </div>
-            )}
 
-            {/* LISTADO DE OPINIONES: ALINEACIÓN MILIMÉTRICA */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
-              {displayVal.map(v => (
-                <div key={v.id} style={{ 
-                  background: "#fff", 
-                  borderRadius: "12px", 
-                  padding: "16px", 
-                  border: "1px solid #e2e8f0", 
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-                  overflowX: "auto", // Permitir deslizamiento si no cabe
-                  width: "100%"
-                }}>
-                  {/* Contenedor con ANCHO FIJO en móvil para que los botones no bailen */}
-                  <div style={{ 
-                    display: "flex", 
-                    flexDirection: "row", 
-                    alignItems: "center", 
-                    width: isMobile ? "550px" : "100%", 
-                    boxSizing: "border-box" 
-                  }}>
-                    {/* BLOQUE CLIENTE (Ancho Reservado) */}
-                    <div style={{ width: "140px", flexShrink: 0, textAlign: "left" }}>
-                      <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "14px" }}>{v.nombre}</div>
-                      <div style={{ display: "flex", color: "#F59E0B", margin: "2px 0" }}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <span key={i} style={{ fontSize: "12px" }}>{i < v.estrellas ? "★" : "☆"}</span>
+              {/* FORMULARIO COMPACTO */}
+              {showNewVal && (
+                <div style={{ background: "#fff", borderRadius: "12px", padding: "16px", marginBottom: "20px", border: "1px solid #93c5fd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1.2fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                    <div>
+                      <label style={labelSmall}>CLIENTE</label>
+                      <input style={{...inputSmall, marginTop: "4px"}} value={newVal.nombre} onChange={e => setNewVal({...newVal, nombre: e.target.value})} placeholder="Nombre..." />
+                    </div>
+                    
+                    {/* ESTRELLAS CENTRADAS CON EL TÍTULO */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "center" }}>
+                      <label style={labelSmall}>VALORACIÓN</label>
+                      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                        {[1, 2, 3, 4, 5].map(num => (
+                          <span 
+                            key={num} 
+                            onClick={() => setNewVal({...newVal, estrellas: num})}
+                            style={{ fontSize: "26px", cursor: "pointer", color: num <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", lineHeight: 1 }}
+                          >
+                            ★
+                          </span>
                         ))}
                       </div>
-                      <div style={{ color: "#64748b", fontSize: "12px", fontWeight: "600" }}>{v.servicio}</div>
                     </div>
 
-                    {/* BLOQUE COMENTARIO (Centro) */}
-                    <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
-                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic" }}>
-                        "{v.comentario}"
-                      </p>
-                    </div>
-
-                    {/* BLOQUE ACCIONES (Alineación perfecta a la derecha) */}
-                    <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                      <button 
-                        style={{ border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#e0e7ff", color: "#4f46e5" }} 
-                        onClick={() => setEditVal({...v})}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        style={{ border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "#fee2e2", color: "#ef4444" }} 
-                        onClick={() => setItemBorrar({item:v, tipo:"opinión"})}
-                      >
-                        🗑
-                      </button>
+                    <div>
+                      <label style={labelSmall}>SERVICIO</label>
+                      <select style={{...inputSmall, marginTop: "4px"}} value={newVal.servicio} onChange={e => setNewVal({...newVal, servicio: e.target.value})}>
+                        <option value="">Elegir servicio...</option>
+                        {displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                      </select>
                     </div>
                   </div>
+                  
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={labelSmall}>COMENTARIO</label>
+                    <textarea style={{ ...inputSmall, minHeight: "60px", marginTop: "4px" }} value={newVal.comentario} onChange={e => setNewVal({...newVal, comentario: e.target.value})} placeholder="Opinión del cliente..." />
+                  </div>
+                  <button style={btnGreen} onClick={handleAddVal}>
+                    Guardar Opinión
+                  </button>
                 </div>
-              ))}
+              )}
+
+              {/* LISTADO CON TEXTO CENTRADO GEOMÉTRICO */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+                {displayVal.map(v => (
+                  <div key={v.id} style={{ 
+                    background: "#fff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", 
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)", overflowX: "auto", width: "100%", position: "relative"
+                  }}>
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", width: isMobile ? "550px" : "100%", boxSizing: "border-box", position: "relative" }}>
+                      
+                      {/* IZQUIERDA: CLIENTE */}
+                      <div style={{ width: "140px", flexShrink: 0, textAlign: "left", zIndex: 2 }}>
+                        <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "14px" }}>{v.nombre}</div>
+                        <div style={{ display: "flex", color: "#F59E0B", margin: "2px 0" }}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <span key={i} style={{ fontSize: "12px" }}>{i < v.estrellas ? "★" : "☆"}</span>
+                          ))}
+                        </div>
+                        <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "600" }}>{v.servicio}</div>
+                      </div>
+
+                      {/* CENTRO: TEXTO CENTRADO EN LA CAJA */}
+                      <div style={{ 
+                        position: isMobile ? "relative" : "absolute", 
+                        left: 0, right: 0, textAlign: "center", 
+                        pointerEvents: "none",
+                        display: "flex", justifyContent: "center"
+                      }}>
+                        <p style={{ 
+                          fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", 
+                          maxWidth: isMobile ? "250px" : "400px", pointerEvents: "auto" 
+                        }}>
+                          "{v.comentario}"
+                        </p>
+                      </div>
+
+                      <div style={{ flex: 1 }}></div>
+
+                      {/* DERECHA: ACCIONES */}
+                      <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end", zIndex: 2 }}>
+                        <button style={{ ...btnSquareBase, background: "#e0e7ff", color: "#4f46e5" }} onClick={() => setEditVal({...v})}>✏️</button>
+                        <button style={{ ...btnSquareBase, background: "#fee2e2", color: "#ef4444" }} onClick={() => setItemBorrar({item:v, tipo:"opinión"})} >🗑</button>
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
