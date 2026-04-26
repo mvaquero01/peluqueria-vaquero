@@ -3922,11 +3922,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: SCROLL SERVICIOS Y HORARIOS NOWRAP)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS 3x3, OPINIONES DESLIZABLES)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
-    // --- 1. MEMORIA GLOBAL BLINDADA (Sobrevive a los reinicios de React) ---
+    // --- 1. MEMORIA GLOBAL BLINDADA ---
     window._ocultosSvc = window._ocultosSvc || [];
     window._editadosSvc = window._editadosSvc || {};
     window._nuevosSvc = window._nuevosSvc || [];
@@ -3939,11 +3939,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     window._showToastVal = window._showToastVal || false;
     window._tempVal = window._tempVal || null;
 
-    // Forzador de renderizado manual
     const [, setTick] = useState(0);
     const forceRender = () => setTick(t => t + 1);
 
-    // --- 2. ESTADOS LOCALES NORMALES ---
+    // --- 2. ESTADOS LOCALES ---
     const [editSvc, setEditSvc] = useState(null);
     const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
     const [showNew, setShowNew] = useState(false);
@@ -3954,50 +3953,35 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
     const [itemBorrar, setItemBorrar] = useState(null); 
 
-    // --- 3. CONSTRUCCIÓN DE LAS LISTAS VISUALES EN TIEMPO REAL ---
+    // --- 3. CONSTRUCCIÓN DE LAS LISTAS ---
     const activeTab = typeof configSubTab !== 'undefined' ? configSubTab : "servicios";
     const safeSvc = typeof servicios !== 'undefined' && Array.isArray(servicios) ? servicios : [];
     const safeVal = typeof valoraciones !== 'undefined' && Array.isArray(valoraciones) ? valoraciones : [];
 
     const idsSvcOriginales = safeSvc.map(s => String(s.id));
     const nuevosSvcReales = window._nuevosSvc.filter(s => !idsSvcOriginales.includes(String(s.id)));
-    
-    const displaySvc = [...safeSvc, ...nuevosSvcReales]
-      .filter(s => !window._ocultosSvc.includes(String(s.id)))
-      .map(s => window._editadosSvc[s.id] || s);
+    const displaySvc = [...safeSvc, ...nuevosSvcReales].filter(s => !window._ocultosSvc.includes(String(s.id))).map(s => window._editadosSvc[s.id] || s);
 
     const idsValOriginales = safeVal.map(v => String(v.id));
     const nuevosValReales = window._nuevosVal.filter(v => !idsValOriginales.includes(String(v.id)));
-    
-    const displayVal = [...safeVal, ...nuevosValReales]
-      .filter(v => !window._ocultosVal.includes(String(v.id)))
-      .map(v => window._editadosVal[v.id] || v);
+    const displayVal = [...safeVal, ...nuevosValReales].filter(v => !window._ocultosVal.includes(String(v.id))).map(v => window._editadosVal[v.id] || v);
 
     // --- FUNCIONES SERVICIOS ---
     const guardarSvc = async () => {
       if (!editSvc || !editSvc.nombre) return;
       const temp = { ...editSvc };
-      
       window._editadosSvc[temp.id] = temp; 
-      setEditSvc(null); 
-      forceRender();
-      
+      setEditSvc(null); forceRender();
       try { await guardarServicioFB(temp); } catch (e) { console.error(e); }
     };
 
     const addSvc = async () => {
       if (!newSvc.nombre) return;
-      if (displaySvc.some(s => s.nombre.toLowerCase() === newSvc.nombre.toLowerCase())) {
-        alert("Ya existe un servicio con ese nombre.");
-        return;
-      }
+      if (displaySvc.some(s => s.nombre.toLowerCase() === newSvc.nombre.toLowerCase())) return alert("Ya existe un servicio con ese nombre.");
       const svc = { ...newSvc, id: Date.now().toString(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) };
-      
       window._nuevosSvc.push(svc); 
       setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
-      setShowNew(false);
-      forceRender();
-      
+      setShowNew(false); forceRender();
       try { await guardarServicioFB(svc); } catch (e) { console.error(e); }
     };
 
@@ -4005,23 +3989,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const addVal = async () => {
       if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; 
       const nueva = { ...newVal, id: Date.now().toString() };
-      
       window._nuevosVal.push(nueva);
       setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
-      setShowNewVal(false);
-      forceRender();
-      
+      setShowNewVal(false); forceRender();
       try { await guardarValoracionFB(nueva); } catch (e) { console.error(e); }
     };
 
     const saveEdit = async () => {
       if (!editVal || !editVal.nombre || !editVal.comentario || !editVal.servicio) return;
       const temp = { ...editVal };
-      
       window._editadosVal[temp.id] = temp;
-      setEditVal(null);
-      forceRender();
-      
+      setEditVal(null); forceRender();
       try { await guardarValoracionFB(temp); } catch (e) { console.error(e); }
     };
 
@@ -4032,58 +4010,30 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       
       if (tipo === "servicio") {
         window._ocultosSvc.push(String(item.id)); 
-        window._tempSvc = item;
-        window._showToastSvc = true;
-        forceRender();
-        
+        window._tempSvc = item; window._showToastSvc = true; forceRender();
         if (window._svcTimer) clearTimeout(window._svcTimer);
-        window._svcTimer = setTimeout(() => {
-          window._showToastSvc = false;
-          window._tempSvc = null;
-          const el = document.getElementById("toast-svc");
-          if (el) el.style.display = "none";
-        }, 6000);
-        
+        window._svcTimer = setTimeout(() => { window._showToastSvc = false; window._tempSvc = null; forceRender(); }, 6000);
         try { await borrarServicioFB(item.nombre); } catch(e){}
       } else {
         window._ocultosVal.push(String(item.id));
-        window._tempVal = item;
-        window._showToastVal = true;
-        forceRender();
-        
+        window._tempVal = item; window._showToastVal = true; forceRender();
         if (window._valTimer) clearTimeout(window._valTimer);
-        window._valTimer = setTimeout(() => {
-          window._showToastVal = false;
-          window._tempVal = null;
-          const el = document.getElementById("toast-val");
-          if (el) el.style.display = "none";
-        }, 6000);
-        
+        window._valTimer = setTimeout(() => { window._showToastVal = false; window._tempVal = null; forceRender(); }, 6000);
         try { await borrarValoracionFB(item); } catch(e){}
       }
     };
 
     const deshacerSvc = async () => {
-      const item = window._tempSvc;
-      if (!item) return;
-      
+      const item = window._tempSvc; if (!item) return;
       window._ocultosSvc = window._ocultosSvc.filter(id => id !== String(item.id));
-      window._showToastSvc = false;
-      window._tempSvc = null;
-      forceRender();
-      
+      window._showToastSvc = false; window._tempSvc = null; forceRender();
       try { await guardarServicioFB(item); } catch(e){} 
     };
 
     const deshacerVal = async () => {
-      const item = window._tempVal;
-      if (!item) return;
-      
+      const item = window._tempVal; if (!item) return;
       window._ocultosVal = window._ocultosVal.filter(id => id !== String(item.id));
-      window._showToastVal = false;
-      window._tempVal = null;
-      forceRender();
-      
+      window._showToastVal = false; window._tempVal = null; forceRender();
       try { await guardarValoracionFB(item); } catch(e){}
     };
 
@@ -4096,13 +4046,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const btnGreen = { ...btnBlue, background: "#10b981" };
     const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
     
-    // BOTONES CUADRADOS BLINDADOS
-    const btnSquareBase = {
-      border: "none", borderRadius: "6px",
-      width: "32px", height: "32px", minWidth: "32px", minHeight: "32px", aspectRatio: "1/1",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: "15px", cursor: "pointer", padding: 0, flexShrink: 0, boxSizing: "border-box"
-    };
+    const btnSquareBase = { border: "none", borderRadius: "6px", width: "32px", height: "32px", minWidth: "32px", minHeight: "32px", aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0, flexShrink: 0, boxSizing: "border-box" };
     const btnSquareEdit = { ...btnSquareBase, background: "#e0e7ff", color: "#4f46e5" };
     const btnSquareDel = { ...btnSquareBase, background: "#fee2e2", color: "#ef4444" };
     const btnSquareOk = { ...btnSquareBase, background: "#10b981", color: "#fff" };
@@ -4111,31 +4055,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", textAlign: "left" };
     const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
 
-    const toastStyle = {
-      position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", 
-      background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", 
-      display: "flex", gap: "16px", alignItems: "center", justifyContent: "center",
-      zIndex: 99999, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", width: "max-content", maxWidth: "85%"
-    };
+    const toastStyle = { position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", display: "flex", gap: "16px", alignItems: "center", justifyContent: "center", zIndex: 99999, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", width: "max-content", maxWidth: "85%" };
 
     return (
       <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "0 16px" : "0", boxSizing: "border-box" }}> 
         
-        {/* NAVEGACIÓN DE PESTAÑAS */}
+        {/* NAVEGACIÓN */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
           {[["servicios", "Servicios"], ["valoraciones", "Opiniones"], ["horarios", "Horarios"]].map(([v, l]) => (
-            <button 
-              key={v} 
-              onClick={() => { if (typeof setConfigSubTab === 'function') setConfigSubTab(v); }}
-              style={{
-                background: activeTab === v ? "#1e3a8a" : "#fff",
-                color: activeTab === v ? "#fff" : "#64748b",
-                border: `1px solid ${activeTab === v ? "#1e3a8a" : "#cbd5e1"}`,
-                borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", transition: "0.2s"
-              }}
-            >
-              {l}
-            </button>
+            <button key={v} onClick={() => { if (typeof setConfigSubTab === 'function') setConfigSubTab(v); }}
+              style={{ background: activeTab === v ? "#1e3a8a" : "#fff", color: activeTab === v ? "#fff" : "#64748b", border: `1px solid ${activeTab === v ? "#1e3a8a" : "#cbd5e1"}`, borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", transition: "0.2s" }}
+            >{l}</button>
           ))}
         </div>
 
@@ -4150,10 +4080,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             {showNew && (
               <div style={cardS}>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.5fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                  <div><label style={labelS}>Nombre</label><input style={inputS} value={newSvc.nombre} onChange={e => setNewSvc(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Corte clásico" /></div>
+                  <div><label style={labelS}>Nombre</label><input style={inputS} value={newSvc.nombre} onChange={e => setNewSvc(f => ({ ...f, nombre: e.target.value }))} /></div>
                   <div><label style={labelS}>Duración (min)</label><input style={inputS} type="number" value={newSvc.duracionMin} onChange={e => setNewSvc(f => ({ ...f, duracionMin: e.target.value }))} /></div>
                   <div><label style={labelS}>Precio (€)</label><input style={inputS} type="number" value={newSvc.precio} onChange={e => setNewSvc(f => ({ ...f, precio: e.target.value }))} /></div>
-                  <div style={{ gridColumn: isMobile ? "auto" : "1 / -1" }}><label style={labelS}>Descripción (Opcional)</label><input style={inputS} value={newSvc.desc} onChange={e => setNewSvc(f => ({ ...f, desc: e.target.value }))} placeholder="Descripción breve del servicio" /></div>
+                  <div style={{ gridColumn: isMobile ? "auto" : "1 / -1" }}><label style={labelS}>Descripción</label><input style={inputS} value={newSvc.desc} onChange={e => setNewSvc(f => ({ ...f, desc: e.target.value }))} /></div>
                 </div>
                 <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
                   <button style={btnCancel} onClick={() => setShowNew(false)}>Cancelar</button>
@@ -4163,14 +4093,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             )}
 
             <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
-              {/* minWidth aumentado a 550px para dar más espacio general en móvil y forzar el scroll suave */}
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "550px" : "100%" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "400px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    {/* minWidth fijo para que Nombre nunca se corte */}
-                    <th style={{ ...thS, textAlign: "left", width: isMobile ? "auto" : "40%", minWidth: "200px" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Precio</th>
+                    {/* Tamaños de la columna Nombre reducidos según lo pedido */}
+                    <th style={{ ...thS, textAlign: "left", width: isMobile ? "auto" : "25%", minWidth: "110px" }}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "25%" : "25%" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center", width: isMobile ? "25%" : "25%" }}>Precio</th>
                     <th style={{ ...thS, textAlign: "right", width: "90px" }}></th> 
                   </tr>
                 </thead>
@@ -4182,24 +4111,14 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <td style={{...tdS, textAlign: "left"}}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
                           <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
                           <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                              <button style={btnSquareOk} onClick={guardarSvc}>✓</button>
-                              <button style={btnSquareCancel} onClick={() => setEditSvc(null)}>✕</button>
-                            </div>
-                          </td>
+                          <td style={{ ...tdS, textAlign: "right" }}><div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}><button style={btnSquareOk} onClick={guardarSvc}>✓</button><button style={btnSquareCancel} onClick={() => setEditSvc(null)}>✕</button></div></td>
                         </>
                       ) : (
                         <>
                           <td style={{ ...tdS, fontWeight: "700", color: "#1e293b", textAlign: "left", wordBreak: "break-word" }}>{s.nombre}</td>
                           <td style={{ ...tdS, color: "#64748b", textAlign: "center" }}>{s.duracionMin} min</td>
                           <td style={{ ...tdS, fontWeight: "700", color: "#10b981", textAlign: "center" }}>{s.precio} €</td>
-                          <td style={{ ...tdS, textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                              <button style={btnSquareEdit} onClick={() => setEditSvc({ ...s })}>✏️</button>
-                              <button style={btnSquareDel} onClick={() => setItemBorrar({ item: s, tipo: "servicio" })}>🗑</button>
-                            </div>
-                          </td>
+                          <td style={{ ...tdS, textAlign: "right" }}><div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}><button style={btnSquareEdit} onClick={() => setEditSvc({ ...s })}>✏️</button><button style={btnSquareDel} onClick={() => setItemBorrar({ item: s, tipo: "servicio" })}>🗑</button></div></td>
                         </>
                       )}
                     </tr>
@@ -4222,7 +4141,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             {showNewVal && (
               <div style={{ ...cardS, border: "1px solid #93c5fd", background: "#f8fafc" }}>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
-                  <div><label style={labelS}>Nombre del cliente</label><input style={inputS} value={newVal.nombre} onChange={e => setNewVal(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Laura M." /></div>
+                  <div><label style={labelS}>Nombre del cliente</label><input style={inputS} value={newVal.nombre} onChange={e => setNewVal(f => ({ ...f, nombre: e.target.value }))} /></div>
                   <div>
                     <label style={labelS}>Servicio realizado</label>
                     <select style={inputS} value={newVal.servicio} onChange={e => setNewVal(f => ({ ...f, servicio: e.target.value }))}>
@@ -4234,65 +4153,46 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 <div style={{ marginBottom: "16px" }}>
                   <label style={labelS}>Valoración</label>
                   <div style={{ display: "flex", gap: "6px" }}>
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>
-                    ))}
+                    {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>)}
                   </div>
                 </div>
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={labelS}>Comentario</label>
-                  <textarea value={newVal.comentario} onChange={e => setNewVal(f => ({ ...f, comentario: e.target.value }))} placeholder="Escribe aquí la opinión del cliente..." style={{ ...inputS, minHeight: "90px", resize: "vertical", fontFamily: "inherit" }} />
-                </div>
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                  <button style={btnCancel} onClick={() => setShowNewVal(false)}>Cancelar</button>
-                  <button style={{...btnGreen, opacity: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? 0.5 : 1, cursor: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? "not-allowed" : "pointer"}} onClick={addVal}>Guardar Opinión</button>
-                </div>
+                <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={newVal.comentario} onChange={e => setNewVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "90px", resize: "vertical", fontFamily: "inherit" }} /></div>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}><button style={btnCancel} onClick={() => setShowNewVal(false)}>Cancelar</button><button style={{...btnGreen, opacity: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? 0.5 : 1}} onClick={addVal}>Guardar Opinión</button></div>
               </div>
             )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
-                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0 }}>
+                // OverflowX activado para que en móvil se pueda deslizar lateralmente
+                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
                   {editVal?.id === v.id ? (
                     <div>
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div><label style={labelS}>Nombre</label><input style={inputS} value={editVal.nombre} onChange={e => setEditVal(f => ({ ...f, nombre: e.target.value }))} /></div>
-                        <div>
-                          <label style={labelS}>Servicio</label>
-                          <select style={inputS} value={editVal.servicio} onChange={e => setEditVal(f => ({ ...f, servicio: e.target.value }))}>
-                            <option value="">Seleccionar...</option>
-                            {displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-                          </select>
-                        </div>
+                        <div><label style={labelS}>Servicio</label><select style={inputS} value={editVal.servicio} onChange={e => setEditVal(f => ({ ...f, servicio: e.target.value }))}><option value="">Seleccionar...</option>{displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}</select></div>
                       </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <label style={labelS}>Valoración</label>
-                        <div style={{ display: "flex", gap: "4px" }}>
-                          {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "24px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={editVal.comentario} onChange={e => setEditVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "80px", resize: "vertical", fontFamily: "inherit" }} /></div>
-                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                        <button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button>
-                        <button style={btnGreen} onClick={saveEdit}>Guardar</button>
-                      </div>
+                      <div style={{ marginBottom: "12px" }}><label style={labelS}>Valoración</label><div style={{ display: "flex", gap: "4px" }}>{[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "24px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}</div></div>
+                      <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={editVal.comentario} onChange={e => setEditVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "80px", resize: "vertical" }} /></div>
+                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}><button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button><button style={btnGreen} onClick={saveEdit}>Guardar</button></div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "space-between", minHeight: "44px", gap: isMobile ? "10px" : "0" }}>
+                    // LA CLAVE AQUÍ: flexDirection "row" siempre, minWidth grande para el scroll, y texto alineado a la izquierda.
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: "44px", minWidth: isMobile ? "480px" : "100%", gap: "16px" }}>
                       
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", width: isMobile ? "100%" : "30%", flexShrink: 0, flexWrap: "wrap", justifyContent: isMobile ? "center" : "flex-start" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "25%", minWidth: "130px", flexShrink: 0, justifyContent: "center" }}>
                         <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                         <div style={{ display: "flex", gap: "2px" }}>
-                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "14px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
                         </div>
-                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                        {/* Servicio alineado a la izquierda */}
+                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", width: "100%", textAlign: "left" }}>{v.servicio}</span>
                       </div>
 
-                      <div style={{ flex: 1, textAlign: "center", padding: "10px 16px", width: "100%" }}>
+                      <div style={{ flex: 1, textAlign: "left", padding: "0" }}>
                         <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
                       </div>
 
-                      <div style={{ display: "flex", gap: "8px", width: isMobile ? "100%" : "30%", flexShrink: 0, justifyContent: isMobile ? "center" : "flex-end" }}>
+                      <div style={{ display: "flex", gap: "8px", flexShrink: 0, justifyContent: "flex-end" }}>
                         <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
                         <button style={btnSquareDel} onClick={() => setItemBorrar({ item: v, tipo: "opinión" })}>🗑</button>
                       </div>
@@ -4311,7 +4211,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
             display: "grid", 
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(340px, 1fr))", 
+            /* LA ORDEN MÁGICA: 3 en ordenador, 1 en móvil */
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", 
             gap: "24px", 
             alignItems: "start" 
           }}>
@@ -4338,7 +4239,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
                           <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
                           <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
-                          {/* AÑADIDO whiteSpace: "nowrap" para prohibir que el horario se parta en dos líneas */}
                           <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", fontSize: "11px", whiteSpace: "nowrap" }}>
                             {h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}
                           </td>
@@ -4353,30 +4253,21 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         )}
 
         {/* ───────────────────────────────────────────────────────── */}
-        {/* MODAL DE CONFIRMACIÓN */}
+        {/* MODAL DE CONFIRMACIÓN Y TOASTS */}
         {itemBorrar && (
            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
              <div style={{ background: "#fff", borderRadius: 18, padding: "32px", width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,.3)", textAlign: "center", boxSizing: "border-box" }}>
                <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1e293b", marginBottom: 8 }}>¿Eliminar este {itemBorrar.tipo}?</h3>
-               <p style={{ fontSize: 13, color: "#64748b", marginBottom: 24 }}>
-                 {itemBorrar.item.nombre || (itemBorrar.item.comentario ? `"${itemBorrar.item.comentario.substring(0, 30)}..."` : "")}
-               </p>
+               <p style={{ fontSize: 13, color: "#64748b", marginBottom: 24 }}>{itemBorrar.item.nombre || (itemBorrar.item.comentario ? `"${itemBorrar.item.comentario.substring(0, 30)}..."` : "")}</p>
                <div style={{ display: "flex", gap: 10 }}>
                  <button style={{ ...btnCancel, flex: 1, padding: "12px" }} onClick={() => setItemBorrar(null)}>Cancelar</button>
-                 <button 
-                   style={{ flex: 1, background: `linear-gradient(135deg, #ef4444, #b91c1c)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }} 
-                   onClick={confirmarEliminacion}
-                 >
-                   Eliminar
-                 </button>
+                 <button style={{ flex: 1, background: `linear-gradient(135deg, #ef4444, #b91c1c)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }} onClick={confirmarEliminacion}>Eliminar</button>
                </div>
              </div>
            </div>
         )}
 
-        {/* ───────────────────────────────────────────────────────── */}
-        {/* TOASTS (CENTRADOS INFALIBLES Y EN FORMATO PÍLDORA) */}
         {window._showToastSvc && window._tempSvc && (
           <div id="toast-svc" className="anim" style={toastStyle}>
             <span style={{ fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>Servicio eliminado</span>
