@@ -4018,25 +4018,53 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </div>
         )}
 
-        {/* 2. OPINIONES (LARGO UNIFORME EN MÓVIL) */}
+        {/* 2. OPINIONES (UNIFORMIDAD TOTAL EN MÓVIL Y PC) */}
         {activeTab === "valoraciones" && (
           <div className="anim">
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {displayVal.map(v => (
                 <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflowX: "auto" }}>
-                  {/* width FIJO de 480px en móvil para uniformidad total de las cajas */}
-                  <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minHeight: "60px", width: isMobile ? "480px" : "100%", boxSizing: "border-box" }}>
+                  {/* Forzamos un ancho de 480px en móvil para que todas las cajas sean idénticas */}
+                  <div style={{ 
+                    display: "flex", 
+                    flexDirection: "row", 
+                    alignItems: "center", 
+                    minHeight: "60px", 
+                    width: isMobile ? "480px" : "100%", 
+                    boxSizing: "border-box" 
+                  }}>
+                    {/* BLOQUE IZQUIERDO: Ancho fijo */}
                     <div style={{ width: "130px", flexShrink: 0, textAlign: "left" }}>
-                      <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-                      <div style={{ display: "flex", gap: "2px" }}>{Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}</div>
+                      <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", display: "block" }}>{v.nombre}</span>
+                      <div style={{ display: "flex", gap: "2px" }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>
+                        ))}
+                      </div>
                       <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>{v.servicio}</span>
                     </div>
+
+                    {/* BLOQUE CENTRAL: Texto centrado que ocupa el espacio restante */}
                     <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
-                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.5" }}>"{v.comentario}"</p>
+                      <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.5" }}>
+                        "{v.comentario}"
+                      </p>
                     </div>
-                    <div style={{ width: "130px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                      <button style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} onClick={() => setEditVal({...v})}>✏️</button>
-                      <button style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} onClick={() => setItemBorrar({item:v, tipo:"opinión"})}>🗑</button>
+
+                    {/* BLOQUE DERECHO: Ancho fijo para que los botones siempre estén alineados */}
+                    <div style={{ width: "100px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                      <button 
+                        style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} 
+                        onClick={() => setEditVal({...v})}
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} 
+                        onClick={() => setItemBorrar({item:v, tipo:"opinión"})}
+                      >
+                        🗑
+                      </button>
                     </div>
                   </div>
                 </div>
