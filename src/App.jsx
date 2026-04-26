@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: TOAST CENTRADO INFALIBLE)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS APILADOS EN MÓVIL)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -4107,14 +4107,14 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     // --- ESTILO INFALIBLE PARA EL TOAST CENTRADO ---
     const toastStyle = {
       position: "fixed",
-      bottom: "30px", // Separación desde abajo
+      bottom: "30px", 
       left: "0",
       right: "0",
-      margin: "0 auto", // Esto centra elementos absolutos/fijos de forma infalible
+      margin: "0 auto", 
       background: "#1e293b",
       color: "#f8fafc",
       padding: "14px 24px",
-      borderRadius: "50px", // Diseño tipo píldora moderna
+      borderRadius: "50px", 
       display: "flex",
       gap: "16px",
       alignItems: "center",
@@ -4315,9 +4315,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
-            display: isMobile ? "flex" : "grid", 
-            flexDirection: isMobile ? "column" : undefined, 
-            gridTemplateColumns: isMobile ? undefined : "1fr 1fr", 
+            display: "grid", 
+            /* LA CLAVE: 1 columna en móvil, 2 en PC. Siempre usando Grid para evitar fallos. */
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
             gap: "24px", 
             alignItems: "start" 
           }}>
