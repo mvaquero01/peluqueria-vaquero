@@ -3922,7 +3922,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN DEFINITIVA: HORARIOS APILADOS EN MÓVIL)
+  // TAB CONFIG (VERSIÓN DEFINITIVA: DISEÑO MÓVIL BLINDADO)
   // ──────────────────────
   const TabConfig = ({ isMobile }) => {
     
@@ -4096,33 +4096,26 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const btnGreen = { ...btnBlue, background: "#10b981" };
     const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
     
-    const btnSquareEdit = { background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
-    const btnSquareDel = { background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
-    const btnSquareOk = { background: "#10b981", color: "#fff", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
-    const btnSquareCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
+    // BOTONES CUADRADOS BLINDADOS (No se deforman)
+    const btnSquareBase = {
+      border: "none", borderRadius: "6px",
+      width: "32px", height: "32px", minWidth: "32px", minHeight: "32px", aspectRatio: "1/1",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: "15px", cursor: "pointer", padding: 0, flexShrink: 0, boxSizing: "border-box"
+    };
+    const btnSquareEdit = { ...btnSquareBase, background: "#e0e7ff", color: "#4f46e5" };
+    const btnSquareDel = { ...btnSquareBase, background: "#fee2e2", color: "#ef4444" };
+    const btnSquareOk = { ...btnSquareBase, background: "#10b981", color: "#fff" };
+    const btnSquareCancel = { ...btnSquareBase, background: "#f1f5f9", color: "#475569" };
 
     const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", textAlign: "left" };
     const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
 
-    // --- ESTILO INFALIBLE PARA EL TOAST CENTRADO ---
     const toastStyle = {
-      position: "fixed",
-      bottom: "30px", 
-      left: "0",
-      right: "0",
-      margin: "0 auto", 
-      background: "#1e293b",
-      color: "#f8fafc",
-      padding: "14px 24px",
-      borderRadius: "50px", 
-      display: "flex",
-      gap: "16px",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 99999,
-      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-      width: "max-content",
-      maxWidth: "85%"
+      position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", 
+      background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", 
+      display: "flex", gap: "16px", alignItems: "center", justifyContent: "center",
+      zIndex: 99999, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", width: "max-content", maxWidth: "85%"
     };
 
     return (
@@ -4173,10 +4166,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: isMobile ? "340px" : "100%" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    <th style={{ ...thS, textAlign: "left", width: "35%" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: "22.5%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: "22.5%" }}>Precio</th>
-                    <th style={{ ...thS, textAlign: "right", width: "20%" }}>Acciones</th>
+                    {/* TÍTULOS ALINEADOS Y SIN LA PALABRA "ACCIONES" */}
+                    <th style={{ ...thS, textAlign: "left", width: "40%" }}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center", width: "20%" }}>Precio</th>
+                    <th style={{ ...thS, width: "20%" }}></th> 
                   </tr>
                 </thead>
                 <tbody>
@@ -4185,8 +4179,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       {editSvc?.id === s.id ? (
                         <>
                           <td style={{...tdS, textAlign: "left"}}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "100%", maxWidth: "70px", textAlign: "center", margin: "0 auto", display: "block"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
                           <td style={{ ...tdS, textAlign: "right" }}>
                             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                               <button style={btnSquareOk} onClick={guardarSvc}>✓</button>
@@ -4315,14 +4309,21 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* TAB 3: HORARIOS */}
         {activeTab === "horarios" && (
           <div className="anim" style={{ 
-            display: "grid", 
-            /* LA CLAVE: 1 columna en móvil, 2 en PC. Siempre usando Grid para evitar fallos. */
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
+            /* LA CLAVE ANTI-FALLOS: Flexbox con math puro para los anchos */
+            display: "flex", 
+            flexDirection: isMobile ? "column" : "row", 
+            flexWrap: "wrap",
             gap: "24px", 
-            alignItems: "start" 
+            alignItems: "flex-start" 
           }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0 }}>
+              <div key={p.id} style={{ 
+                ...cardS, 
+                padding: 0, 
+                overflowX: "auto", 
+                width: isMobile ? "100%" : "calc(50% - 12px)", /* El calc evita que se bajen de línea en PC */
+                marginBottom: 0 
+              }}>
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
                   <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
                   <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
