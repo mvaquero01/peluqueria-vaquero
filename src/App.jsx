@@ -2465,6 +2465,13 @@ function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosS
 }
 
 function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios}){
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
   const navigate=useNavigate();
   const [searchParams,setSearchParams]=useSearchParams();
   const tab=searchParams.get("tab")||"citas";
@@ -3160,8 +3167,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
         
         {/* CONTENEDOR DE COLUMNAS (Responsive) */}
-        {/* ÚNICO CAMBIO: flexDirection column-reverse para que la ficha suba en móvil */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", flexWrap: "wrap", gap: "20px", width: "100%", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", flexDirection: isMobile && clienteSel ? "column-reverse" : "row", gap: "20px", width: "100%", boxSizing: "border-box" }}>
           
           {/* COLUMNA 1: LISTA DE CLIENTES */}
           <div style={{ flex: "1 1 320px", minWidth: 0, boxSizing: "border-box" }}>
@@ -3245,17 +3251,20 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                     <div key={i} style={{ 
                       display: "flex", 
                       justifyContent: "space-between", 
-                      alignItems: "center", 
+                      alignItems: "center", // Centra verticalmente el precio con el texto de la izquierda
                       padding: "10px 0", 
                       borderBottom: `1px solid ${CR2}`, 
                       fontSize: 12 
                     }}>
+                      {/* Contenedor de texto alineado a la izquierda */}
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontWeight: 600, color: TX, marginBottom: 2 }}>{h.servicio}</div>
                         <div style={{ fontSize: 10, color: TX2 }}>
                           {h.fecha} <span style={{ margin: "0 4px" }}>•</span> {h.peluquero}
                         </div>
                       </div>
+                      
+                      {/* Precio a la derecha */}
                       <div style={{ fontWeight: 700, color: A, fontSize: 13 }}>
                         {h.precio} €
                       </div>
@@ -3553,23 +3562,25 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   };
 
   // ──────────────────────
-  // TAB DISPONIBILIDAD (CORREGIDO: FORMATOS DE NOMBRE ESPECÍFICOS)
+  // TAB DISPONIBILIDAD (CIERRES Y AUSENCIAS)
   // ──────────────────────
-  const TabDisponibilidad = ({ isMobile }) => {
-    const espacioEntreCajas = "24px"; 
-
+  const TabDisponibilidad = () => {
     const [showFF, setShowFF] = useState(false);
     const [showBF, setShowBF] = useState(false);
+    
     const [festForm, setFestForm] = useState({ desde: "", hasta: "", motivo: "" });
     const [bloqForm, setBloqForm] = useState({ peluqueroId: "", desde: "", hasta: "", motivo: "" });
+    
     const [showFestCal, setShowFestCal] = useState(false);
     const [showFestHastaCal, setShowFestHastaCal] = useState(false);
     const [showBloqDesdeCal, setShowBloqDesdeCal] = useState(false);
     const [showBloqHastaCal, setShowBloqHastaCal] = useState(false);
 
+    // FORMATOS DE FECHA
     const toDMY = (iso) => iso ? iso.split("-").reverse().join("/") : "";
     const toSafeDMY = (iso) => iso ? iso.split("-").reverse().join("-") : "";
 
+    // LÓGICA DE DÍAS
     const obtenerDiasEntre = (inicio, fin) => {
       const fechas = [];
       let actual = new Date(inicio);
@@ -3581,15 +3592,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       return fechas;
     };
 
+    // FUNCIÓN ROBUSTA PARA SACAR EL MOTIVO DEL ID DEL DOCUMENTO
     const getMotivo = (item, isBloqueo) => {
       if (item.id) {
         const partes = item.id.split(" - ");
-        if (isBloqueo && partes.length >= 3) return partes[1]; 
-        if (!isBloqueo && partes.length >= 2) return partes[0]; 
+        if (isBloqueo && partes.length >= 3) return partes[1]; // Peluquero - Motivo - Fecha
+        if (!isBloqueo && partes.length >= 2) return partes[0]; // Motivo - Fecha
       }
       return item.motivo || (isBloqueo ? "Ausencia" : "Cierre");
     };
 
+    // AGRUPAR PARA LA VISTA ADMIN
     const agruparItems = (items) => {
       const agrupados = [];
       const procesados = new Set();
@@ -3597,8 +3610,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
       ordenados.forEach(item => {
         if (procesados.has(item.id)) return;
+        
         const isBloqueo = !!item.peluqueroId;
         const motivoVisual = getMotivo(item, isBloqueo);
+
         if (item.rangoId) {
           const hermanos = ordenados.filter(i => i.rangoId === item.rangoId);
           hermanos.forEach(h => procesados.add(h.id));
@@ -3624,32 +3639,19 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       return agrupados;
     };
 
+    // --- ESTILOS DE DISTRIBUCIÓN ---
     const containerStyle = {
-      display: "flex", 
-      flexWrap: "wrap", 
-      gap: espacioEntreCajas, 
-      width: "100%", 
-      padding: isMobile ? "0 16px" : "0 20px", 
-      boxSizing: "border-box"
+      display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10%",                   
+      maxWidth: "90%", margin: "20px auto", padding: "0 20px", alignItems: "start"
     };
-
-    const colStyle = { 
-      background: "#f8fafc", 
-      padding: "16px", 
-      borderRadius: "12px", 
-      border: "1px solid #e2e8f0",
-      flex: "1 1 450px", 
-      boxSizing: "border-box",
-      minWidth: 0 
-    };
-
+    const colStyle = { background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" };
     const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
     const inputS = { width: "100%", padding: "8px 10px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "12px", boxSizing: "border-box", textAlign: "left" };
 
     return (
       <div style={containerStyle}>
         
-        {/* BLOQUE 1: CIERRES */}
+        {/* COLUMNA 1: CIERRES GLOBALES */}
         <div style={colStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
             <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>🗓️ Cierres</h4>
@@ -3685,7 +3687,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   const dias = obtenerDiasEntre(festForm.desde, festForm.hasta || festForm.desde);
                   const rId = Date.now().toString();
                   for(const d of dias) {
-                    // FORMATO: Nombre - Fecha (ISO reverse)
                     const docName = `${festForm.motivo} - ${toSafeDMY(d)}`;
                     await crearFestivo(docName, { fecha: d, rangoId: rId, todoElDia: true });
                   }
@@ -3705,7 +3706,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           ))}
         </div>
 
-        {/* BLOQUE 2: AUSENCIAS */}
+        {/* COLUMNA 2: BLOQUEOS POR PELUQUERO */}
         <div style={colStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
             <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>✂️ Ausencias</h4>
@@ -3745,7 +3746,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   const dias = obtenerDiasEntre(bloqForm.desde, bloqForm.hasta || bloqForm.desde);
                   const rId = Date.now().toString();
                   for(const d of dias) {
-                    // FORMATO: Peluquero - Motivo - Fecha (ISO reverse)
                     const docName = `${pel.nombre} - ${bloqForm.motivo} - ${toSafeDMY(d)}`;
                     await crearBloqueo(docName, { desde: d, hasta: d, rangoId: rId, peluqueroId: pel.id, todoElDia: true });
                   }
@@ -3921,245 +3921,283 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     );
   };
 
+// ──────────────────────
+  // TAB CONFIG (OPINIONES EN FILA HORIZONTAL)
   // ──────────────────────
-  // TAB CONFIG (VERSIÓN FINAL: HORARIOS APILADOS Y OPINIONES UNIFORMES)
-  // ──────────────────────
-  const TabConfig = ({ isMobile }) => {
-    
-    // --- 1. MEMORIA GLOBAL ---
-    window._ocultosSvc = window._ocultosSvc || [];
-    window._editadosSvc = window._editadosSvc || {};
-    window._nuevosSvc = window._nuevosSvc || [];
-    window._showToastSvc = window._showToastSvc || false;
-    window._tempSvc = window._tempSvc || null;
-
-    window._ocultosVal = window._ocultosVal || [];
-    window._editadosVal = window._editadosVal || {};
-    window._nuevosVal = window._nuevosVal || [];
-    window._showToastVal = window._showToastVal || false;
-    window._tempVal = window._tempVal || null;
-
-    const [, setTick] = useState(0);
-    const forceRender = () => setTick(t => t + 1);
-
+  const TabConfig = () => {
     const [editSvc, setEditSvc] = useState(null);
     const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
     const [showNew, setShowNew] = useState(false);
+    
     const [showNewVal, setShowNewVal] = useState(false);
     const [newVal, setNewVal] = useState({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
     const [editVal, setEditVal] = useState(null);
-    const [itemBorrar, setItemBorrar] = useState(null); 
 
-    const activeTab = typeof configSubTab !== 'undefined' ? configSubTab : "servicios";
-    const safeSvc = typeof servicios !== 'undefined' && Array.isArray(servicios) ? servicios : [];
-    const safeVal = typeof valoraciones !== 'undefined' && Array.isArray(valoraciones) ? valoraciones : [];
-
-    const displaySvc = [...safeSvc, ...window._nuevosSvc.filter(s => !safeSvc.map(x => String(x.id)).includes(String(s.id)))].filter(s => !window._ocultosSvc.includes(String(s.id))).map(s => window._editadosSvc[s.id] || s);
-    const displayVal = [...safeVal, ...window._nuevosVal.filter(v => !safeVal.map(x => String(x.id)).includes(String(v.id)))].filter(v => !window._ocultosVal.includes(String(v.id))).map(v => window._editadosVal[v.id] || v);
-
-    // --- ESTILOS BASE ---
-    const cardS = { background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)", boxSizing: "border-box" };
-    const btnSquareBase = { border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
-    const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase" };
-    const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
-    const toastStyle = { position: "fixed", bottom: "30px", left: "0", right: "0", margin: "0 auto", background: "#1e293b", color: "#f8fafc", padding: "14px 24px", borderRadius: "50px", display: "flex", gap: "16px", alignItems: "center", justifyContent: "center", zIndex: 99999, width: "max-content", maxWidth: "85%" };
-
-    const confirmarEliminacion = async () => {
-      const { item, tipo } = itemBorrar; setItemBorrar(null);
-      if (tipo === "servicio") {
-        window._ocultosSvc.push(String(item.id)); window._showToastSvc = true; forceRender();
-        setTimeout(() => { window._showToastSvc = false; forceRender(); }, 6000);
-      } else {
-        window._ocultosVal.push(String(item.id)); window._showToastVal = true; forceRender();
-        setTimeout(() => { window._showToastVal = false; forceRender(); }, 6000);
-      }
+    // --- FUNCIONES SERVICIOS ---
+    const guardarSvc = async () => {
+      if (!editSvc.nombre) return;
+      const updated = servicios.map(s => s.id === editSvc.id ? editSvc : s);
+      setServicios(updated);
+      await guardarServicioFB(editSvc);
+      setEditSvc(null);
     };
 
+    const addSvc = async () => {
+      if (!newSvc.nombre) return;
+      if (servicios.some(s => s.nombre.toLowerCase() === newSvc.nombre.toLowerCase())) {
+        alert("Ya existe un servicio con ese nombre.");
+        return;
+      }
+      const svc = { ...newSvc, id: Date.now(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) };
+      setServicios(prev => [...prev, svc]);
+      await guardarServicioFB(svc);
+      setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
+      setShowNew(false);
+    };
+
+    const deleteSvc = async (id, nombre) => {
+      setServicios(prev => prev.filter(s => s.id !== id));
+      await borrarServicioFB(nombre);
+    };
+
+    // --- FUNCIONES VALORACIONES ---
+    const addVal = async () => {
+      if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; 
+      const nueva = { ...newVal, id: Date.now() };
+      setValoraciones(p => [...p, nueva]);
+      await guardarValoracionFB(nueva);
+      setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
+      setShowNewVal(false);
+    };
+
+    const saveEdit = async () => {
+      if (!editVal || !editVal.nombre || !editVal.comentario || !editVal.servicio) return;
+      setValoraciones(p => p.map(v => v.id === editVal.id ? editVal : v));
+      await guardarValoracionFB(editVal);
+      setEditVal(null);
+    };
+
+    // --- ESTILOS REUTILIZABLES ---
+    const cardS = { background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" };
+    const inputS = { width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#1e293b", outline: "none", boxSizing: "border-box" };
+    const labelS = { fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" };
+    
+    const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "0.2s" };
+    const btnGreen = { ...btnBlue, background: "#10b981" };
+    const btnCancel = { background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" };
+    
+    // Botones de acción cuadrados (32x32)
+    const btnSquareEdit = { background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
+    const btnSquareDel = { background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", cursor: "pointer", padding: 0 };
+
+    const thS = { padding: "10px 16px", borderBottom: "2px solid #e2e8f0", fontSize: "12px", color: "#64748b", fontWeight: "800", textTransform: "uppercase", textAlign: "left" };
+    const tdS = { padding: "8px 16px", borderBottom: "1px solid #f1f5f9", fontSize: "13px", color: "#334155" };
+
     return (
-      <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "0 16px" : "0", boxSizing: "border-box" }}> 
+      <div style={{ width: "100%", margin: "0 auto" }}> 
         
-        {/* NAVEGACIÓN */}
+        {/* NAVEGACIÓN DE PESTAÑAS */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
           {[["servicios", "Servicios"], ["valoraciones", "Opiniones"], ["horarios", "Horarios"]].map(([v, l]) => (
-            <button key={v} onClick={() => setConfigSubTab(v)}
-              style={{ background: activeTab === v ? "#1e3a8a" : "#fff", color: activeTab === v ? "#fff" : "#64748b", border: `1px solid ${activeTab === v ? "#1e3a8a" : "#cbd5e1"}`, borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
-            >{l}</button>
+            <button 
+              key={v} 
+              onClick={() => setConfigSubTab(v)}
+              style={{
+                background: configSubTab === v ? "#1e3a8a" : "#fff",
+                color: configSubTab === v ? "#fff" : "#64748b",
+                border: `1px solid ${configSubTab === v ? "#1e3a8a" : "#cbd5e1"}`,
+                borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", transition: "0.2s"
+              }}
+            >
+              {l}
+            </button>
           ))}
         </div>
 
-        {/* 1. SERVICIOS (INTACTO POR COMPLETO) */}
-        {activeTab === "servicios" && (
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 1: SERVICIOS */}
+        {configSubTab === "servicios" && (
           <div className="anim">
-            <div style={{ ...cardS, padding: 0, overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "460px" : "100%" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+              <button style={btnBlue} onClick={() => setShowNew(v => !v)}>{showNew ? "Cancelar" : "+ Nuevo servicio"}</button>
+            </div>
+
+            {showNew && (
+              <div style={cardS}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                  <div><label style={labelS}>Nombre</label><input style={inputS} value={newSvc.nombre} onChange={e => setNewSvc(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Corte clásico" /></div>
+                  <div><label style={labelS}>Duración (min)</label><input style={inputS} type="number" value={newSvc.duracionMin} onChange={e => setNewSvc(f => ({ ...f, duracionMin: e.target.value }))} /></div>
+                  <div><label style={labelS}>Precio (€)</label><input style={inputS} type="number" value={newSvc.precio} onChange={e => setNewSvc(f => ({ ...f, precio: e.target.value }))} /></div>
+                  <div style={{ gridColumn: "1 / -1" }}><label style={labelS}>Descripción (Opcional)</label><input style={inputS} value={newSvc.desc} onChange={e => setNewSvc(f => ({ ...f, desc: e.target.value }))} placeholder="Descripción breve del servicio" /></div>
+                </div>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button style={btnCancel} onClick={() => setShowNew(false)}>Cancelar</button>
+                  <button style={{...btnGreen, opacity: newSvc.nombre ? 1 : 0.5}} disabled={!newSvc.nombre} onClick={addSvc}>Guardar Servicio</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ ...cardS, padding: 0, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
-                    <th style={{ ...thS, textAlign: "left", width: "35%" }}>Nombre</th>
-                    <th style={{ ...thS, textAlign: "center", width: "22.5%" }}>Duración</th>
-                    <th style={{ ...thS, textAlign: "center", width: "22.5%" }}>Precio</th>
-                    <th style={{ ...thS, textAlign: "right", width: "20%" }}></th>
+                    <th style={thS}>Nombre</th>
+                    <th style={{ ...thS, textAlign: "center" }}>Duración</th>
+                    <th style={{ ...thS, textAlign: "center" }}>Precio</th>
+                    <th style={{ ...thS, textAlign: "right" }}>Acciones</th>
                   </tr>
                 </thead>
-                <tbody>{displaySvc.map(s => (
-                  <tr key={s.id}>
-                    <td style={{...tdS, fontWeight: 700, textAlign: "left"}}>{s.nombre}</td>
-                    <td style={{...tdS, textAlign: "center"}}>{s.duracionMin} min</td>
-                    <td style={{...tdS, textAlign: "center", color: "#10b981", fontWeight: 700}}>{s.precio} €</td>
-                    <td style={{...tdS, textAlign: "right"}}>
-                      <div style={{display:"flex", gap:8, justifyContent:"flex-end"}}>
-                        <button style={{...btnSquareBase, background: "#e0e7ff", color: "#4f46e5"}} onClick={() => setEditSvc({...s})}>✏️</button>
-                        <button style={{...btnSquareBase, background: "#fee2e2", color: "#ef4444"}} onClick={() => setItemBorrar({item:s, tipo:"servicio"})}>🗑</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}</tbody>
+                <tbody>
+                  {servicios.map(s => (
+                    <tr key={s.id} style={{ transition: "0.2s" }}>
+                      {editSvc?.id === s.id ? (
+                        <>
+                          <td style={tdS}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
+                          <td style={{ ...tdS, textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                              <button style={{...btnGreen, padding: "6px 12px"}} onClick={guardarSvc}>✓</button>
+                              <button style={btnCancel} onClick={() => setEditSvc(null)}>✕</button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#1e293b" }}>{s.nombre}</td>
+                          <td style={{ ...tdS, color: "#64748b", textAlign: "center" }}>{s.duracionMin} min</td>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#10b981", textAlign: "center" }}>{s.precio} €</td>
+                          <td style={{ ...tdS, textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                              <button style={btnSquareEdit} onClick={() => setEditSvc({ ...s })}>✏️</button>
+                              <button style={btnSquareDel} onClick={() => deleteSvc(s.id, s.nombre)}>🗑</button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                  {servicios.length === 0 && <tr><td colSpan="4" style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No hay servicios registrados.</td></tr>}
+                </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* 2. TAB OPINIONES: LISTADO CON ANCHO AMPLIADO Y MÁRGENES DE SEGURIDAD */}
-        {activeTab === "valoraciones" && (() => {
-          const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
-          const btnGreen = { ...btnBlue, background: "#10b981", fontSize: "12px", padding: "10px 20px" };
-          const btnSquareBase = { border: "none", borderRadius: "6px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
-          const labelSmall = { fontSize: "10px", fontWeight: "800", color: "#64748b", display: "block", textTransform: "uppercase" };
-          const inputSmall = { width: "100%", padding: "8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px" };
-          
-          const handleAddVal = async () => {
-            if (!newVal.nombre || !newVal.comentario || !newVal.servicio) {
-              alert("Por favor, rellena todos los campos.");
-              return;
-            }
-            const nueva = { ...newVal, id: Date.now().toString() };
-            window._nuevosVal.push(nueva);
-            setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
-            setShowNewVal(false);
-            forceRender();
-            try { await guardarValoracionFB(nueva); } catch (e) { console.error(e); }
-          };
-
-          return (
-            <div className="anim">
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
-                <button style={btnBlue} onClick={() => setShowNewVal(!showNewVal)}>
-                  {showNewVal ? "✕ Cancelar" : "+ Añadir Opinión"}
-                </button>
-              </div>
-
-              {/* FORMULARIO COMPACTO (INTACTO) */}
-              {showNewVal && (
-                <div style={{ background: "#fff", borderRadius: "12px", padding: "16px", marginBottom: "20px", border: "1px solid #93c5fd", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1.2fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                    <div>
-                      <label style={labelSmall}>CLIENTE</label>
-                      <input style={{...inputSmall, marginTop: "4px"}} value={newVal.nombre} onChange={e => setNewVal({...newVal, nombre: e.target.value})} placeholder="Nombre..." />
-                    </div>
-                    
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "center" }}>
-                      <label style={labelSmall}>VALORACIÓN</label>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-                        {[1, 2, 3, 4, 5].map(num => (
-                          <span 
-                            key={num} 
-                            onClick={() => setNewVal({...newVal, estrellas: num})}
-                            style={{ fontSize: "26px", cursor: "pointer", color: num <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", lineHeight: 1 }}
-                          >
-                            ★
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={labelSmall}>SERVICIO</label>
-                      <select style={{...inputSmall, marginTop: "4px"}} value={newVal.servicio} onChange={e => setNewVal({...newVal, servicio: e.target.value})}>
-                        <option value="">Elegir servicio...</option>
-                        {displaySvc.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginBottom: "12px" }}>
-                    <label style={labelSmall}>COMENTARIO</label>
-                    <textarea style={{ ...inputSmall, minHeight: "60px", marginTop: "4px" }} value={newVal.comentario} onChange={e => setNewVal({...newVal, comentario: e.target.value})} placeholder="Opinión del cliente..." />
-                  </div>
-                  <button style={btnGreen} onClick={handleAddVal}>
-                    Guardar Opinión
-                  </button>
-                </div>
-              )}
-
-              {/* LISTADO CORREGIDO: ANCHO 650px Y TEXTO CONTROLADO */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
-                {displayVal.map(v => (
-                  <div key={v.id} style={{ 
-                    background: "#fff", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0", 
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)", overflowX: "auto", width: "100%", position: "relative"
-                  }}>
-                    {/* Subimos a 650px para evitar solapamientos */}
-                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", width: isMobile ? "650px" : "100%", boxSizing: "border-box", position: "relative" }}>
-                      
-                      {/* IZQUIERDA: CLIENTE (150px) */}
-                      <div style={{ width: "150px", flexShrink: 0, textAlign: "left", zIndex: 2 }}>
-                        <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "14px" }}>{v.nombre}</div>
-                        <div style={{ display: "flex", color: "#F59E0B", margin: "2px 0" }}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span key={i} style={{ fontSize: "12px" }}>{i < v.estrellas ? "★" : "☆"}</span>
-                          ))}
-                        </div>
-                        <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "600" }}>{v.servicio}</div>
-                      </div>
-
-                      {/* CENTRO: TEXTO CON MARGEN DE SEGURIDAD */}
-                      <div style={{ 
-                        position: isMobile ? "relative" : "absolute", 
-                        left: 0, right: 0, textAlign: "center", 
-                        pointerEvents: "none",
-                        display: "flex", justifyContent: "center"
-                      }}>
-                        <p style={{ 
-                          fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", 
-                          // Reducimos el maxWidth para que no se acerque a los bordes
-                          maxWidth: isMobile ? "280px" : "450px", 
-                          pointerEvents: "auto",
-                          lineHeight: "1.4"
-                        }}>
-                          "{v.comentario}"
-                        </p>
-                      </div>
-
-                      <div style={{ flex: 1 }}></div>
-
-                      {/* DERECHA: ACCIONES (120px) */}
-                      <div style={{ width: "120px", flexShrink: 0, display: "flex", gap: "8px", justifyContent: "flex-end", zIndex: 2 }}>
-                        <button style={{ ...btnSquareBase, background: "#e0e7ff", color: "#4f46e5" }} onClick={() => setEditVal({...v})}>✏️</button>
-                        <button style={{ ...btnSquareBase, background: "#fee2e2", color: "#ef4444" }} onClick={() => setItemBorrar({item:v, tipo:"opinión"})} >🗑</button>
-                      </div>
-
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 2: VALORACIONES */}
+        {configSubTab === "valoraciones" && (
+          <div className="anim">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Opiniones visibles en la página web</div>
+              <button style={btnBlue} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
             </div>
-          );
-        })()}
 
+            {showNewVal && (
+              <div style={{ ...cardS, border: "1px solid #93c5fd", background: "#f8fafc" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "12px" }}>
+                  <div><label style={labelS}>Nombre del cliente</label><input style={inputS} value={newVal.nombre} onChange={e => setNewVal(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Laura M." /></div>
+                  <div>
+                    <label style={labelS}>Servicio realizado</label>
+                    <select style={inputS} value={newVal.servicio} onChange={e => setNewVal(f => ({ ...f, servicio: e.target.value }))}>
+                      <option value="">Seleccionar servicio...</option>
+                      {servicios.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={labelS}>Valoración</label>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={labelS}>Comentario</label>
+                  <textarea value={newVal.comentario} onChange={e => setNewVal(f => ({ ...f, comentario: e.target.value }))} placeholder="Escribe aquí la opinión del cliente..." style={{ ...inputS, minHeight: "90px", resize: "vertical", fontFamily: "inherit" }} />
+                </div>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button style={btnCancel} onClick={() => setShowNewVal(false)}>Cancelar</button>
+                  <button style={{...btnGreen, opacity: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? 0.5 : 1, cursor: (!newVal.nombre || !newVal.servicio || !newVal.comentario) ? "not-allowed" : "pointer"}} onClick={addVal}>Guardar Opinión</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+              {valoraciones.map(v => (
+                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0 }}>
+                  {editVal?.id === v.id ? (
+                    <div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                        <div><label style={labelS}>Nombre</label><input style={inputS} value={editVal.nombre} onChange={e => setEditVal(f => ({ ...f, nombre: e.target.value }))} /></div>
+                        <div>
+                          <label style={labelS}>Servicio</label>
+                          <select style={inputS} value={editVal.servicio} onChange={e => setEditVal(f => ({ ...f, servicio: e.target.value }))}>
+                            <option value="">Seleccionar...</option>
+                            {servicios.map(s => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: "12px" }}>
+                        <label style={labelS}>Valoración</label>
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "24px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={editVal.comentario} onChange={e => setEditVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "80px", resize: "vertical", fontFamily: "inherit" }} /></div>
+                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                        <button style={btnCancel} onClick={() => setEditVal(null)}>Cancelar</button>
+                        <button style={btnGreen} onClick={saveEdit}>Guardar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "44px" }}>
+                      
+                      {/* IZQUIERDA: Nombre, estrellas y servicio (En línea) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "30%", flexShrink: 0 }}>
+                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+                        <div style={{ display: "flex", gap: "2px" }}>
+                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "14px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                        </div>
+                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                      </div>
+
+                      {/* CENTRO: Comentario */}
+                      <div style={{ flex: 1, textAlign: "center", padding: "0 16px" }}>
+                        <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                      </div>
+
+                      {/* DERECHA: Botones */}
+                      <div style={{ display: "flex", gap: "8px", width: "30%", flexShrink: 0, justifyContent: "flex-end" }}>
+                        <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
+                        <button style={btnSquareDel} onClick={async () => { setValoraciones(p => p.filter(x => x.id !== v.id)); await borrarValoracionFB(v); }}>🗑</button>
+                      </div>
+                      
+                    </div>
+                  )}
+                </div>
+              ))}
+              {valoraciones.length === 0 && <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", fontSize: "14px", background: "#fff", borderRadius: "12px", border: "1px dashed #cbd5e1" }}>No hay opiniones registradas.</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
-        {activeTab === "horarios" && (
-          <div className="anim" style={{ 
-            display: "grid", 
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(340px, 1fr))", 
-            gap: "24px", 
-            alignItems: "start" 
-          }}>
+        {configSubTab === "horarios" && (
+          <div className="anim" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5%", alignItems: "start" }}>
             {CONFIG.peluqueros.map(p => (
-              <div key={p.id} style={{ ...cardS, padding: 0, overflowX: "auto", width: "100%", marginBottom: 0 }}>
+              <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
+                
+                {/* CABECERA DEL PELUQUERO */}
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
                   <img src={p.foto} alt="" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${p.color}` }} />
                   <span style={{ fontSize: "15px", fontWeight: "800", color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{p.nombre}</span>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? "300px" : "100%" }}>
+
+                {/* TABLA DE HORARIOS ALINEADA */}
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       <th style={{ ...thS, textAlign: "left", paddingLeft: "20px" }}>Día</th>
@@ -4173,13 +4211,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       const h = p.horario[d];
                       return (
                         <tr key={d} style={{ transition: "0.2s" }}>
-                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{isMobile ? DIAS_FULL[d].substring(0,3) : DIAS_FULL[d]}</td>
-                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
-                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "800" : "400", color: h ? "#0f172a" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
-                          {/* AÑADIDO whiteSpace: "nowrap" para prohibir que el horario se parta en dos líneas */}
-                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", fontSize: "11px", whiteSpace: "nowrap" }}>
-                            {h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}
-                          </td>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{DIAS_FULL[d]}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8" }}>{h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}</td>
                         </tr>
                       );
                     })}
@@ -4187,26 +4222,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </table>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* TOASTS Y MODALES */}
-        {(window._showToastSvc || window._showToastVal) && (
-          <div style={toastStyle}>
-            <span>Eliminado</span>
-            <button style={{background: "none", border: "none", color: "#38bdf8", fontWeight: 800}} onClick={() => { window._ocultosSvc = []; window._ocultosVal = []; forceRender(); }}>DESHACER</button>
-          </div>
-        )}
-
-        {itemBorrar && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ background: "#fff", borderRadius: 12, padding: 24, textAlign: "center", maxWidth: 300 }}>
-              <p>¿Borrar elemento?</p>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button style={{background: "#f1f5f9", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={() => setItemBorrar(null)}>No</button>
-                <button style={{background: "#ef4444", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8}} onClick={confirmarEliminacion}>Sí</button>
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -4394,13 +4409,16 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         height: TAB_ST.alturaTotal, 
         background: WH,
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: isMobile ? "flex-start" : "space-between",
         alignItems: "center",
         borderBottom: `1px solid ${CR3}`,
         boxShadow: "0 4px 10px rgba(0,0,0,0.03)",
         zIndex: 1990,
         padding: `0 ${TAB_ST.espacioLateralPantalla}`, 
-        overflowX: "auto"
+        overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
+        msOverflowStyle: "none"
       }}>
         {tabs.map(([id, imgUrl, label]) => (
           <div 
