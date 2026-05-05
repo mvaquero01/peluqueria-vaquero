@@ -4428,16 +4428,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center", // Centra el contenido en base a tus variables
+              justifyContent: "center",
               gap: TAB_ST.separacionImagenTexto,
               cursor: "pointer",
-              minWidth: TAB_ST.anchoMinimoBoton, 
+              minWidth: isMobile ? "70px" : TAB_ST.anchoMinimoBoton,
+              flexShrink: 0,
               height: "100%",
               paddingTop: TAB_ST.distanciaTecho,
               paddingBottom: TAB_ST.distanciaSuelo,
               paddingLeft: TAB_ST.espacioLateralBoton,
               paddingRight: TAB_ST.espacioLateralBoton,
-              boxSizing: "border-box", // Evita que los paddings rompan el diseño
+              boxSizing: "border-box",
               borderBottom: tab === id ? `3px solid ${A}` : "3px solid transparent",
               color: tab === id ? A : TX2,
               transition: "all 0.2s ease"
@@ -4461,7 +4462,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       {/* CUERPO CENTRAL DEL PANEL */}
       <div className="admin-body" style={{...as.body, margin:"0 auto"}}>
         {tab==="citas"&&<TabCitas/>}
-        {tab==="clientes"&&<TabClientes/>}
+        {tab==="clientes"&&<TabClientes isMobile={isMobile}/>}
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
         {tab==="disponibilidad"&&<TabDisponibilidad/>}
