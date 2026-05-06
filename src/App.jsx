@@ -4157,28 +4157,30 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "44px" }}>
-                      
-                      {/* IZQUIERDA: Nombre, estrellas y servicio (En línea) */}
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "30%", flexShrink: 0 }}>
-                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-                        <div style={{ display: "flex", gap: "2px" }}>
-                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "14px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "44px", minWidth: isMobile ? "600px" : "auto" }}>
+                        
+                        {/* IZQUIERDA: Nombre, estrellas y servicio */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "220px", flexShrink: 0 }}>
+                          <span style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", whiteSpace: "nowrap" }}>{v.nombre}</span>
+                          <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
+                            {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "14px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                          </div>
+                          <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>{v.servicio}</span>
                         </div>
-                        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
-                      </div>
 
-                      {/* CENTRO: Comentario */}
-                      <div style={{ flex: 1, textAlign: "center", padding: "0 16px" }}>
-                        <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
-                      </div>
+                        {/* CENTRO: Comentario */}
+                        <div style={{ flex: 1, textAlign: "center", padding: "0 16px", minWidth: "200px" }}>
+                          <p style={{ fontSize: "14px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>"{v.comentario}"</p>
+                        </div>
 
-                      {/* DERECHA: Botones */}
-                      <div style={{ display: "flex", gap: "8px", width: "30%", flexShrink: 0, justifyContent: "flex-end" }}>
-                        <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
-                        <button style={btnSquareDel} onClick={async () => { setValoraciones(p => p.filter(x => x.id !== v.id)); await borrarValoracionFB(v); }}>🗑</button>
+                        {/* DERECHA: Botones */}
+                        <div style={{ display: "flex", gap: "8px", flexShrink: 0, justifyContent: "flex-end" }}>
+                          <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
+                          <button style={btnSquareDel} onClick={async () => { setValoraciones(p => p.filter(x => x.id !== v.id)); await borrarValoracionFB(v); }}>🗑</button>
+                        </div>
+                        
                       </div>
-                      
                     </div>
                   )}
                 </div>
