@@ -3564,7 +3564,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   // ──────────────────────
   // TAB DISPONIBILIDAD (CIERRES Y AUSENCIAS)
   // ──────────────────────
-  const TabDisponibilidad = () => {
+  const TabDisponibilidad = ({ isMobile }) => {
     const [showFF, setShowFF] = useState(false);
     const [showBF, setShowBF] = useState(false);
     
@@ -3641,7 +3641,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
     // --- ESTILOS DE DISTRIBUCIÓN ---
     const containerStyle = {
-      display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10%",                   
+      display: "grid", 
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
+      gap: isMobile ? "20px" : "10%",                   
       maxWidth: "90%", margin: "20px auto", padding: "0 20px", alignItems: "start"
     };
     const colStyle = { background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" };
@@ -4465,7 +4467,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {tab==="clientes"&&<TabClientes isMobile={isMobile}/>}
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
-        {tab==="disponibilidad"&&<TabDisponibilidad/>}
+        {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile}/>}
         {tab==="config"&&<TabConfig/>}
         {tab==="comunicacion"&&<TabComunicacion/>}
       </div>
