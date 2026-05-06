@@ -4131,7 +4131,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
               {valoraciones.map(v => (
-                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0 }}>
+                <div key={v.id} style={{ ...cardS, padding: "12px 16px", marginBottom: 0, overflow: "visible" }}>
                   {editVal?.id === v.id ? (
                     <div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
@@ -4157,7 +4157,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                     </div>
                   ) : (
-                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", marginLeft: "-12px", marginRight: "-12px", paddingLeft: "12px", paddingRight: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "44px", minWidth: isMobile ? "600px" : "auto" }}>
                         
                         {/* IZQUIERDA: Nombre, estrellas y servicio */}
