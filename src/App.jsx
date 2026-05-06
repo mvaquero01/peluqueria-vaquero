@@ -3926,7 +3926,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 // ──────────────────────
   // TAB CONFIG (OPINIONES EN FILA HORIZONTAL)
   // ──────────────────────
-  const TabConfig = () => {
+  const TabConfig = ({ valoraciones, setValoraciones, servicios, setServicios, isMobile }) => {
     const [editSvc, setEditSvc] = useState(null);
     const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
     const [showNew, setShowNew] = useState(false);
@@ -3964,19 +3964,22 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
     // --- FUNCIONES VALORACIONES ---
     const addVal = async () => {
-      if (!newVal.nombre || !newVal.comentario || !newVal.servicio) return; 
-      const nueva = { ...newVal, id: Date.now() };
-      setValoraciones(p => [...p, nueva]);
-      await guardarValoracionFB(nueva);
-      setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
-      setShowNewVal(false);
+      if (!newVal.nombre || !newVal.comentario) return; 
+      try {
+        const nueva = { ...newVal, id: Date.now() };
+        await guardarValoracionFB(nueva);
+        setNewVal({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
+        setShowNewVal(false);
+      } catch(e) { console.error("Error guardando valoración:", e); }
     };
 
     const saveEdit = async () => {
-      if (!editVal || !editVal.nombre || !editVal.comentario || !editVal.servicio) return;
-      setValoraciones(p => p.map(v => v.id === editVal.id ? editVal : v));
-      await guardarValoracionFB(editVal);
-      setEditVal(null);
+      if (!editVal || !editVal.nombre || !editVal.comentario) return;
+      try {
+        setValoraciones(p => p.map(v => v.id === editVal.id ? editVal : v));
+        await guardarValoracionFB(editVal);
+        setEditVal(null);
+      } catch(e) { console.error("Error guardando valoración:", e); }
     };
 
     // --- ESTILOS REUTILIZABLES ---
@@ -4188,7 +4191,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
         {configSubTab === "horarios" && (
-          <div className="anim" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5%", alignItems: "start" }}>
+          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "5%", alignItems: "start" }}>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
                 
@@ -4468,7 +4471,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
         {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile}/>}
-        {tab==="config"&&<TabConfig/>}
+        {tab==="config"&&<TabConfig valoraciones={valoraciones} setValoraciones={setValoraciones} servicios={servicios} setServicios={setServicios} isMobile={isMobile}/>}
         {tab==="comunicacion"&&<TabComunicacion/>}
       </div>
 
@@ -4545,7 +4548,7 @@ function AppData(){
   );
 
   // ESTE ES EL FINAL DE TU FUNCIÓN AppData
-  const sharedProps = { valoraciones, citas, festivos, bloqueos, servicios, sliderRef, isMobile, scrollSlider };
+  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, sliderRef, isMobile, scrollSlider };
 
   return (
     <Routes>
