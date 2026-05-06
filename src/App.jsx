@@ -4191,7 +4191,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
         {configSubTab === "horarios" && (
-          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "5%", alignItems: "start" }}>
+          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "5%", alignItems: "start", overflowY: "auto" }}>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
                 
