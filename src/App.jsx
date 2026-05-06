@@ -4133,7 +4133,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               {valoraciones.map(v => (
                 <div key={v.id} style={{ ...cardS, padding: "0", marginBottom: 0, overflow: "hidden" }}>
                   {editVal?.id === v.id ? (
-                    <div>
+                    <div style={{ ...cardS, border: "1px solid #93c5fd", background: "#f8fafc", margin: 0 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div><label style={labelS}>Nombre</label><input style={inputS} value={editVal.nombre} onChange={e => setEditVal(f => ({ ...f, nombre: e.target.value }))} /></div>
                         <div>
@@ -4161,7 +4161,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: isMobile ? "550px" : "auto" }}>
                         
                         {/* IZQUIERDA: Nombre, estrellas, servicio en columna */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "140px", flexShrink: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "140px", flexShrink: 0, alignItems: "flex-start" }}>
                           <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                           <div style={{ display: "flex", gap: "2px" }}>
                             {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
@@ -4175,7 +4175,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                         </div>
 
                         {/* DERECHA: Botones */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0, marginRight: isMobile ? "8px" : "0" }}>
                           <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
                           <button style={btnSquareDel} onClick={async () => { setValoraciones(p => p.filter(x => x.id !== v.id)); await borrarValoracionFB(v); }}>🗑</button>
                         </div>
