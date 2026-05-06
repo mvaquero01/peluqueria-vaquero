@@ -3644,7 +3644,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       display: "grid", 
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
       gap: isMobile ? "20px" : "10%",                   
-      maxWidth: "90%", margin: "20px auto", padding: "0 20px", alignItems: "start"
+      maxWidth: "90%", margin: "10px auto", padding: "0 20px", alignItems: "start"
     };
     const colStyle = { background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" };
     const btnBlue = { background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", fontWeight: "700", cursor: "pointer" };
