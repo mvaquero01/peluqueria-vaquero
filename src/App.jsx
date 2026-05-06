@@ -285,7 +285,7 @@ const fmtLarga  = d=>`${DIAS_FULL[d.getDay()]} ${d.getDate()} de ${MESES_ES[d.ge
 const haceNSemanas = n=>{ const d=new Date(); d.setDate(d.getDate()-n*7); return isoDate(d); };
 const HOY = new Date(); HOY.setHours(0,0,0,0);
 const HOY_ISO = isoDate(HOY);
-let _citaEliminadaTemp=null, _clienteEliminadoTemp=null;
+let _citaEliminadaTemp=null, _clienteEliminadoTemp=null, _valEliminadaTemp=null;
 
 function levenshtein(a,b){
   const m=a.length,n=b.length;
@@ -2484,6 +2484,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
   const [toastVisible,setToastVisible]=useState(false);
   const [toastTimer,setToastTimer]=useState(null);
+  const [toastValVisible, setToastValVisible] = useState(false);
+  const [toastValTimer, setToastValTimer] = useState(null);
   const [toastClienteVisible,setToastClienteVisible]=useState(false);
   const [toastClienteTimer,setToastClienteTimer]=useState(null);
   const [clienteSel,setClienteSel]=useState(null);
@@ -3926,7 +3928,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 // ──────────────────────
   // TAB CONFIG (OPINIONES EN FILA HORIZONTAL)
   // ──────────────────────
-  const TabConfig = ({ valoraciones, setValoraciones, servicios, setServicios, isMobile }) => {
+  const TabConfig = ({ valoraciones, setValoraciones, servicios, setServicios, isMobile, onValEliminada }) => {
+    const [valBorrar, setValBorrar] = useState(null);
     const [editSvc, setEditSvc] = useState(null);
     const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
     const [showNew, setShowNew] = useState(false);
@@ -4158,7 +4161,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                     </div>
                   ) : (
                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: isMobile ? "550px" : "auto" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: isMobile ? "550px" : "auto", position: "relative" }}>
                         
                         {/* IZQUIERDA: Nombre, estrellas, servicio en columna */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "140px", flexShrink: 0, alignItems: "flex-start" }}>
@@ -4170,14 +4173,15 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                         </div>
 
                         {/* CENTRO: Comentario */}
-                        <div style={{ flex: 1 }}>
+                        <div style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
                           <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
                         </div>
+                        <div style={{ flex: 1 }} />
 
                         {/* DERECHA: Botones */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0, marginRight: isMobile ? "8px" : "0" }}>
                           <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
-                          <button style={btnSquareDel} onClick={async () => { setValoraciones(p => p.filter(x => x.id !== v.id)); await borrarValoracionFB(v); }}>🗑</button>
+                          <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
                         </div>
                         
                       </div>
@@ -4229,6 +4233,25 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </table>
               </div>
             ))}
+          </div>
+        )}
+        {valBorrar && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:"#fff",borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:16}}>🗑</div>
+              <h3 style={{fontSize:17,fontWeight:700,color:"#0D1F35",marginBottom:8}}>¿Eliminar esta opinión?</h3>
+              <p style={{fontSize:13,color:"#4A6080",marginBottom:24}}>{valBorrar.nombre} — "{valBorrar.comentario}"</p>
+              <div style={{display:"flex",gap:10}}>
+                <button style={{flex:1,background:"#E0E8F2",border:"1px solid #CED9E8",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={() => setValBorrar(null)}>Cancelar</button>
+                <button style={{flex:1,background:"linear-gradient(135deg,#dc2626,#b91c1c)",color:"#fff",border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={async () => {
+                  const copia = {...valBorrar};
+                  setValoraciones(p => p.filter(x => x.id !== valBorrar.id));
+                  await borrarValoracionFB(valBorrar);
+                  setValBorrar(null);
+                  onValEliminada(copia);
+                }}>Eliminar</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -4473,7 +4496,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
         {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile}/>}
-        {tab==="config"&&<TabConfig valoraciones={valoraciones} setValoraciones={setValoraciones} servicios={servicios} setServicios={setServicios} isMobile={isMobile}/>}
+        {tab==="config"&&<TabConfig valoraciones={valoraciones} setValoraciones={setValoraciones} servicios={servicios} setServicios={setServicios} isMobile={isMobile} onValEliminada={(val)=>{ _valEliminadaTemp=val; setToastValVisible(true); if(toastValTimer)clearTimeout(toastValTimer); const t=setTimeout(()=>{setToastValVisible(false);_valEliminadaTemp=null;},6000); setToastValTimer(t); }}/>}
         {tab==="comunicacion"&&<TabComunicacion/>}
       </div>
 
@@ -4488,6 +4511,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
           <span>🗑 Cliente eliminado</span>
           <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_clienteEliminadoTemp)return; const{id,...resto}=_clienteEliminadoTemp; await addDoc(collection(db,"clientes"),resto); _clienteEliminadoTemp=null; setToastClienteVisible(false); if(toastClienteTimer)clearTimeout(toastClienteTimer); }}>Deshacer</button>
+        </div>
+      )}
+      {toastValVisible&&(
+        <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
+          <span>🗑 Opinión eliminada</span>
+          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_valEliminadaTemp)return; await guardarValoracionFB(_valEliminadaTemp); _valEliminadaTemp=null; setToastValVisible(false); if(toastValTimer)clearTimeout(toastValTimer); }}>Deshacer</button>
         </div>
       )}
     </div>
