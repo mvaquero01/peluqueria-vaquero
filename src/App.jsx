@@ -413,7 +413,7 @@ async function borrarCita(id){
   if(citaSnap.exists()){
     const cita=citaSnap.data();
     if(cita.clienteTel){
-      const q=query(collection(db,"clientes_citas")||collection(db,"citas"),where("clienteTel","==",cita.clienteTel));
+      const q=query(collection(db,"citas"),where("clienteTel","==",cita.clienteTel));
       const todasCitas=await getDocs(q);
       const otrasCitas=todasCitas.docs.filter(d=>d.id!==id);
       if(otrasCitas.length===0){
@@ -427,6 +427,7 @@ async function borrarCita(id){
           }
         }
       } else {
+        console.log("Estado de la cita a borrar:", cita.estado, "clienteTel:", cita.clienteTel);
         if(cita.estado==="completada"){
           const docId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
           const clienteRef=doc(db,"clientes",docId);
@@ -2706,7 +2707,27 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     };
 
     const mostrarToast=cita=>{ _citaEliminadaTemp=cita; setToastVisible(true); if(toastTimer)clearTimeout(toastTimer); const t=setTimeout(()=>{setToastVisible(false);_citaEliminadaTemp=null;},6000); setToastTimer(t); };
-    const confirmarBorrado=async()=>{ const cita={...citaBorrar}; await borrarCita(cita.id); setCitaBorrar(null); mostrarToast(cita); };
+    const confirmarBorrado=async()=>{ 
+      const cita={...citaBorrar}; 
+      await borrarCita(cita.id); 
+      if(cita.clienteTel && cita.estado==="completada"){
+        const docId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
+        const ref=doc(db,"clientes",docId);
+        const snap=await getDoc(ref);
+        if(snap.exists()){
+          const cl=snap.data();
+          const nuevoHistorial=(cl.historial||[]).filter(h=>!(h.fecha===cita.fecha&&h.servicio===cita.servicio&&h.peluquero===cita.peluquero));
+          await updateDoc(ref,{
+            visitas:Math.max((cl.visitas||0)-1,0),
+            gasto:Math.max((cl.gasto||0)-cita.precio,0),
+            ultimaVisita:nuevoHistorial.length>0?nuevoHistorial[nuevoHistorial.length-1].fecha:"",
+            historial:nuevoHistorial
+          });
+        }
+      }
+      setCitaBorrar(null); 
+      mostrarToast(cita); 
+    };
 
     // Actualizar Método de Pago con un clic (Permite pasar null para deseleccionar)
     const cambiarMetodoPago = async (id, metodo) => {
@@ -2801,7 +2822,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
 
         {menuAbierto===c.id&&(
-          <div style={{position:"absolute",right:"45px",top:"50%",transform:"translateY(-50%)",background:WH,border:`1px solid ${CR3}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:50,minWidth:140,overflow:"hidden"}}>
+          <div style={{position:"fixed",right:"80px",background:WH,border:`1px solid ${CR3}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:9999,minWidth:140,overflow:"hidden"}}>
             <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar cita</button>
             <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
           </div>
@@ -2903,7 +2924,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 {hayFiltros&&<button style={{background:ER+"15",border:`1px solid ${ER}33`,borderRadius:8,padding:"7px 10px",fontSize:11,fontWeight:700,cursor:"pointer",color:ER}} onClick={()=>{busqCitaRef.current="";localBusqRef.current="";forceUpdate(n=>n+1);setFiltFecha("hoy");setFiltDesde("");setFiltHasta("");setFiltPel("todas");setFiltEstado("todos");setMostrarBuscador(false);}}>✕</button>}
               </div>
 
-              {(mostrarBuscador||hayFiltros)&&(
+              {mostrarBuscador&&(
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:10,alignItems:"end",width:"100%", marginTop: "10px"}}>
                   <div>
                     <Lbl>Filtrar por Fecha</Lbl>
@@ -3096,7 +3117,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   // ──────────────────────
 // TAB CLIENTES (Versión Corregida con Márgenes para Móvil)
   // ────────────────────────────────────────────────────────
-  const TabClientes = ({ isMobile }) => {
+  const TabClientes = ({ isMobile, onClienteEliminado }) => {
     // Memoria persistente para el buscador y filtros
     const [busq, setBusq] = useState(() => window._busqCache || "");
     const [clienteBorrar, setClienteBorrar] = useState(null);
@@ -3214,7 +3235,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <div style={{ ...as.card, boxSizing: "border-box", width: "100%", padding: isMobile ? "16px" : "20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: TX }}>{clienteSel.nombre}</div>
-                  <button style={{ background: ER + "15", border: `1px solid ${ER}33`, color: ER, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }} onClick={() => setClienteBorrar(clienteSel)}>🗑</button>
+                  <button style={{ background: ER + "15", border: `1px solid ${ER}33`, color: ER, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }} onClick={() => setClienteBorrar(clienteSel)}>Eliminar cliente</button>
                 </div>
                 <div style={{ fontSize: 12, color: TX2, marginBottom: 14 }}>📞 {clienteSel.telefono}</div>
                 
@@ -3285,23 +3306,20 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
         {/* MODAL DE ELIMINACIÓN */}
         {clienteBorrar && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, boxSizing: "border-box" }}>
-            <div style={{ background: WH, borderRadius: 18, padding: "30px", width: "100%", maxWidth: 350, textAlign: "center", boxSizing: "border-box" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: TX, marginBottom: 8 }}>¿Eliminar cliente?</div>
-              <div style={{ fontSize: 13, color: TX2, marginBottom: 24 }}>Esta acción no se puede deshacer. Se borrará el historial de <b>{clienteBorrar.nombre}</b>.</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <Btn ok={false} style={{ flex: 1 }} onClick={() => setClienteBorrar(null)}>Volver</Btn>
-                <button 
-                  style={{ flex: 1, background: ER, color: WH, border: "none", borderRadius: 11, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
-                  onClick={async () => {
-                    if (clienteSel?.id === clienteBorrar.id) setClienteSel(null);
-                    await deleteDoc(doc(db, "clientes", clienteBorrar.id));
-                    setClienteBorrar(null);
-                  }}
-                >
-                  Eliminar
-                </button>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:WH,borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:16}}>🗑</div>
+              <h3 style={{fontSize:17,fontWeight:700,color:TX,marginBottom:8}}>¿Eliminar este cliente?</h3>
+              <p style={{fontSize:13,color:TX2,marginBottom:24}}>Se borrará el historial de <b>{clienteBorrar.nombre}</b>.</p>
+              <div style={{display:"flex",gap:10}}>
+                <Btn ok={false} style={{flex:1}} onClick={() => setClienteBorrar(null)}>Cancelar</Btn>
+                <button style={{flex:1,background:`linear-gradient(135deg,${ER},#b91c1c)`,color:WH,border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={async () => {
+                  const copia = {...clienteBorrar};
+                  if(clienteSel?.id === clienteBorrar.id) setClienteSel(null);
+                  await deleteDoc(doc(db,"clientes",clienteBorrar.id));
+                  setClienteBorrar(null);
+                  onClienteEliminado(copia);
+                }}>Eliminar</button>
               </div>
             </div>
           </div>
@@ -4197,7 +4215,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
         {configSubTab === "horarios" && (
-          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "5%", alignItems: "start" }}>
+          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? "10px" : "2%", alignItems: "start" }}>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
                 
@@ -4492,7 +4510,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       {/* CUERPO CENTRAL DEL PANEL */}
       <div className="admin-body" style={{...as.body, margin:"0 auto"}}>
         {tab==="citas"&&<TabCitas/>}
-        {tab==="clientes"&&<TabClientes isMobile={isMobile}/>}
+        {tab==="clientes"&&<TabClientes isMobile={isMobile} onClienteEliminado={(cliente)=>{ _clienteEliminadoTemp=cliente; setToastClienteVisible(true); if(toastClienteTimer)clearTimeout(toastClienteTimer); const t=setTimeout(()=>{setToastClienteVisible(false);_clienteEliminadoTemp=null;},6000); setToastClienteTimer(t); }}/>}
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
         {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile}/>}
@@ -4504,13 +4522,34 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       {toastVisible&&(
         <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
           <span>🗑 Cita eliminada</span>
-          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_citaEliminadaTemp)return; const{id,...resto}=_citaEliminadaTemp; await crearCita(resto); _citaEliminadaTemp=null; setToastVisible(false); if(toastTimer)clearTimeout(toastTimer); }}>Deshacer</button>
+          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ 
+            if(!_citaEliminadaTemp)return; 
+            const{id,...resto}=_citaEliminadaTemp; 
+            await crearCita(resto);
+            if(resto.clienteTel && resto.estado==="completada"){
+              const docId=resto.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+resto.clienteTel;
+              const ref=doc(db,"clientes",docId);
+              const snap=await getDoc(ref);
+              if(snap.exists()){
+                const cl=snap.data();
+                await updateDoc(ref,{
+                  visitas:(cl.visitas||0)+1,
+                  gasto:(cl.gasto||0)+resto.precio,
+                  ultimaVisita:resto.fecha,
+                  historial:[...(cl.historial||[]),{fecha:resto.fecha,servicio:resto.servicio,peluquero:resto.peluquero,precio:resto.precio}]
+                });
+              }
+            }
+            _citaEliminadaTemp=null; 
+            setToastVisible(false); 
+            if(toastTimer)clearTimeout(toastTimer); 
+          }}>Deshacer</button>
         </div>
       )}
       {toastClienteVisible&&(
         <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
           <span>🗑 Cliente eliminado</span>
-          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_clienteEliminadoTemp)return; const{id,...resto}=_clienteEliminadoTemp; await addDoc(collection(db,"clientes"),resto); _clienteEliminadoTemp=null; setToastClienteVisible(false); if(toastClienteTimer)clearTimeout(toastClienteTimer); }}>Deshacer</button>
+          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_clienteEliminadoTemp)return; const{id,...resto}=_clienteEliminadoTemp; const docId=resto.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+resto.telefono; await setDoc(doc(db,"clientes",docId),resto); _clienteEliminadoTemp=null; setToastClienteVisible(false); if(toastClienteTimer)clearTimeout(toastClienteTimer); }}>Deshacer</button>
         </div>
       )}
       {toastValVisible&&(
