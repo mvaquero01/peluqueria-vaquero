@@ -4115,9 +4115,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
                 <div style={{ marginBottom: "16px" }}>
                   <label style={labelS}>Valoración</label>
-                  <div style={{ display: "flex", gap: "6px" }}>
+                  <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
                     {[1, 2, 3, 4, 5].map(i => (
-                      <span key={i} style={{ fontSize: "28px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>
+                      <span key={i} style={{ fontSize: "30px", cursor: "pointer", color: i <= newVal.estrellas ? "#F59E0B" : "#D1D5DB", transition: "0.2s" }} onClick={() => setNewVal(f => ({ ...f, estrellas: i }))}>★</span>
                     ))}
                   </div>
                 </div>
@@ -4149,8 +4149,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                       <div style={{ marginBottom: "12px" }}>
                         <label style={labelS}>Valoración</label>
-                        <div style={{ display: "flex", gap: "4px" }}>
-                          {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "24px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}
+                        <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+                          {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ fontSize: "30px", cursor: "pointer", color: i <= editVal.estrellas ? "#F59E0B" : "#D1D5DB" }} onClick={() => setEditVal(f => ({ ...f, estrellas: i }))}>★</span>)}
                         </div>
                       </div>
                       <div style={{ marginBottom: "16px" }}><label style={labelS}>Comentario</label><textarea value={editVal.comentario} onChange={e => setEditVal(f => ({ ...f, comentario: e.target.value }))} style={{ ...inputS, minHeight: "80px", resize: "vertical", fontFamily: "inherit" }} /></div>
@@ -4197,7 +4197,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 3: HORARIOS */}
         {configSubTab === "horarios" && (
-          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "5%", alignItems: "start", overflowY: "auto" }}>
+          <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "10px" : "5%", alignItems: "start" }}>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
                 
