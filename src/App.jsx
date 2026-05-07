@@ -4290,67 +4290,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     ];
 
     return (
-      <div style={{ width: "100%", margin: "0 auto" }}>
-        
-        {/* BANNER INFORMATIVO */}
-        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "16px 20px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "16px" }}>
-          <span style={{ fontSize: "32px" }}>💬</span>
-          <div>
-            <div style={{ fontSize: "15px", fontWeight: "800", color: "#166534", marginBottom: "4px" }}>Mensajes automáticos por WhatsApp</div>
-            <div style={{ fontSize: "13px", color: "#15803d", lineHeight: "1.4" }}>
-              Actualmente esto es una <b>vista previa</b> de tus comunicaciones. En una futura actualización, conectaremos la API oficial de WhatsApp para que se envíen solos.
-            </div>
-          </div>
-        </div>
-
-        {/* GRID DE MENSAJES */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
-          {msgs.map((m, i) => (
-            <div key={i} style={{ background: "#fff", borderRadius: "12px", padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
-              
-              {/* CABECERA DE LA TARJETA */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ fontSize: "20px", background: "#f8fafc", width: "42px", height: "42px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                    {m.icon}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{m.titulo}</div>
-                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px", fontWeight: "600" }}>Activa: {m.cuando}</div>
-                  </div>
-                </div>
-                <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: "11px", fontWeight: "800", padding: "4px 8px", borderRadius: "20px", textTransform: "uppercase" }}>Activo</span>
-              </div>
-
-              {/* SIMULACIÓN DE CHAT WHATSAPP */}
-              <div style={{ background: "#e5ddd5", padding: "16px", borderRadius: "10px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                 <div style={{ 
-                   background: "#d9fdd3", 
-                   padding: "12px 14px", 
-                   borderRadius: "0px 8px 8px 8px", // Esquina superior izquierda plana (efecto bocadillo)
-                   color: "#111b21", 
-                   fontSize: "13.5px", 
-                   lineHeight: "1.5", 
-                   whiteSpace: "pre-line", 
-                   boxShadow: "0 1px 1px rgba(0,0,0,0.1)", 
-                   position: "relative",
-                   fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif" // Fuente estilo WhatsApp
-                 }}>
-                   {/* Triangulito del bocadillo */}
-                   <div style={{ position: "absolute", top: 0, left: "-8px", width: 0, height: 0, borderTop: "0px solid transparent", borderRight: "8px solid #d9fdd3", borderBottom: "10px solid transparent" }}></div>
-                   
-                   {m.msg}
-                   
-                   {/* Simulación de la hora de envío pequeñita abajo */}
-                   <div style={{ textAlign: "right", fontSize: "10px", color: "#667781", marginTop: "4px", fontWeight: "500" }}>
-                     14:30 ✓✓
-                   </div>
-                 </div>
-              </div>
-
-            </div>
-          ))}
-        </div>
+      <div style={{ width: "100%", margin: "0 auto", textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: "40px", marginBottom: "16px" }}>🚧</div>
+        <div style={{ fontSize: "16px", fontWeight: "700", color: TX, marginBottom: "8px" }}>Próximamente</div>
+        <div style={{ fontSize: "13px", color: TX2 }}>Esta sección está en desarrollo.</div>
       </div>
     );
   };
