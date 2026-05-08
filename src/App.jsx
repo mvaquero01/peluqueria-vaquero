@@ -957,8 +957,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
       color: A, 
       letterSpacing: "6px", 
       textTransform: "uppercase", 
-      marginTop: "10px",    /* Muy poco espacio con la línea de ARRIBA */
-      marginBottom: "30px", /* Espacio con los servicios de ABAJO */
+      marginTop: "0px",    /* Muy poco espacio con la línea de ARRIBA */
+      marginBottom: "0px", /* Espacio con los servicios de ABAJO */
       fontWeight: 900,
       textAlign: "center",
       display: "block"
@@ -1100,7 +1100,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
       </div>
       
-      <div style={{ padding: "0 4% 0px 4%", marginTop: 20, marginBottom: "30px" }}>
+      <div style={{ padding: "0 4% 0px 4%", marginTop: 20, marginBottom: "0px" }}>
         <div style={{background:WH,border:`1px solid ${CR3}`,borderRadius:14,padding:"16px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <span style={{fontSize:14,fontWeight:700,color:TX,letterSpacing:1,textTransform:"uppercase"}}>Horario</span>
@@ -1116,16 +1116,17 @@ function ClientePage({ sharedProps, startPaso=0 }){
           </div>
         </div>
       </div>
+
       
       {/* --- SECCIÓN 2: SERVICIOS EN EL HOME --- */}
       {(() => {
-        const margenSuperiorSeccion = "0.1px"; 
-        const separacionTituloFotos = "10px"; 
+        const margenSuperiorSeccion = "40px"; 
+        const separacionTituloFotos = "40px"; 
         const margenHorizontal = "4%"; 
         const separacionCajas = "20px"; 
         
         return (
-          <div id="servicios" className="reveal" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "60px", backgroundColor: "transparent", width: "100%" }}>
+          <div id="servicios" className="reveal" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "0px", backgroundColor: "transparent", width: "100%" }}>
             
             <div style={{ ...cs.sTitle, marginBottom: separacionTituloFotos, display: "flex", justifyContent: "center", alignItems: "center" }}>
               ✦ Servicios
@@ -1137,7 +1138,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
               justifyContent: "center", 
               gap: separacionCajas, 
               width: "100%", 
-              padding: `20px ${margenHorizontal} 40px ${margenHorizontal}` 
+              padding: `0px ${margenHorizontal} 0px ${margenHorizontal}`
             }}>
               {CONFIG.categorias.map(cat => {
                 const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
@@ -1237,7 +1238,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
-        margin: "0px auto 0px auto", /* 00px de la sección anterior, solo 30px para el siguiente título */
+        margin: "40px auto 40px auto",
         maxWidth: "100%"
       }} />
 
@@ -1288,7 +1289,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "center",
-                  padding: "40px 0", // Padding vertical general
+                  padding: "0px 0",
                   background: WH
                 }}>
 
@@ -1301,7 +1302,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     // 2. Control de las Cajas
                     const cajasDistanciaIzquierda = "0%px"; // Distancia respecto a la foto
                     const cajasDistanciaDerecha = "0%";   // Espacio al final de la pantalla
-                    const separacionEntreCajas = "30px";    // Gap entre ellas
+                    const separacionEntreCajas = "40px";    // Gap entre ellas
                     
                     // 3. Tamaño de las Cajas
                     const anchoCaja = "250px";
@@ -1390,8 +1391,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
-        margin: "0px auto 30px auto", /* 30px de la sección anterior, solo 30px para el siguiente título */
-        maxWidth: "100%"
+        margin: "40px auto 40px auto",
+        maxWidth: "1400px"
       }} />
 
       {/* --- SECCIÓN 3: OPINIONES (Exactamente 3 en PC, 1 en Móvil + Asomo) --- */}
@@ -1403,7 +1404,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
             .carrusel-opiniones { -ms-overflow-style: none; scrollbar-width: none; }
           `}</style>
 
-          <div style={{ marginBottom: "40px", textAlign: "center" }}>
+          <div style={{ marginTop: "0px", marginBottom: "40px", textAlign: "center" }}>
             <div style={{ ...cs.sTitle, marginBottom: 0 }}>✦ Opiniones</div>
           </div>
 
@@ -1414,7 +1415,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
             justifyContent: "center",
             width: "100%",
             maxWidth: "1400px", // Tope para pantallas gigantes
-            margin: "0 auto"
+            margin: "0 auto",
+            marginBottom: "0px",
+            marginTop: "0px"
           }}>
             
             {/* FLECHA IZQUIERDA */}
@@ -1456,11 +1459,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 overflowX: "auto", 
                 scrollSnapType: "x mandatory",
                 scrollBehavior: "smooth",
-                // LA MAGIA: El padding define cuánto asoman. Y el scrollPadding le dice dónde "frenar".
-                padding: isMobile ? "15px 12%" : "15px 8%", 
+                padding: isMobile ? "0px 12%" : "0px 8%", 
                 scrollPadding: isMobile ? "0 12%" : "0 8%", 
                 width: "100%",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                justifyContent: !isMobile && valoraciones.length <= 3 ? "center" : "flex-start"
               }}
             >
               {valoraciones.map(v => (
@@ -1529,7 +1532,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
-        margin: "80px auto 30px auto", /* 80px de la sección anterior, solo 30px para el siguiente título */
+        margin: "40px auto 40px auto", /* 80px de la sección anterior, solo 30px para el siguiente título */
         maxWidth: "1400px"
       }} />
 
@@ -1538,9 +1541,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
         
         <div style={{ width: window.innerWidth > 768 ? "80%" : "100%", margin: "0 auto" }}>
           
-          <div style={cs.sTitle}>✦ Contacto</div>
+          <div style={{ ...cs.sTitle, marginTop: "0px" }}>✦ Contacto</div>
 
-          <div style={{ display: "flex", flexDirection: window.innerWidth > 768 ? "row" : "column", gap: "40px", alignItems: "center", marginTop: "0px" }}>
+          <div style={{ display: "flex", flexDirection: window.innerWidth > 768 ? "row" : "column", gap: "40px", alignItems: "center", marginTop: "40px" }}>
             
             {/* BLOQUE IZQUIERDO: TEXTOS */}
             <div style={{ flex: 1, textAlign: "left" }}>
@@ -1550,18 +1553,18 @@ function ClientePage({ sharedProps, startPaso=0 }){
               <div style={{ marginBottom: 20 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: TX, marginBottom: 8 }}>Contacto</h3>
                 <div style={{ fontSize: 14, color: TX2, lineHeight: "1.6" }}>
-                  <div><strong>Dirección:</strong> Av. Diagonal 647, Barcelona</div>
-                  <div><strong>Teléfono:</strong> <span style={{ color: A, fontWeight: 700 }}>711 212 526</span></div>
-                  <div><strong>Email:</strong> mario.vaquero.ia@gmail.com</div>
+                  <div><strong>Dirección:</strong> {CONFIG.direccion}</div>
+                  <div><strong>Teléfono:</strong> <span style={{ color: A, fontWeight: 700 }}>{CONFIG.telefono}</span></div>
+                  <div><strong>Email:</strong> {CONFIG.email}</div>
                 </div>
               </div>
 
               <div style={{ marginBottom: 30 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: TX, marginBottom: 8 }}>Horario</h3>
                 <div style={{ fontSize: 14, color: TX2, lineHeight: "1.6" }}>
-                  <div>Lunes a Jueves: 9:00 - 20:00</div>
-                  <div>Viernes: 9:00 - 20:30</div>
-                  <div>Sábado: 9:00 - 15:00</div>
+                  {Object.entries(CONFIG.horarioGeneral).map(([d,h])=>(
+                    <div key={d}>{DIAS_FULL[Number(d)]}: {h.apertura} - {h.cierre}</div>
+                  ))}
                 </div>
               </div>
 
@@ -1572,7 +1575,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
 
                 {/* BOTÓN INSTAGRAM (SIN ERRORES VISUALES) */}
-                <a href="https://www.instagram.com/_mvaquero01" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "45px", height: "45px", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", borderRadius: "8px", textDecoration: "none", flexShrink: 0, cursor: "pointer", transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility: "hidden", willChange: "transform", transform: "scale(1)", transformStyle: "preserve-3d" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+                <a href={CONFIG.instagram} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "45px", height: "45px", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", borderRadius: "8px", textDecoration: "none", flexShrink: 0, cursor: "pointer", transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility: "hidden", willChange: "transform", transform: "scale(1)", transformStyle: "preserve-3d" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: "27px", height: "27px", pointerEvents: "none", display: "block" }}>
                     <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
                     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
@@ -1584,16 +1587,16 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
             {/* BLOQUE DERECHO: MAPA */}
             <div style={{ flex: 1, width: "100%" }}>
-              <div style={{ width: "100%", height: "380px", borderRadius: 13, overflow: "hidden", border: `1px solid ${CR3}`, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+              <div style={{ width: "100%", height: "400px", borderRadius: 13, overflow: "hidden", border: `1px solid ${CR3}`, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2992.8341995404413!2d2.1093153765879717!3d41.38851419588691!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12a4986488730951%3A0x6a0c56f8f5539599!2sAv.%20Diagonal%2C%20647%2C%20Les%20Corts%2C%2008028%20Barcelona!5e0!3m2!1ses!2ses!4v1712750000000!5m2!1ses!2ses" 
+                  src={CONFIG.googleMapsEmbed}
                   width="100%" height="100%" style={{ border: 0 }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
                 ></iframe>
               </div>
 
               {/* BOTÓN VER EN GOOGLE MAPS */}
               <div style={{ textAlign: "center", marginTop: "15px" }}>
-                <a href="https://maps.app.goo.gl/8wuBgAbC2hn8xxb88" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: A, fontSize: "14px", fontWeight: 700, textDecoration: "none", padding: "8px 16px", borderRadius: "8px", background: `${A}10`, border: `1px solid ${A}30`, transition: "all 0.3s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = `${A}20`} onMouseLeave={(e) => e.currentTarget.style.background = `${A}10`}>
+                <a href={CONFIG.googleMapsLink} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: A, fontSize: "14px", fontWeight: 700, textDecoration: "none", padding: "8px 16px", borderRadius: "8px", background: `${A}10`, border: `1px solid ${A}30`, transition: "all 0.3s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = `${A}20`} onMouseLeave={(e) => e.currentTarget.style.background = `${A}10`}>
                   <span>🗺️ Ver en Google Maps</span>
                 </a>
               </div>
