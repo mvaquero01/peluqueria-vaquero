@@ -1073,7 +1073,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
           ))}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
+          <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"52px", padding:"0 40px", fontSize:"16px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
           <button style={{background:"transparent",border:"none",color:CR3,cursor:"pointer",fontSize:13,padding:0}} onClick={()=>navigate("/login")}>⚙</button>
         </div>
       </div>
@@ -1320,8 +1320,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         {/* BLOQUE DEL TÍTULO */}
                         <div style={{
                           ...cs.sTitle, 
-                          textAlign: "left",
-                          paddingLeft: tituloDistanciaIzquierda, // <--- Control independiente del título
+                          textAlign: window.innerWidth > 768 ? "left" : "center",
+                          paddingLeft: window.innerWidth > 768 ? tituloDistanciaIzquierda : "0",
                           marginBottom: tituloMargenInferior
                         }}>
                           ✦ Profesionales
@@ -1340,9 +1340,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         }}>
                           {CONFIG.peluqueros.map(p => (
                             <div key={p.id} className="card-hover" style={{
-                              width: window.innerWidth > 768 ? anchoCaja : "28%",
-                              flex: window.innerWidth > 768 ? `0 0 ${anchoCaja}` : `1 1 28%`,
-                              minHeight: window.innerWidth > 768 ? altoCaja : "180px",
+                              width: window.innerWidth > 768 ? anchoCaja : "calc(33% - 10px)",
+                              flex: window.innerWidth > 768 ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 10px)`,
+                              minHeight: window.innerWidth > 768 ? altoCaja : "160px",
                               minHeight: altoCaja,
                               display: "flex",
                               flexDirection: "column",
@@ -1603,7 +1603,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
               </div>
 
               {/* BOTÓN VER EN GOOGLE MAPS */}
-              <div style={{ textAlign: "center", marginTop: "15px" }}>
+              <div style={{ textAlign: "center", marginTop: "30px" }}>
                 <a href={CONFIG.googleMapsLink} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: A, fontSize: "14px", fontWeight: 700, textDecoration: "none", padding: "8px 16px", borderRadius: "8px", background: `${A}10`, border: `1px solid ${A}30`, transition: "all 0.3s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = `${A}20`} onMouseLeave={(e) => e.currentTarget.style.background = `${A}10`}>
                   <span>🗺️ Ver en Google Maps</span>
                 </a>
