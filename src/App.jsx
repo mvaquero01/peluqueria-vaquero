@@ -1074,7 +1074,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
           ))}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"52px", padding:"0 40px", fontSize:"16px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
+          <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
           <button style={{background:"transparent",border:"none",color:CR3,cursor:"pointer",fontSize:13,padding:0}} onClick={()=>navigate("/login")}>⚙</button>
         </div>
       </div>
@@ -1103,7 +1103,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         <h1 className="hero-title" style={{fontSize:32,fontWeight:700,color:WH,marginBottom:6,letterSpacing:1}}>{CONFIG.nombre}</h1>
         <p className="hero-slogan" style={{fontSize:15,color:"#9ec3e8",marginBottom:4,fontStyle:"italic"}}>"{CONFIG.slogan}"</p>
         <p className="hero-dir" style={{fontSize:12,color:"#9ec3e8",marginBottom:28}}>📍 {CONFIG.direccion} · 📞 {CONFIG.telefono}</p>
-        <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
+        <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"60px", padding:"0 50px", fontSize:"18px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
       </div>
       
       <div style={{ padding: "0 4% 0px 4%", marginTop: 20, marginBottom: "0px" }}>
@@ -1341,8 +1341,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         }}>
                           {CONFIG.peluqueros.map(p => (
                             <div key={p.id} className="card-hover" style={{
-                              width: !esMovil ? anchoCaja : "calc(33% - 8px)",
-                              flex: !esMovil ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 8px)`,
+                              width: !esMovil ? anchoCaja : "calc(33% - 5px)",
+                              flex: !esMovil ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 5px)`,
                               minHeight: !esMovil ? altoCaja : "auto",
                               display: "flex",
                               flexDirection: "column",
@@ -1357,8 +1357,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                             }}>
                               {/* Foto del peluquero */}
                               <div style={{ 
-                                width: !esMovil ? "115px" : "55px", 
-                                height: !esMovil ? "115px" : "55px", 
+                                width: !esMovil ? "115px" : "65px", 
+                                height: !esMovil ? "115px" : "65px",
                                 borderRadius: "50%", 
                                 marginBottom: !esMovil ? "18px" : "8px", 
                                 overflow: 'hidden',
@@ -1370,9 +1370,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
                                 />
                               </div>
                               
-                              <div style={{ fontWeight: 800, color: TX, fontSize: !esMovil ? "19px" : "11px" }}>{p.nombre}</div>
+                              <div style={{ fontWeight: 800, color: TX, fontSize: !esMovil ? "19px" : "13px" }}>{p.nombre}</div>
                               <div style={{ 
-                                fontSize: !esMovil ? "12px" : "9px", 
+                                fontSize: !esMovil ? "12px" : "11px",
                                 color: A, 
                                 fontWeight: 700, 
                                 textTransform: "uppercase", 
@@ -1581,7 +1581,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
               <div style={{ display: "flex", gap: "15px", alignItems: "center", marginTop: "30px" }}>
                 
                 {/* BOTÓN PEDIR CITA (ESTILO RESERVAR) */}
-                <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
+                <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"60px", padding:"0 50px", fontSize:"18px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
 
                 {/* BOTÓN INSTAGRAM (SIN ERRORES VISUALES) */}
                 <a href={CONFIG.instagram} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "45px", height: "45px", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", borderRadius: "8px", textDecoration: "none", flexShrink: 0, cursor: "pointer", transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility: "hidden", willChange: "transform", transform: "scale(1)", transformStyle: "preserve-3d" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
