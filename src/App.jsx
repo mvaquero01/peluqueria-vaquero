@@ -1345,23 +1345,14 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 onClick={() => scrollSlider("left")}
                 style={{ 
                   position: "absolute", 
-                  left: "20px", // Se queda flotando encima de la tarjeta que asoma
+                  left: "20px",
                   zIndex: 10,
-                  background: WH, 
-                  border: `1px solid ${CR3}`, 
-                  borderRadius: "50%", 
-                  width: "50px", 
-                  height: "50px", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  cursor: "pointer", 
-                  boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
-                  fontSize: "24px",
-                  color: A,
-                  padding: 0,
-                  lineHeight: 1, 
-                  paddingBottom: "4px" // Centrado perfecto de la flecha
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  color: TX2,
+                  padding: "0 6px"
                 }}
               >
                 ←
@@ -1420,23 +1411,14 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 onClick={() => scrollSlider("right")}
                 style={{ 
                   position: "absolute", 
-                  right: "20px", 
+                  right: "20px",
                   zIndex: 10,
-                  background: WH, 
-                  border: `1px solid ${CR3}`, 
-                  borderRadius: "50%", 
-                  width: "50px", 
-                  height: "50px", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  cursor: "pointer", 
-                  boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
-                  fontSize: "24px",
-                  color: A,
-                  padding: 0,
-                  lineHeight: 1, 
-                  paddingBottom: "4px" 
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  color: TX2,
+                  padding: "0 6px"
                 }}
               >
                 →
@@ -1792,11 +1774,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     <div style={{ 
                       display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', height: '32px', marginBottom: CAL_ST.separacionMesCalendario 
                     }}>
-                      <button onClick={() => navegar(-1)} style={{ background: "#F0F4F9", border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer' }}>‹</button>
+                      <button onClick={() => navegar(-1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px' }}>◀</button>
                       <h3 style={{ margin: 0, textTransform: 'uppercase', fontSize: '14px', fontWeight: '900', color: "#0A1F3D", minWidth: '150px', textAlign: 'center' }}>
                         {mesRef.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
                       </h3>
-                      <button onClick={() => navegar(1)} style={{ background: "#F0F4F9", border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer' }}>›</button>
+                      <button onClick={() => navegar(1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px' }}>▶</button>
                     </div>
 
                     <div style={{ 
