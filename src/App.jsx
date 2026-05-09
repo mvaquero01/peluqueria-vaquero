@@ -1583,7 +1583,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
               <div style={{ display: "flex", gap: "15px", alignItems: "center", marginTop: "30px" }}>
                 
                 {/* BOTÓN PEDIR CITA (ESTILO RESERVAR) */}
-                <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"60px", padding:"0 50px", fontSize:"18px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
+                <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"45px", padding:"0 30px", fontSize:"14px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
 
                 {/* BOTÓN INSTAGRAM (SIN ERRORES VISUALES) */}
                 <a href={CONFIG.instagram} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "45px", height: "45px", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", borderRadius: "8px", textDecoration: "none", flexShrink: 0, cursor: "pointer", transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility: "hidden", willChange: "transform", transform: "scale(1)", transformStyle: "preserve-3d" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
@@ -1817,8 +1817,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       key={p.id} 
                       onClick={() => setSelPeluquero(p)} 
                       style={{ 
-                        width: esMovil ? "calc(33% - 8px)" : 260,
-                        flex: esMovil ? `0 0 calc(33% - 8px)` : "none",
+                        width: esMovil ? "calc(33% - 5px)" : 260,
+                        flex: esMovil ? `0 0 calc(33% - 5px)` : "none",
                         padding: esMovil ? "10px 4px" : "40px 20px", 
                         background: "#FFF", 
                         border: `2px solid ${esSeleccionado ? colorActivo : "#E8EEF6"}`, 
@@ -1833,8 +1833,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       }}
                     >
                       <div style={{ 
-                        width: esMovil ? 55 : 130, 
-                        height: esMovil ? 55 : 130, 
+                        width: esMovil ? 75 : 130, 
+                        height: esMovil ? 75 : 130,
                         borderRadius: "50%", 
                         margin: esMovil ? "0 auto 8px auto" : "0 auto 20px auto",
                         display: "flex",
@@ -1850,11 +1850,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         />
                       </div>
 
-                      <div style={{ fontWeight: 800, fontSize: esMovil ? "11px" : "18px", color: "#0A1F3D", textTransform: "uppercase" }}>
+                      <div style={{ fontWeight: 800, fontSize: esMovil ? "13px" : "18px", color: "#0A1F3D", textTransform: "uppercase" }}>
                         {p.nombre}
                       </div>
                       
-                      <div style={{ fontSize: esMovil ? "9px" : "12px", color: colorActivo, fontWeight: 600, marginTop: esMovil ? "3px" : "8px", textTransform: "uppercase", lineHeight: "1.2" }}>
+                      <div style={{ fontSize: esMovil ? "11px" : "12px", color: colorActivo, fontWeight: 600, marginTop: esMovil ? "3px" : "8px", textTransform: "uppercase", lineHeight: "1.2" }}>
                         {p.especialidad || "Barber Specialist"}
                       </div>
                     </div>
