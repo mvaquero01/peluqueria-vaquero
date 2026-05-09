@@ -1016,9 +1016,14 @@ function ClientePage({ sharedProps, startPaso=0 }){
   const scrollTo=id=>{
     const el=document.getElementById(id);
     if(el){
-      const headerH=document.querySelector('.cliente-header-sticky')?.offsetHeight||50;
-      const top=el.getBoundingClientRect().top+window.scrollY-headerH-50;
-      window.scrollTo({top,behavior:"smooth"});
+      const headerH=70;
+      if(id==="servicios"){
+        el.classList.add("visible");
+      }
+      setTimeout(()=>{
+        const top=el.getBoundingClientRect().top+window.scrollY-headerH;
+        window.scrollTo({top,behavior:"smooth"});
+      },50);
     }
   };
   if(paso===0) return(
@@ -1126,7 +1131,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         const separacionCajas = "20px"; 
         
         return (
-          <div id="servicios" className="reveal" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "0px", backgroundColor: "transparent", width: "100%" }}>
+          <div id="servicios" style={{ paddingTop: margenSuperiorSeccion, paddingBottom: "0px", backgroundColor: "transparent", width: "100%" }}>
             
             <div style={{ ...cs.sTitle, marginBottom: separacionTituloFotos, display: "flex", justifyContent: "center", alignItems: "center" }}>
               ✦ Servicios
@@ -1234,7 +1239,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         );
       })()}
 
-      <hr style={{ 
+      <hr id="equipo" style={{ 
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
@@ -1243,7 +1248,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
       }} />
 
       {/* --- SECCIÓN EQUIPO (ESTRUCTURA DE CONTROL TOTAL) --- */}
-      <div id="equipo" className="reveal" style={{
+      <div className="reveal" style={{
         width: "100%",
         background: WH, 
         overflow: "hidden",
@@ -1267,21 +1272,23 @@ function ClientePage({ sharedProps, startPaso=0 }){
             return (
               <>
                 {/* 1. LADO IZQUIERDO: IMAGEN PEGADA AL BORDE */}
-                <div style={{
-                  flex: `0 0 ${anchoFoto}`,
-                  position: "relative"
-                }}>
-                  <img 
-                    src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" 
-                    alt="Nuestro Equipo"
-                    style={{
-                      width: "100%",
-                      height: "100%", // Ocupa todo el alto disponible
-                      display: "block",
-                      objectFit: "cover"
-                    }}
-                  />
-                </div>
+                {window.innerWidth > 768 && (
+                  <div style={{
+                    flex: `0 0 ${anchoFoto}`,
+                    position: "relative"
+                  }}>
+                    <img 
+                      src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" 
+                      alt="Nuestro Equipo"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "block",
+                        objectFit: "cover"
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* 2. LADO DERECHO: CUADRÍCULA DE INTEGRANTES */}
                 <div style={{
@@ -1333,8 +1340,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         }}>
                           {CONFIG.peluqueros.map(p => (
                             <div key={p.id} className="card-hover" style={{
-                              width: window.innerWidth > 768 ? anchoCaja : "46%",
-                              flex: window.innerWidth > 768 ? `0 0 ${anchoCaja}` : `1 1 46%`,
+                              width: window.innerWidth > 768 ? anchoCaja : "28%",
+                              flex: window.innerWidth > 768 ? `0 0 ${anchoCaja}` : `1 1 28%`,
+                              minHeight: window.innerWidth > 768 ? altoCaja : "180px",
                               minHeight: altoCaja,
                               display: "flex",
                               flexDirection: "column",
@@ -1387,17 +1395,17 @@ function ClientePage({ sharedProps, startPaso=0 }){
       </div>
 
 
-      <hr style={{ 
+      <hr id="opiniones" style={{ 
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
         margin: "40px auto 40px auto",
-        maxWidth: "1400px"
+        maxWidth: "100%"
       }} />
 
       {/* --- SECCIÓN 3: OPINIONES (Exactamente 3 en PC, 1 en Móvil + Asomo) --- */}
       {valoraciones && valoraciones.length > 0 && (
-        <div id="opiniones" className="reveal" style={{...cs.sectionCompacta, paddingLeft: 0, paddingRight: 0, maxWidth: "100%"}}>
+        <div className="reveal" style={{...cs.sectionCompacta, paddingLeft: 0, paddingRight: 0, maxWidth: "100%"}}>
           
           <style>{`
             .carrusel-opiniones::-webkit-scrollbar { display: none; }
@@ -1528,16 +1536,16 @@ function ClientePage({ sharedProps, startPaso=0 }){
         </div>
       )}
 
-      <hr style={{ 
+      <hr id="ubicacion" style={{ 
         border: "none", 
         height: "1px", 
         background: `linear-gradient(to right, transparent, ${CR3}, transparent)`, 
-        margin: "40px auto 40px auto", /* 80px de la sección anterior, solo 30px para el siguiente título */
+        margin: "40px auto 40px auto",
         maxWidth: "1400px"
       }} />
 
       {/* --- SECCIÓN 4: UBICACIÓN Y CONTACTO --- */}
-      <div id="ubicacion" className="reveal" style={cs.sectionCompacta}>
+      <div className="reveal" style={cs.sectionCompacta}>
         
         <div style={{ width: window.innerWidth > 768 ? "80%" : "100%", margin: "0 auto" }}>
           
@@ -1587,7 +1595,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
             {/* BLOQUE DERECHO: MAPA */}
             <div style={{ flex: 1, width: "100%" }}>
-              <div style={{ width: "100%", height: "400px", borderRadius: 13, overflow: "hidden", border: `1px solid ${CR3}`, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+              <div style={{ width: "100%", height: "300px", borderRadius: 13, overflow: "hidden", border: `1px solid ${CR3}`, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
                 <iframe 
                   src={CONFIG.googleMapsEmbed}
                   width="100%" height="100%" style={{ border: 0 }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
