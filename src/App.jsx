@@ -1251,149 +1251,57 @@ function ClientePage({ sharedProps, startPaso=0 }){
       }} />
 
       {/* --- SECCIÓN EQUIPO (ESTRUCTURA DE CONTROL TOTAL) --- */}
-      <div className="reveal" style={{
-        width: "100%",
-        background: WH, 
-        overflow: "hidden",
-        padding: 0
-      }}>
-        
-        <div style={{
-          display: "flex",
-          flexDirection: window.innerWidth > 768 ? "row" : "column",
-          alignItems: "stretch", // Esto hace que la imagen y el bloque derecho midan lo mismo de alto
-          width: "100%"
-        }}>
-          
-          {/* --- CONFIGURACIÓN DE DISTANCIAS (Toca estos números) --- */}
-          {(() => {
-            const anchoFoto = "40%";             // Ancho de la imagen izquierda
-            const separacionInterna = "5%";   // Distancia entre foto y cajas
-            const margenDerecho = "5%";         // Distancia hasta el borde derecho
-            const anchoMaximoCaja = "5000px";     // Ancho máximo de cada tarjeta de peluquero
-            
-            return (
-              <>
-                {/* 1. LADO IZQUIERDO: IMAGEN PEGADA AL BORDE */}
-                {window.innerWidth > 768 && (
-                  <div style={{
-                    flex: `0 0 ${anchoFoto}`,
-                    position: "relative"
-                  }}>
-                    <img 
-                      src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" 
-                      alt="Nuestro Equipo"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "block",
-                        objectFit: "cover"
-                      }}
-                    />
+      <div className="reveal" style={{ width: "100%", background: WH, overflow: "hidden", padding: 0 }}>
+        <div style={{ display: "flex", flexDirection: esMovil ? "column" : "row", alignItems: "stretch", width: "100%" }}>
+          {!esMovil && (
+            <div style={{ flex: "0 0 40%", position: "relative" }}>
+              <img src="https://i.postimg.cc/Y0TygmSb/peluqueros.jpg" alt="Nuestro Equipo" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+            </div>
+          )}
+          <div style={{ flex: "1", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0px 0", background: WH }}>
+            {(() => {
+              const tituloDistanciaIzquierda = "40px";
+              const tituloMargenInferior = "40px";
+              const separacionEntreCajas = esMovil ? "16px" : "40px";
+              const anchoCaja = "250px";
+              const altoCaja = "300px";
+              return (
+                <>
+                  <div style={{ ...cs.sTitle, textAlign: esMovil ? "center" : "left", paddingLeft: esMovil ? "0" : tituloDistanciaIzquierda, marginBottom: tituloMargenInferior }}>
+                    ✦ Profesionales
                   </div>
-                )}
-
-                {/* 2. LADO DERECHO: CUADRÍCULA DE INTEGRANTES */}
-                <div style={{
-                  flex: "1",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  padding: "0px 0",
-                  background: WH
-                }}>
-
-                  {/* --- PANEL DE CONTROL DE DISTANCIAS HORIZONTALES --- */}
-                  {(() => {
-                    // 1. Control del Título
-                    const tituloDistanciaIzquierda = "40px"; 
-                    const tituloMargenInferior = "40px";
-
-                    // 2. Control de las Cajas
-                    const cajasDistanciaIzquierda = "0%px"; // Distancia respecto a la foto
-                    const cajasDistanciaDerecha = "0%";   // Espacio al final de la pantalla
-                    const separacionEntreCajas = "40px";    // Gap entre ellas
-                    
-                    // 3. Tamaño de las Cajas
-                    const anchoCaja = "250px";
-                    const altoCaja = "300px";
-                    
-                    return (
-                      <>
-                        {/* BLOQUE DEL TÍTULO */}
-                        <div style={{
-                          ...cs.sTitle, 
-                          textAlign: window.innerWidth > 768 ? "left" : "center",
-                          paddingLeft: window.innerWidth > 768 ? tituloDistanciaIzquierda : "0",
-                          marginBottom: tituloMargenInferior
-                        }}>
-                          ✦ Profesionales
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: separacionEntreCajas, justifyContent: "center", width: "100%", paddingLeft: esMovil ? "20px" : "0%", paddingRight: esMovil ? "20px" : "0%" }}>
+                    {CONFIG.peluqueros.map(p => (
+                      <div key={p.id} className="card-hover" style={{
+                        width: esMovil ? "100%" : anchoCaja,
+                        flex: esMovil ? "0 0 100%" : `0 0 ${anchoCaja}`,
+                        minHeight: esMovil ? "auto" : altoCaja,
+                        display: "flex",
+                        flexDirection: esMovil ? "row" : "column",
+                        alignItems: "center",
+                        justifyContent: esMovil ? "flex-start" : "center",
+                        background: "#FFF",
+                        padding: esMovil ? "16px 20px" : "20px",
+                        borderRadius: esMovil ? "16px" : "24px",
+                        border: `1px solid ${CR3}`,
+                        boxShadow: "0 4px 15px rgba(0,0,0,0.04)",
+                        textAlign: esMovil ? "left" : "center",
+                        gap: esMovil ? "20px" : "0"
+                      }}>
+                        <div style={{ width: esMovil ? "80px" : "115px", height: esMovil ? "80px" : "115px", borderRadius: "50%", marginBottom: esMovil ? "0" : "18px", flexShrink: 0, overflow: "hidden", border: `3px solid ${A}15` }}>
+                          <img src={p.foto || "https://i.postimg.cc/4xxWbVq0/postepelu.webp"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         </div>
-                        
-                        {/* BLOQUE DE LAS CAJAS */}
-                        <div style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: separacionEntreCajas,
-                          justifyContent: "center", // Mantiene el centrado interno si sobran huecos
-                          width: "100%",
-                          // --- AQUÍ CONTROLAS EL BLOQUE DE LAS CAJAS ---
-                          paddingLeft: window.innerWidth > 768 ? cajasDistanciaIzquierda : "20px",
-                          paddingRight: window.innerWidth > 768 ? cajasDistanciaDerecha : "20px",
-                        }}>
-                          {CONFIG.peluqueros.map(p => (
-                            <div key={p.id} className="card-hover" style={{
-                              width: !esMovil ? anchoCaja : "calc(33% - 2px)",
-                              flex: !esMovil ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 2px)`,
-                              minHeight: !esMovil ? altoCaja : "auto",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              background: "#FFF",
-                              padding: !esMovil ? "20px" : "10px 4px",
-                              borderRadius: !esMovil ? "24px" : "16px",
-                              border: `1px solid ${CR3}`,
-                              boxShadow: "0 4px 15px rgba(0,0,0,0.04)",
-                              textAlign: "center"
-                            }}>
-                              {/* Foto del peluquero */}
-                              <div style={{ 
-                                width: !esMovil ? "115px" : "75px", 
-                                height: !esMovil ? "115px" : "75px",
-                                borderRadius: "50%", 
-                                marginBottom: !esMovil ? "18px" : "8px", 
-                                overflow: 'hidden',
-                                border: `3px solid ${A}15`
-                              }}>
-                                <img 
-                                  src={p.foto || "https://i.postimg.cc/4xxWbVq0/postepelu.webp"} 
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                />
-                              </div>
-                              
-                              <div style={{ fontWeight: 800, color: TX, fontSize: !esMovil ? "19px" : "14px" }}>{p.nombre}</div>
-                              <div style={{ 
-                                fontSize: !esMovil ? "12px" : "12px",
-                                color: A, 
-                                fontWeight: 700, 
-                                textTransform: "uppercase", 
-                                marginTop: !esMovil ? "6px" : "3px",
-                                letterSpacing: "0.5px",
-                                lineHeight: "1.2"
-                              }}>
-                                {p.especialidad}
-                              </div>
-                            </div>
-                          ))}
+                        <div>
+                          <div style={{ fontWeight: 800, color: TX, fontSize: esMovil ? "17px" : "19px" }}>{p.nombre}</div>
+                          <div style={{ fontSize: esMovil ? "12px" : "12px", color: A, fontWeight: 700, textTransform: "uppercase", marginTop: esMovil ? "4px" : "6px", letterSpacing: "0.5px", lineHeight: "1.2" }}>{p.especialidad}</div>
                         </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </>
-            );
-          })()}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       </div>
 
@@ -1798,64 +1706,34 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
           {paso === 2 && (
             <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-
-              {/* GRID DE PROFESIONALES */}
-              <div style={{ 
-                display: "flex", 
-                flexWrap: "wrap", 
-                justifyContent: "center", 
-                gap: "25px", 
-                width: "100%",
-                paddingBottom: "40px" 
-              }}>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: esMovil ? "16px" : "25px", width: "100%", paddingBottom: "40px" }}>
                 {CONFIG.peluqueros.map(p => {
                   const esSeleccionado = selPeluquero?.id === p.id;
-                  const colorActivo = "#1B4F8A"; 
-
+                  const colorActivo = "#1B4F8A";
                   return (
-                    <div 
-                      key={p.id} 
-                      onClick={() => setSelPeluquero(p)} 
-                      style={{ 
-                        width: esMovil ? "calc(33% - 5px)" : 260,
-                        flex: esMovil ? `0 0 calc(33% - 5px)` : "none",
-                        padding: esMovil ? "10px 4px" : "40px 20px", 
-                        background: "#FFF", 
-                        border: `2px solid ${esSeleccionado ? colorActivo : "#E8EEF6"}`, 
-                        borderRadius: esMovil ? "16px" : "24px", 
-                        textAlign: "center", 
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                        boxShadow: esSeleccionado 
-                          ? "0 10px 25px rgba(27, 79, 138, 0.15)" 
-                          : "0 4px 12px rgba(0,0,0,0.03)",
-                        transform: esSeleccionado ? "translateY(-5px)" : "none"
-                      }}
-                    >
-                      <div style={{ 
-                        width: esMovil ? 75 : 130, 
-                        height: esMovil ? 75 : 130,
-                        borderRadius: "50%", 
-                        margin: esMovil ? "0 auto 8px auto" : "0 auto 20px auto",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: `3px solid ${esSeleccionado ? colorActivo : "#F0F4F9"}`,
-                        padding: "4px", 
-                        transition: "all 0.3s ease"
-                      }}>
-                        <img 
-                          src={p.foto} 
-                          style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
-                        />
+                    <div key={p.id} onClick={() => setSelPeluquero(p)} style={{
+                      width: esMovil ? "100%" : 260,
+                      flex: esMovil ? "0 0 100%" : "none",
+                      padding: esMovil ? "16px 20px" : "40px 20px",
+                      background: "#FFF",
+                      border: `2px solid ${esSeleccionado ? colorActivo : "#E8EEF6"}`,
+                      borderRadius: esMovil ? "16px" : "24px",
+                      textAlign: esMovil ? "left" : "center",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      display: "flex",
+                      flexDirection: esMovil ? "row" : "column",
+                      alignItems: "center",
+                      gap: esMovil ? "20px" : "0",
+                      boxShadow: esSeleccionado ? "0 10px 25px rgba(27, 79, 138, 0.15)" : "0 4px 12px rgba(0,0,0,0.03)",
+                      transform: esSeleccionado ? "translateY(-5px)" : "none"
+                    }}>
+                      <div style={{ width: esMovil ? 80 : 130, height: esMovil ? 80 : 130, borderRadius: "50%", flexShrink: 0, margin: esMovil ? "0" : "0 auto 20px auto", display: "flex", alignItems: "center", justifyContent: "center", border: `3px solid ${esSeleccionado ? colorActivo : "#F0F4F9"}`, padding: "4px", transition: "all 0.3s ease" }}>
+                        <img src={p.foto} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                       </div>
-
-                      <div style={{ fontWeight: 800, fontSize: esMovil ? "13px" : "18px", color: "#0A1F3D", textTransform: "uppercase" }}>
-                        {p.nombre}
-                      </div>
-                      
-                      <div style={{ fontSize: esMovil ? "11px" : "12px", color: colorActivo, fontWeight: 600, marginTop: esMovil ? "3px" : "8px", textTransform: "uppercase", lineHeight: "1.2" }}>
-                        {p.especialidad || "Barber Specialist"}
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: esMovil ? "17px" : "18px", color: "#0A1F3D", textTransform: "uppercase" }}>{p.nombre}</div>
+                        <div style={{ fontSize: esMovil ? "12px" : "12px", color: colorActivo, fontWeight: 600, marginTop: esMovil ? "4px" : "8px", textTransform: "uppercase", lineHeight: "1.2" }}>{p.especialidad || "Barber Specialist"}</div>
                       </div>
                     </div>
                   );
