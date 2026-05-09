@@ -1817,11 +1817,12 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       key={p.id} 
                       onClick={() => setSelPeluquero(p)} 
                       style={{ 
-                        width: 260, 
-                        padding: "40px 20px", 
+                        width: esMovil ? "calc(33% - 8px)" : 260,
+                        flex: esMovil ? `0 0 calc(33% - 8px)` : "none",
+                        padding: esMovil ? "10px 4px" : "40px 20px", 
                         background: "#FFF", 
                         border: `2px solid ${esSeleccionado ? colorActivo : "#E8EEF6"}`, 
-                        borderRadius: "24px", 
+                        borderRadius: esMovil ? "16px" : "24px", 
                         textAlign: "center", 
                         cursor: "pointer",
                         transition: "all 0.3s ease",
@@ -1831,12 +1832,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         transform: esSeleccionado ? "translateY(-5px)" : "none"
                       }}
                     >
-                      {/* Foto con anillo dinámico */}
                       <div style={{ 
-                        width: 130, 
-                        height: 130, 
+                        width: esMovil ? 55 : 130, 
+                        height: esMovil ? 55 : 130, 
                         borderRadius: "50%", 
-                        margin: "0 auto 20px auto",
+                        margin: esMovil ? "0 auto 8px auto" : "0 auto 20px auto",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1850,11 +1850,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         />
                       </div>
 
-                      <div style={{ fontWeight: 800, fontSize: "18px", color: "#0A1F3D", textTransform: "uppercase" }}>
+                      <div style={{ fontWeight: 800, fontSize: esMovil ? "11px" : "18px", color: "#0A1F3D", textTransform: "uppercase" }}>
                         {p.nombre}
                       </div>
                       
-                      <div style={{ fontSize: "12px", color: colorActivo, fontWeight: 600, marginTop: "8px", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: esMovil ? "9px" : "12px", color: colorActivo, fontWeight: 600, marginTop: esMovil ? "3px" : "8px", textTransform: "uppercase", lineHeight: "1.2" }}>
                         {p.especialidad || "Barber Specialist"}
                       </div>
                     </div>
