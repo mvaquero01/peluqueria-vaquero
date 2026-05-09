@@ -1150,6 +1150,30 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
                 const abierta = catAbierta === cat.id;
 
+                if(esMovil) return (
+                  <div key={cat.id} style={{ width: "100%", borderRadius: "16px", overflow: "hidden", border: `1px solid ${CR3}`, background: WH, marginBottom: "8px" }}>
+                    <div onClick={() => setCatAbierta(abierta ? null : cat.id)} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", cursor: "pointer" }}>
+                      <img src={cat.foto} style={{ width: "56px", height: "56px", borderRadius: "12px", objectFit: "cover", flexShrink: 0 }} />
+                      <div style={{ flex: 1, fontWeight: 800, fontSize: "15px", color: TX, textTransform: "uppercase", letterSpacing: "0.5px" }}>{cat.nombre}</div>
+                      <div style={{ fontSize: "12px", color: TX2, transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s" }}>▼</div>
+                    </div>
+                    {abierta && (
+                      <div style={{ borderTop: `1px solid ${CR2}` }}>
+                        {svcs.map(s => (
+                          <div key={s.id} onClick={(e) => { e.stopPropagation(); navigate(`/reservar?serviceId=${s.id}&step=2`); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${CR2}`, cursor: "pointer" }}>
+                            <div>
+                              <div style={{ fontSize: "13px", fontWeight: 700, color: TX }}>{s.nombre}</div>
+                              {s.desc && <div style={{ fontSize: "11px", color: TX2, marginTop: "2px" }}>{s.desc}</div>}
+                              <div style={{ fontSize: "11px", color: TX2, marginTop: "2px" }}>⏱ {s.duracionMin} min</div>
+                            </div>
+                            <div style={{ fontWeight: 800, fontSize: "15px", color: A, flexShrink: 0, marginLeft: "10px" }}>{s.precio}€</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+
                 return (
                   <div 
                     key={cat.id}
@@ -1157,10 +1181,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     className="card-hover"
                     style={{ 
                       position: "relative", 
-                      flex: window.innerWidth > 768 
-                        ? `0 1 ${CONFIG_RESERVA.anchoCajaPC}` 
-                        : `0 1 ${CONFIG_RESERVA.anchoCajaMovil}`, 
-                      minWidth: window.innerWidth > 768 ? "250px" : "140px",
+                      flex: `0 1 ${CONFIG_RESERVA.anchoCajaPC}`,
+                      minWidth: "250px",
                       aspectRatio: "1 / 1", 
                       borderRadius: "20px", 
                       overflow: "hidden", 
@@ -1172,7 +1194,6 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       transform: abierta ? "scale(1.02)" : "scale(1)"
                     }}
                   >
-                    {/* Overlay y Contenido Desplegable */}
                     <div style={{ 
                       position: "absolute", 
                       top: 0, left: 0, right: 0, bottom: 0, 
@@ -1184,16 +1205,12 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       padding: abierta ? "15px" : "20px", 
                       transition: "background 0.4s ease-out" 
                     }}>
-                      
-                      {/* Título de la Categoría */}
                       <div style={{ textAlign: "center", marginBottom: abierta ? "15px" : "5px", width: "100%" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                           <h3 style={{ color: "#FFF", margin: 0, fontSize: "18px", fontWeight: "800", textTransform: "uppercase" }}>{cat.nombre}</h3>
                           <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
                         </div>
                       </div>
-
-                      {/* Lista de Servicios (El desplegable) */}
                       <div style={{ 
                         width: "100%", 
                         maxHeight: abierta ? "350px" : "0", 
@@ -1204,22 +1221,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         scrollbarWidth: "none"
                       }}>
                         {svcs.map(s => (
-                          <div 
-                            key={s.id} 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Acceso directo: va directo al calendario con el servicio elegido
-                              navigate(`/reservar?serviceId=${s.id}&step=2`);
-                            }}
-                            style={{ 
-                              padding: "10px 0", 
-                              borderBottom: "1px solid rgba(255,255,255,0.1)", 
-                              display: "flex", 
-                              alignItems: "center", 
-                              justifyContent: "space-between", 
-                              cursor: "pointer" 
-                            }}
-                          >
+                          <div key={s.id} onClick={(e) => { e.stopPropagation(); navigate(`/reservar?serviceId=${s.id}&step=2`); }} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
                             <div style={{ textAlign: "left", flex: 1, paddingRight: "10px" }}>
                               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
                                 <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
