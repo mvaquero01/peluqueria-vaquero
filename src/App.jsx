@@ -1777,7 +1777,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
             const navegar = (n) => setMesRef(new Date(mesRef.getFullYear(), mesRef.getMonth() + n, 1));
 
             return (
-              <div style={{ width: '100%', maxWidth: CAL_ST.anchoMax, margin: '0 auto', padding: '0 20px', animation: 'fadeIn 0.5s ease' }}>
+              <div style={{ width: '100%', maxWidth: CAL_ST.anchoMax, margin: '0 auto', padding: window.innerWidth <= 850 ? '0 4px' : '0 20px', animation: 'fadeIn 0.5s ease' }}>
 
                 <div style={{ 
                   display: "flex", 
