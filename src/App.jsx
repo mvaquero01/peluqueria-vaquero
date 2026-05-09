@@ -1026,6 +1026,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
       },50);
     }
   };
+  const esMovil = window.innerWidth <= 768;
   if(paso===0) return(
     <div className="cliente-wrap" style={{ 
       fontFamily: FONT, 
@@ -1340,27 +1341,26 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         }}>
                           {CONFIG.peluqueros.map(p => (
                             <div key={p.id} className="card-hover" style={{
-                              width: window.innerWidth > 768 ? anchoCaja : "calc(33% - 10px)",
-                              flex: window.innerWidth > 768 ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 10px)`,
-                              minHeight: window.innerWidth > 768 ? altoCaja : "160px",
-                              minHeight: altoCaja,
+                              width: !esMovil ? anchoCaja : "calc(33% - 8px)",
+                              flex: !esMovil ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 8px)`,
+                              minHeight: !esMovil ? altoCaja : "auto",
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
                               justifyContent: "center",
                               background: "#FFF",
-                              padding: "20px",
-                              borderRadius: "24px",
+                              padding: !esMovil ? "20px" : "10px 4px",
+                              borderRadius: !esMovil ? "24px" : "16px",
                               border: `1px solid ${CR3}`,
                               boxShadow: "0 4px 15px rgba(0,0,0,0.04)",
                               textAlign: "center"
                             }}>
                               {/* Foto del peluquero */}
                               <div style={{ 
-                                width: "115px", 
-                                height: "115px", 
+                                width: !esMovil ? "115px" : "55px", 
+                                height: !esMovil ? "115px" : "55px", 
                                 borderRadius: "50%", 
-                                marginBottom: "18px", 
+                                marginBottom: !esMovil ? "18px" : "8px", 
                                 overflow: 'hidden',
                                 border: `3px solid ${A}15`
                               }}>
@@ -1370,14 +1370,15 @@ function ClientePage({ sharedProps, startPaso=0 }){
                                 />
                               </div>
                               
-                              <div style={{ fontWeight: 800, color: TX, fontSize: "19px" }}>{p.nombre}</div>
+                              <div style={{ fontWeight: 800, color: TX, fontSize: !esMovil ? "19px" : "11px" }}>{p.nombre}</div>
                               <div style={{ 
-                                fontSize: "12px", 
+                                fontSize: !esMovil ? "12px" : "9px", 
                                 color: A, 
                                 fontWeight: 700, 
                                 textTransform: "uppercase", 
-                                marginTop: "6px",
-                                letterSpacing: "0.5px" 
+                                marginTop: !esMovil ? "6px" : "3px",
+                                letterSpacing: "0.5px",
+                                lineHeight: "1.2"
                               }}>
                                 {p.especialidad}
                               </div>
