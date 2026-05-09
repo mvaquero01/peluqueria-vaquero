@@ -807,7 +807,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
   // PEGA ESTA LÍNEA AQUÍ (Justo después de la llave de apertura)
   // Esto extrae todo lo necesario de sharedProps
-  const { valoraciones, citas, festivos, bloqueos, servicios, isMobile, sliderRef, scrollSlider } = sharedProps || {};
+  const { valoraciones, citas, festivos, bloqueos, servicios, isMobile, sliderRef, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd } = sharedProps || {};
 
   if (!sharedProps) return null;
 
@@ -1340,22 +1340,25 @@ function ClientePage({ sharedProps, startPaso=0 }){
           }}>
             
             {/* FLECHA IZQUIERDA */}
-            {!isMobile && valoraciones.length > 3 && (
+            {!sliderAtStart && (isMobile ? valoraciones.length > 1 : valoraciones.length > 3) && (
               <button 
                 onClick={() => scrollSlider("left")}
                 style={{ 
                   position: "absolute", 
-                  left: "20px",
+                  left: isMobile ? "6px" : "20px",
                   zIndex: 10,
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   fontSize: "12px",
                   color: TX2,
-                  padding: "0 6px"
+                  padding: "0 6px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  transform: "rotate(90deg)"
                 }}
               >
-                ←
+                ▼
               </button>
             )}
 
@@ -1363,6 +1366,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
             <div 
               ref={sliderRef}
               className="carrusel-opiniones"
+              onScroll={(e) => {
+                const el = e.target;
+                setSliderAtStart(el.scrollLeft < 10);
+                setSliderAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 10);
+              }}
               style={{ 
                 display: "flex", 
                 gap: "24px", 
@@ -1373,7 +1381,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 scrollPadding: isMobile ? "0 12%" : "0 8%", 
                 width: "100%",
                 boxSizing: "border-box",
-                justifyContent: !isMobile && valoraciones.length <= 3 ? "center" : "flex-start"
+                justifyContent: !isMobile && valoraciones.length <= 3 ? "center" : "flex-start",
+                maskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+                WebkitMaskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)"
               }}
             >
               {valoraciones.map(v => (
@@ -1406,22 +1416,25 @@ function ClientePage({ sharedProps, startPaso=0 }){
             </div>
 
             {/* FLECHA DERECHA */}
-            {!isMobile && valoraciones.length > 3 && (
+            {!sliderAtEnd && (isMobile ? valoraciones.length > 1 : valoraciones.length > 3) && (
               <button 
                 onClick={() => scrollSlider("right")}
                 style={{ 
                   position: "absolute", 
-                  right: "20px",
+                  right: isMobile ? "6px" : "20px",
                   zIndex: 10,
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   fontSize: "12px",
                   color: TX2,
-                  padding: "0 6px"
+                  padding: "0 6px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  transform: "rotate(-90deg)"
                 }}
               >
-                →
+                ▼
               </button>
             )}
 
@@ -1774,11 +1787,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     <div style={{ 
                       display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', height: '32px', marginBottom: CAL_ST.separacionMesCalendario 
                     }}>
-                      <button onClick={() => navegar(-1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px' }}>◀</button>
+                      <button onClick={() => navegar(-1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px', display: 'inline-flex', alignItems: 'center', transform: 'rotate(90deg)' }}>▼</button>
                       <h3 style={{ margin: 0, textTransform: 'uppercase', fontSize: '14px', fontWeight: '900', color: "#0A1F3D", minWidth: '150px', textAlign: 'center' }}>
                         {mesRef.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
                       </h3>
-                      <button onClick={() => navegar(1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px' }}>▶</button>
+                      <button onClick={() => navegar(1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px', display: 'inline-flex', alignItems: 'center', transform: 'rotate(-90deg)' }}>▼</button>
                     </div>
 
                     <div style={{ 
@@ -4380,6 +4393,8 @@ function AppData(){
   // 1. NUEVOS HOOKS PARA EL CARRUSEL (Puestos aquí para evitar el error)
   const sliderRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [sliderAtStart, setSliderAtStart] = useState(true);
+  const [sliderAtEnd, setSliderAtEnd] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -4421,7 +4436,7 @@ function AppData(){
   );
 
   // ESTE ES EL FINAL DE TU FUNCIÓN AppData
-  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, sliderRef, isMobile, scrollSlider };
+  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, sliderRef, isMobile, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd };
 
   return (
     <Routes>
