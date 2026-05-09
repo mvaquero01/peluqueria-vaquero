@@ -1800,7 +1800,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     </div>
 
                     <div style={{ 
-                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto", minHeight: window.innerWidth <= 850 ? "340px" : undefined,
+                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto", minHeight: window.innerWidth <= 850 ? "290px" : undefined,
                       background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
                     }}>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: '10px' }}>
@@ -1902,7 +1902,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
             // --- PANEL DE CONTROL TOTAL DEL PASO 4 ---
             const RES_ST = {
               // 1. DIMENSIONES GLOBALES
-              anchoMax: "40%",
+              anchoMax: window.innerWidth <= 850 ? "100%" : "40%",
 
               // 2. COLORES
               colorPrimario: "#1B4F8A",
