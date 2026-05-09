@@ -1341,8 +1341,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         }}>
                           {CONFIG.peluqueros.map(p => (
                             <div key={p.id} className="card-hover" style={{
-                              width: !esMovil ? anchoCaja : "calc(33% - 5px)",
-                              flex: !esMovil ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 5px)`,
+                              width: !esMovil ? anchoCaja : "calc(33% - 2px)",
+                              flex: !esMovil ? `0 0 ${anchoCaja}` : `0 0 calc(33% - 2px)`,
                               minHeight: !esMovil ? altoCaja : "auto",
                               display: "flex",
                               flexDirection: "column",
@@ -1357,8 +1357,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
                             }}>
                               {/* Foto del peluquero */}
                               <div style={{ 
-                                width: !esMovil ? "115px" : "65px", 
-                                height: !esMovil ? "115px" : "65px",
+                                width: !esMovil ? "115px" : "75px", 
+                                height: !esMovil ? "115px" : "75px",
                                 borderRadius: "50%", 
                                 marginBottom: !esMovil ? "18px" : "8px", 
                                 overflow: 'hidden',
@@ -1370,9 +1370,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
                                 />
                               </div>
                               
-                              <div style={{ fontWeight: 800, color: TX, fontSize: !esMovil ? "19px" : "13px" }}>{p.nombre}</div>
+                              <div style={{ fontWeight: 800, color: TX, fontSize: !esMovil ? "19px" : "14px" }}>{p.nombre}</div>
                               <div style={{ 
-                                fontSize: !esMovil ? "12px" : "11px",
+                                fontSize: !esMovil ? "12px" : "12px",
                                 color: A, 
                                 fontWeight: 700, 
                                 textTransform: "uppercase", 
