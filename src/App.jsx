@@ -1800,7 +1800,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     </div>
 
                     <div style={{ 
-                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto",
+                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto", minHeight: window.innerWidth <= 850 ? "340px" : undefined,
                       background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
                     }}>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: '10px' }}>
@@ -1863,7 +1863,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto",
                       background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
                     }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: '4px', flex: 1 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: window.innerWidth <= 850 ? "repeat(4, 1fr)" : "repeat(8, 1fr)", gap: '4px', flex: 1 }}>
                         {todasLasHoras.map(h => {
                           const disponible = slots.includes(h);
                           const seleccionado = selHora === h;
