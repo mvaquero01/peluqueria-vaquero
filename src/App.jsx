@@ -285,7 +285,7 @@ const fmtLarga  = d=>`${DIAS_FULL[d.getDay()]} ${d.getDate()} de ${MESES_ES[d.ge
 const haceNSemanas = n=>{ const d=new Date(); d.setDate(d.getDate()-n*7); return isoDate(d); };
 const HOY = new Date(); HOY.setHours(0,0,0,0);
 const HOY_ISO = isoDate(HOY);
-let _citaEliminadaTemp=null, _clienteEliminadoTemp=null, _valEliminadaTemp=null;
+let _citaEliminadaTemp=null, _clienteEliminadoTemp=null, _valEliminadaTemp=null, _svcEliminadoTemp=null, _catEliminadaTemp=null;
 
 function levenshtein(a,b){
   const m=a.length,n=b.length;
@@ -373,11 +373,9 @@ async function borrarBloqueo(id){
 // ── Servicios en Firebase ──
 function suscribirServicios(cb){
   return onSnapshot(collection(db,"servicios"),snap=>{
-    if(snap.empty){cb([...CONFIG.serviciosDefault]);return;}
-    const data=snap.docs.map(d=>({...d.data()})).sort((a,b)=>a.id-b.id);
-    const ids=new Set(data.map(s=>s.id));
-    const faltantes=CONFIG.serviciosDefault.filter(s=>!ids.has(s.id));
-    cb([...data,...faltantes].sort((a,b)=>a.id-b.id));
+    if(snap.empty){cb([]);return;}
+    const data=snap.docs.map(d=>({...d.data()})).filter(Boolean).sort((a,b)=>(a.orden??a.id)-(b.orden??b.id));
+    cb(data);
   });
 }
 async function guardarServicioFB(svc){
@@ -387,6 +385,23 @@ async function guardarServicioFB(svc){
 async function borrarServicioFB(nombre){
   const docId=nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_");
   await deleteDoc(doc(db,"servicios",docId));
+}
+function suscribirCategorias(cb){
+  return onSnapshot(collection(db,"categorias"),snap=>{
+    if(snap.empty){ cb([]); return; }
+    cb(snap.docs.map(d=>({...d.data()})).filter(Boolean).sort((a,b)=>(a.orden??a.id)-(b.orden??b.id)));
+  });
+}
+async function guardarCategoriaFB(cat){
+  await setDoc(doc(db,"categorias",String(cat.id)),cat);
+}
+async function borrarCategoriaFB(id){
+  await deleteDoc(doc(db,"categorias",String(id)));
+}
+async function seedCategorias(){
+  for(const cat of CONFIG.categorias){
+    await setDoc(doc(db,"categorias",String(cat.id)),cat);
+  }
 }
 async function guardarValoracionFB(val){
   const docId=val.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+val.id;
@@ -807,7 +822,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
   // PEGA ESTA LÍNEA AQUÍ (Justo después de la llave de apertura)
   // Esto extrae todo lo necesario de sharedProps
-  const { valoraciones, citas, festivos, bloqueos, servicios, isMobile, sliderRef, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd } = sharedProps || {};
+  const { valoraciones, citas, festivos, bloqueos, servicios, categorias, setCategorias, isMobile, sliderRef, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd } = sharedProps || {};
 
   if (!sharedProps) return null;
 
@@ -1102,7 +1117,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         </div>
         <h1 className="hero-title" style={{fontSize:32,fontWeight:700,color:WH,marginBottom:6,letterSpacing:1}}>{CONFIG.nombre}</h1>
         <p className="hero-slogan" style={{fontSize:15,color:"#9ec3e8",marginBottom:4,fontStyle:"italic"}}>"{CONFIG.slogan}"</p>
-        <p className="hero-dir" style={{fontSize:12,color:"#9ec3e8",marginBottom:28}}>📍 {CONFIG.direccion} · 📞 {CONFIG.telefono}</p>
+        <p className="hero-dir" style={{fontSize:12,color:"#9ec3e8",marginBottom:20}}>📍 {CONFIG.direccion} · 📞 {CONFIG.telefono}</p>
         <button onClick={()=>irAPaso(1)} style={{ background:`linear-gradient(135deg,${A},#133A6A)`, color:WH, border:"none", borderRadius:"8px", height:"60px", padding:"0 50px", fontSize:"18px", fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:"0.5px", textTransform:"uppercase", transition:"transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)", backfaceVisibility:"hidden", willChange:"transform", transform:"scale(1)" }} onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>RESERVAR</button>
       </div>
       
@@ -1146,8 +1161,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
               width: "100%", 
               padding: `0px ${margenHorizontal} 0px ${margenHorizontal}`
             }}>
-              {CONFIG.categorias.map(cat => {
-                const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
+              {[...(categorias||[])].sort((a,b) => (a.orden??a.id) - (b.orden??b.id)).map(cat => {
+                const svcs = (cat.servicioIds||[]).map(id => servicios.find(s => s.id === id)).filter(Boolean);
                 const abierta = catAbierta === cat.id;
 
                 if(esMovil) return (
@@ -1386,7 +1401,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 WebkitMaskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)"
               }}
             >
-              {valoraciones.map(v => (
+              {[...valoraciones].sort((a,b) => (a.orden??0) - (b.orden??0)).map(v => (
                 <div 
                   key={v.id} 
                   style={{
@@ -1603,8 +1618,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
               width: "100%",
               paddingBottom: "50px" 
             }}>
-              {CONFIG.categorias.map(cat => {
-                const svcs = servicios.filter(s => cat.servicioIds.includes(s.id));
+              {[...(categorias||[])].sort((a,b) => (a.orden??a.id) - (b.orden??b.id)).map(cat => {
+                const svcs = (cat.servicioIds||[]).map(id => servicios.find(s => s.id === id)).filter(Boolean);
                 const abierta = catAbierta === cat.id;
 
                 if(esMovil) return (
@@ -2338,7 +2353,7 @@ function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosS
   );
 }
 
-function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios}){
+function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios,categorias,setCategorias}){
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -2360,6 +2375,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const [toastTimer,setToastTimer]=useState(null);
   const [toastValVisible, setToastValVisible] = useState(false);
   const [toastValTimer, setToastValTimer] = useState(null);
+  const [toastSvcVisible, setToastSvcVisible] = useState(false);
+  const [toastSvcTimer, setToastSvcTimer] = useState(null);
+  const [toastCatVisible, setToastCatVisible] = useState(false);
+  const [toastCatTimer, setToastCatTimer] = useState(null);
   const [toastClienteVisible,setToastClienteVisible]=useState(false);
   const [toastClienteTimer,setToastClienteTimer]=useState(null);
   const [clienteSel,setClienteSel]=useState(null);
@@ -3819,15 +3838,20 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 // ──────────────────────
   // TAB CONFIG (OPINIONES EN FILA HORIZONTAL)
   // ──────────────────────
-  const TabConfig = ({ valoraciones, setValoraciones, servicios, setServicios, isMobile, onValEliminada }) => {
+  const TabConfig = ({ valoraciones, setValoraciones, servicios, setServicios, categorias, setCategorias, isMobile, onValEliminada, onSvcEliminado, onCatEliminada }) => {
+    const [editCat, setEditCat] = useState(null);
+    const [showNewCat, setShowNewCat] = useState(false);
+    const [newCat, setNewCat] = useState({ nombre: "", foto: "", servicioIds: [] });
     const [valBorrar, setValBorrar] = useState(null);
     const [editSvc, setEditSvc] = useState(null);
     const [newSvc, setNewSvc] = useState({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
     const [showNew, setShowNew] = useState(false);
-    
+
     const [showNewVal, setShowNewVal] = useState(false);
     const [newVal, setNewVal] = useState({ nombre: "", estrellas: 5, comentario: "", servicio: "" });
     const [editVal, setEditVal] = useState(null);
+    const [svcBorrar, setSvcBorrar] = useState(null);
+    const [catBorrar, setCatBorrar] = useState(null);
 
     // --- FUNCIONES SERVICIOS ---
     const guardarSvc = async () => {
@@ -3844,16 +3868,46 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         alert("Ya existe un servicio con ese nombre.");
         return;
       }
-      const svc = { ...newSvc, id: Date.now(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin) };
+      const svc = { ...newSvc, id: Date.now(), precio: Number(newSvc.precio), duracionMin: Number(newSvc.duracionMin), orden: servicios.length };
       setServicios(prev => [...prev, svc]);
       await guardarServicioFB(svc);
       setNewSvc({ nombre: "", duracionMin: 30, precio: 0, desc: "" });
       setShowNew(false);
     };
 
-    const deleteSvc = async (id, nombre) => {
-      setServicios(prev => prev.filter(s => s.id !== id));
-      await borrarServicioFB(nombre);
+    const deleteSvc = (svc) => setSvcBorrar(svc);
+    const confirmarBorradoSvc = async () => {
+      const copia = {...svcBorrar};
+      setServicios(prev => prev.filter(s => s.id !== copia.id));
+      await borrarServicioFB(copia.nombre);
+      setSvcBorrar(null);
+      if(onSvcEliminado) onSvcEliminado(copia);
+    };
+    const confirmarBorradoCat = async () => {
+      const copia = {...catBorrar};
+      setCategorias(prev => prev.filter(c => c.id !== copia.id));
+      await borrarCategoriaFB(copia.id);
+      setCatBorrar(null);
+      if(onCatEliminada) onCatEliminada(copia);
+    };
+    const reordenarCategorias = async (nuevaLista) => {
+      const conOrden = nuevaLista.map((cat, idx) => ({...cat, orden: idx}));
+      setCategorias(conOrden);
+      for (const cat of conOrden) await guardarCategoriaFB(cat);
+    };
+
+    const reordenarServiciosEnCat = async (catId, nuevosIds) => {
+      const catActual = (categorias||[]).find(c => c.id === catId);
+      if (!catActual) return;
+      const catActualizada = {...catActual, servicioIds: nuevosIds};
+      setCategorias(prev => prev.map(c => c.id === catId ? catActualizada : c));
+      await guardarCategoriaFB(catActualizada);
+    };
+
+    const reordenarValoraciones = async (nuevaLista) => {
+      const conOrden = nuevaLista.map((v, idx) => ({...v, orden: idx}));
+      setValoraciones(conOrden);
+      for (const v of conOrden) await guardarValoracionFB(v);
     };
 
     // --- FUNCIONES VALORACIONES ---
@@ -3897,7 +3951,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         
         {/* NAVEGACIÓN DE PESTAÑAS */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
-          {[["servicios", "Servicios"], ["valoraciones", "Opiniones"], ["horarios", "Horarios"]].map(([v, l]) => (
+          {[["servicios", "Servicios"], ["categorias", "Categorías"], ["valoraciones", "Opiniones"], ["horarios", "Horarios"]].map(([v, l]) => (
             <button 
               key={v} 
               onClick={() => setConfigSubTab(v)}
@@ -3943,6 +3997,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                     <th style={thS}>Nombre</th>
                     <th style={{ ...thS, textAlign: "center" }}>Duración</th>
                     <th style={{ ...thS, textAlign: "center" }}>Precio</th>
+                    <th style={thS}>Descripción</th>
                     <th style={{ ...thS, textAlign: "right" }}>Acciones</th>
                   </tr>
                 </thead>
@@ -3950,38 +4005,223 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   {servicios.map(s => (
                     <tr key={s.id} style={{ transition: "0.2s" }}>
                       {editSvc?.id === s.id ? (
-                        <>
-                          <td style={tdS}><input style={{...inputS, padding: "6px 10px"}} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "center" }}><input style={{...inputS, padding: "6px 10px", width: "80px", textAlign: "center", margin: "0 auto"}} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} /></td>
-                          <td style={{ ...tdS, textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                              <button style={{...btnGreen, padding: "6px 12px"}} onClick={guardarSvc}>✓</button>
-                              <button style={btnCancel} onClick={() => setEditSvc(null)}>✕</button>
+                        <td colSpan={5} style={{ ...tdS, padding: "16px", background: "#f8fafc" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 2fr", gap: "10px", marginBottom: "12px" }}>
+                            <div>
+                              <label style={{ fontSize: "10px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>NOMBRE</label>
+                              <input style={{ ...inputS, padding: "8px 10px" }} value={editSvc.nombre} onChange={e => setEditSvc(f => ({ ...f, nombre: e.target.value }))} />
                             </div>
-                          </td>
-                        </>
+                            <div>
+                              <label style={{ fontSize: "10px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>DURACIÓN (min)</label>
+                              <input style={{ ...inputS, padding: "8px 10px" }} type="number" value={editSvc.duracionMin} onChange={e => setEditSvc(f => ({ ...f, duracionMin: Number(e.target.value) }))} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: "10px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>PRECIO (€)</label>
+                              <input style={{ ...inputS, padding: "8px 10px" }} type="number" value={editSvc.precio} onChange={e => setEditSvc(f => ({ ...f, precio: Number(e.target.value) }))} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: "10px", fontWeight: "800", color: "#64748b", display: "block", marginBottom: "4px" }}>DESCRIPCIÓN</label>
+                              <input style={{ ...inputS, padding: "8px 10px" }} value={editSvc.desc || ""} onChange={e => setEditSvc(f => ({ ...f, desc: e.target.value }))} placeholder="Descripción opcional..." />
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                            <button style={{ background: "#f1f5f9", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "7px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={() => setEditSvc(null)}>Cancelar</button>
+                            <button style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", padding: "7px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={guardarSvc}>Guardar</button>
+                          </div>
+                        </td>
                       ) : (
                         <>
                           <td style={{ ...tdS, fontWeight: "700", color: "#1e293b" }}>{s.nombre}</td>
                           <td style={{ ...tdS, color: "#64748b", textAlign: "center" }}>{s.duracionMin} min</td>
                           <td style={{ ...tdS, fontWeight: "700", color: "#10b981", textAlign: "center" }}>{s.precio} €</td>
+                          <td style={{ ...tdS, color: "#94a3b8", fontSize: "11px" }}>{s.desc || "—"}</td>
                           <td style={{ ...tdS, textAlign: "right" }}>
                             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                               <button style={btnSquareEdit} onClick={() => setEditSvc({ ...s })}>✏️</button>
-                              <button style={btnSquareDel} onClick={() => deleteSvc(s.id, s.nombre)}>🗑</button>
+                              <button style={btnSquareDel} onClick={() => deleteSvc(s)}>🗑</button>
                             </div>
                           </td>
                         </>
                       )}
                     </tr>
                   ))}
-                  {servicios.length === 0 && <tr><td colSpan="4" style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No hay servicios registrados.</td></tr>}
+                  {servicios.length === 0 && <tr><td colSpan="5" style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No hay servicios registrados.</td></tr>}
                 </tbody>
               </table>
             </div>
           </div>
         )}
+
+
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB: CATEGORÍAS */}
+        {configSubTab === "categorias" && (
+          <div className="anim">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Arrastra para reordenar · Edita para cambiar los servicios de cada categoría</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={() => setShowNewCat(v => !v)}>{showNewCat ? "Cancelar" : "+ Nueva categoría"}</button>
+              </div>
+            </div>
+
+            {showNewCat && (
+              <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", marginBottom: "16px", border: "1px solid #93c5fd" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                  <div>
+                    <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block" }}>Nombre</label>
+                    <input style={{ width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", boxSizing: "border-box" }} value={newCat.nombre} onChange={e => setNewCat(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Coloración" />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block" }}>URL de la foto</label>
+                    <input style={{ width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", boxSizing: "border-box" }} value={newCat.foto} onChange={e => setNewCat(f => ({ ...f, foto: e.target.value }))} placeholder="https://..." />
+                  </div>
+                </div>
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "8px", display: "block" }}>Servicios incluidos</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
+                    {servicios.map(s => {
+                      const sel = newCat.servicioIds.includes(s.id);
+                      return (
+                        <button key={s.id} onClick={() => setNewCat(f => ({ ...f, servicioIds: sel ? f.servicioIds.filter(id => id !== s.id) : [...f.servicioIds, s.id] }))} style={{ padding: "6px 12px", borderRadius: "20px", border: `1px solid ${sel ? "#1e3a8a" : "#cbd5e1"}`, background: sel ? "#1e3a8a" : "#f8fafc", color: sel ? "#fff" : "#334155", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                          {s.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button style={{ background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={() => setShowNewCat(false)}>Cancelar</button>
+                  <button style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={async () => {
+                    if (!newCat.nombre) return;
+                    const cat = { ...newCat, id: Date.now(), orden: (categorias||[]).length };
+                    setCategorias(prev => [...prev, cat]);
+                    await guardarCategoriaFB(cat);
+                    setNewCat({ nombre: "", foto: "", servicioIds: [] });
+                    setShowNewCat(false);
+                  }}>Guardar categoría</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+              onDragOver={e => e.preventDefault()}
+            >
+              {[...(categorias||[])].sort((a,b) => (a.orden??a.id) - (b.orden??b.id)).map((cat, idx, arr) => (
+                <div
+                  key={cat.id}
+                  draggable={!editCat}
+                  onDragStart={e => { e.dataTransfer.setData("catId", String(cat.id)); }}
+                  onDrop={async e => {
+                    e.preventDefault();
+                    const origenId = Number(e.dataTransfer.getData("catId"));
+                    if (origenId === cat.id) return;
+                    const lista = [...arr];
+                    const desdeIdx = lista.findIndex(c => c.id === origenId);
+                    const hastaIdx = lista.findIndex(c => c.id === cat.id);
+                    const nuevaLista = [...lista];
+                    const [movido] = nuevaLista.splice(desdeIdx, 1);
+                    nuevaLista.splice(hastaIdx, 0, movido);
+                    await reordenarCategorias(nuevaLista);
+                  }}
+                  style={{ background: "#fff", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden", cursor: editCat ? "default" : "grab" }}
+                >
+                  {editCat?.id === cat.id ? (
+                    <div style={{ padding: "20px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                        <div>
+                          <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block" }}>Nombre</label>
+                          <input style={{ width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", boxSizing: "border-box" }} value={editCat.nombre} onChange={e => setEditCat(f => ({ ...f, nombre: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block" }}>URL de la foto</label>
+                          <input style={{ width: "100%", padding: "10px 12px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", boxSizing: "border-box" }} value={editCat.foto} onChange={e => setEditCat(f => ({ ...f, foto: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: "12px" }}>
+                        <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "8px", display: "block" }}>Servicios incluidos (arrastra para reordenar)</label>
+                        <div
+                          style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "10px" }}
+                          onDragOver={e => e.preventDefault()}
+                        >
+                          {(editCat.servicioIds||[]).map((sid, sidx) => {
+                            const svc = servicios.find(s => s.id === sid);
+                            if (!svc) return null;
+                            return (
+                              <div
+                                key={sid}
+                                draggable
+                                onDragStart={e => e.dataTransfer.setData("svcId", String(sid))}
+                                onDrop={async e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const origenId = Number(e.dataTransfer.getData("svcId"));
+                                  if (origenId === sid) return;
+                                  const lista = [...(editCat.servicioIds||[])];
+                                  const desdeIdx = lista.indexOf(origenId);
+                                  const hastaIdx = lista.indexOf(sid);
+                                  const nueva = [...lista];
+                                  const [mov] = nueva.splice(desdeIdx, 1);
+                                  nueva.splice(hastaIdx, 0, mov);
+                                  setEditCat(f => ({...f, servicioIds: nueva}));
+                                }}
+                                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "#f0f4ff", border: "1px solid #1e3a8a33", borderRadius: "8px", cursor: "grab" }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span style={{ color: "#94a3b8", fontSize: "14px" }}>⠿</span>
+                                  <span style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b" }}>{svc.nombre}</span>
+                                  <span style={{ fontSize: "11px", color: "#64748b" }}>{svc.duracionMin} min · {svc.precio} €</span>
+                                </div>
+                                <button onClick={() => setEditCat(f => ({...f, servicioIds: f.servicioIds.filter(id => id !== sid)}))} style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "6px", display: "block" }}>Añadir servicios</label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                          {servicios.filter(s => !(editCat.servicioIds||[]).includes(s.id)).map(s => (
+                            <button key={s.id} onClick={() => setEditCat(f => ({ ...f, servicioIds: [...(f.servicioIds||[]), s.id] }))} style={{ padding: "6px 12px", borderRadius: "20px", border: "1px solid #cbd5e1", background: "#f8fafc", color: "#334155", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                              + {s.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                        <button style={{ background: "#f1f5f9", color: "#475569", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={() => setEditCat(null)}>Cancelar</button>
+                        <button style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={async () => {
+                          setCategorias(prev => prev.map(c => c.id === editCat.id ? editCat : c));
+                          await guardarCategoriaFB(editCat);
+                          setEditCat(null);
+                        }}>Guardar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "14px 20px", position: "relative" }}>
+                      <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
+                      {cat.foto && <img src={cat.foto} style={{ width: "50px", height: "50px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} />}
+                      <div style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
+                        <div style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{cat.nombre}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                          {(cat.servicioIds || []).map(sid => {
+                            const svc = servicios.find(s => s.id === sid);
+                            return svc ? <span key={sid} style={{ fontSize: "10px", background: "#f0f4ff", color: "#1e3a8a", padding: "2px 8px", borderRadius: "10px", fontWeight: "600" }}>{svc.nombre}</span> : null;
+                          })}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                        <button style={{ background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setEditCat({ ...cat })}>✏️</button>
+                        <button style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setCatBorrar({...cat})}>🗑</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+
 
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 2: VALORACIONES */}
@@ -4023,9 +4263,29 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
-              {valoraciones.map(v => (
-                <div key={v.id} style={{ ...cardS, padding: "0", marginBottom: 0, overflow: "hidden" }}>
+            <div
+              style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}
+              onDragOver={e => e.preventDefault()}
+            >
+              {[...valoraciones].sort((a,b) => (a.orden??0) - (b.orden??0)).map((v, idx, arr) => (
+                <div
+                  key={v.id}
+                  draggable={!editVal}
+                  onDragStart={e => e.dataTransfer.setData("valId", String(v.id))}
+                  onDrop={async e => {
+                    e.preventDefault();
+                    const origenId = Number(e.dataTransfer.getData("valId"));
+                    if (origenId === v.id) return;
+                    const lista = [...arr];
+                    const desdeIdx = lista.findIndex(x => x.id === origenId);
+                    const hastaIdx = lista.findIndex(x => x.id === v.id);
+                    const nueva = [...lista];
+                    const [mov] = nueva.splice(desdeIdx, 1);
+                    nueva.splice(hastaIdx, 0, mov);
+                    await reordenarValoraciones(nueva);
+                  }}
+                  style={{ ...cardS, padding: "0", marginBottom: 0, overflow: "hidden", cursor: editVal ? "default" : "grab" }}
+                >
                   {editVal?.id === v.id ? (
                     <div style={{ ...cardS, border: "1px solid #93c5fd", background: "#f8fafc", margin: 0 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
@@ -4052,9 +4312,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                     </div>
                   ) : (
                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: isMobile ? "550px" : "auto", position: "relative" }}>
-                        
-                        {/* IZQUIERDA: Nombre, estrellas, servicio en columna */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: isMobile ? "550px" : "auto" }}>
+                        <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "140px", flexShrink: 0, alignItems: "flex-start" }}>
                           <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
                           <div style={{ display: "flex", gap: "2px" }}>
@@ -4062,19 +4321,15 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           </div>
                           <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
                         </div>
-
-                        {/* CENTRO: Comentario */}
-                        <div style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
-                          <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                        <div style={{ position: "relative", flex: 1 }}>
+                          <div style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
+                            <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                          </div>
                         </div>
-                        <div style={{ flex: 1 }} />
-
-                        {/* DERECHA: Botones */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0, marginRight: isMobile ? "8px" : "0" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
                           <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
                           <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
                         </div>
-                        
                       </div>
                     </div>
                   )}
@@ -4124,6 +4379,33 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </table>
               </div>
             ))}
+          </div>
+        )}
+        {svcBorrar && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:"#fff",borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:16}}>🗑</div>
+              <h3 style={{fontSize:17,fontWeight:700,color:"#0D1F35",marginBottom:8}}>¿Eliminar este servicio?</h3>
+              <p style={{fontSize:13,color:"#4A6080",marginBottom:6,fontWeight:700}}>{svcBorrar.nombre}</p>
+              <p style={{fontSize:12,color:"#4A6080",marginBottom:24}}>{svcBorrar.duracionMin} min · {svcBorrar.precio} €</p>
+              <div style={{display:"flex",gap:10}}>
+                <button style={{flex:1,background:"#E0E8F2",border:"1px solid #CED9E8",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={() => setSvcBorrar(null)}>Cancelar</button>
+                <button style={{flex:1,background:"linear-gradient(135deg,#dc2626,#b91c1c)",color:"#fff",border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={confirmarBorradoSvc}>Eliminar</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {catBorrar && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:"#fff",borderRadius:18,padding:"32px",width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:16}}>🗑</div>
+              <h3 style={{fontSize:17,fontWeight:700,color:"#0D1F35",marginBottom:8}}>¿Eliminar esta categoría?</h3>
+              <p style={{fontSize:13,color:"#4A6080",marginBottom:24}}>Se eliminará <b>{catBorrar.nombre}</b> de la web y del flujo de reserva.</p>
+              <div style={{display:"flex",gap:10}}>
+                <button style={{flex:1,background:"#E0E8F2",border:"1px solid #CED9E8",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={() => setCatBorrar(null)}>Cancelar</button>
+                <button style={{flex:1,background:"linear-gradient(135deg,#dc2626,#b91c1c)",color:"#fff",border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={confirmarBorradoCat}>Eliminar</button>
+              </div>
+            </div>
           </div>
         )}
         {valBorrar && (
@@ -4330,7 +4612,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
         {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile}/>}
-        {tab==="config"&&<TabConfig valoraciones={valoraciones} setValoraciones={setValoraciones} servicios={servicios} setServicios={setServicios} isMobile={isMobile} onValEliminada={(val)=>{ _valEliminadaTemp=val; setToastValVisible(true); if(toastValTimer)clearTimeout(toastValTimer); const t=setTimeout(()=>{setToastValVisible(false);_valEliminadaTemp=null;},6000); setToastValTimer(t); }}/>}
+        {tab==="config"&&<TabConfig valoraciones={valoraciones} setValoraciones={setValoraciones} servicios={servicios} setServicios={setServicios} categorias={categorias} setCategorias={setCategorias} isMobile={isMobile} onValEliminada={(val)=>{ _valEliminadaTemp=val; setToastValVisible(true); if(toastValTimer)clearTimeout(toastValTimer); const t=setTimeout(()=>{setToastValVisible(false);_valEliminadaTemp=null;},6000); setToastValTimer(t); }} onSvcEliminado={(svc)=>{ _svcEliminadoTemp=svc; setToastSvcVisible(true); if(toastSvcTimer)clearTimeout(toastSvcTimer); const t=setTimeout(()=>{setToastSvcVisible(false);_svcEliminadoTemp=null;},6000); setToastSvcTimer(t); }} onCatEliminada={(cat)=>{ _catEliminadaTemp=cat; setToastCatVisible(true); if(toastCatTimer)clearTimeout(toastCatTimer); const t=setTimeout(()=>{setToastCatVisible(false);_catEliminadaTemp=null;},6000); setToastCatTimer(t); }}/>}
         {tab==="comunicacion"&&<TabComunicacion/>}
       </div>
 
@@ -4374,6 +4656,18 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_valEliminadaTemp)return; await guardarValoracionFB(_valEliminadaTemp); _valEliminadaTemp=null; setToastValVisible(false); if(toastValTimer)clearTimeout(toastValTimer); }}>Deshacer</button>
         </div>
       )}
+      {toastSvcVisible&&(
+        <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
+          <span>🗑 Servicio eliminado</span>
+          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_svcEliminadoTemp)return; await guardarServicioFB(_svcEliminadoTemp); setServicios(prev=>[...prev,_svcEliminadoTemp].filter(Boolean).sort((a,b)=>a.id-b.id)); _svcEliminadoTemp=null; setToastSvcVisible(false); if(toastSvcTimer)clearTimeout(toastSvcTimer); }}>Deshacer</button>
+        </div>
+      )}
+      {toastCatVisible&&(
+        <div style={{position:"fixed",bottom:30,left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:WH,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,fontSize:13,whiteSpace:"nowrap"}}>
+          <span>🗑 Categoría eliminada</span>
+          <button style={{background:A,color:WH,border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={async()=>{ if(!_catEliminadaTemp)return; await guardarCategoriaFB(_catEliminadaTemp); setCategorias(prev=>[...prev,_catEliminadaTemp].filter(Boolean).sort((a,b)=>a.id-b.id)); _catEliminadaTemp=null; setToastCatVisible(false); if(toastCatTimer)clearTimeout(toastCatTimer); }}>Deshacer</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -4386,7 +4680,8 @@ function AppData(){
   const [valoraciones,setValoraciones]=useState([]);
   const [festivos,setFestivos]=useState([]);
   const [bloqueos,setBloqueos]=useState([]);
-  const [servicios,setServicios]=useState([...CONFIG.serviciosDefault]);
+  const [servicios,setServicios]=useState([]);
+  const [categorias,setCategorias]=useState([]);
   const [cargando,setCargando]=useState(true);
   const [iniciado,setIniciado]=useState(false);
 
@@ -4419,9 +4714,10 @@ function AppData(){
     const u2=suscribirValoracionesFB(setValoraciones);
     const u3=suscribirFestivos(setFestivos);
     const u4=suscribirBloqueos(setBloqueos);
-    const u5=suscribirServicios(data=>{ if(data&&data.length>0) setServicios(data); });
-    const t=setTimeout(()=>setCargando(false),5000);
-    return()=>{ u1();u2();u3();u4();u5();clearTimeout(t); };
+    const u5=suscribirServicios(data=>{ setServicios(data); });
+    const u6=suscribirCategorias(data=>{ setCategorias(data); });
+      const t=setTimeout(()=>setCargando(false),5000);
+      return()=>{ u1();u2();u3();u4();u5();u6();clearTimeout(t); };
   },[]);
 
   // 3. PANTALLA DE CARGA (El if debe ir DESPUÉS de todos los hooks)
@@ -4436,7 +4732,7 @@ function AppData(){
   );
 
   // ESTE ES EL FINAL DE TU FUNCIÓN AppData
-  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, sliderRef, isMobile, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd };
+  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, categorias, setCategorias, sliderRef, isMobile, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd };
 
   return (
     <Routes>
