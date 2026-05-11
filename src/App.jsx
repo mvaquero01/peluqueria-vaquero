@@ -4060,9 +4060,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {configSubTab === "categorias" && (
           <div className="anim">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Arrastra para reordenar · Edita para cambiar los servicios de cada categoría</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }} onClick={() => setShowNewCat(v => !v)}>{showNewCat ? "Cancelar" : "+ Nueva categoría"}</button>
+              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Arrastra para reordenar · Edita para cambiar los servicios de cada categoría</div>}
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => setShowNewCat(v => !v)}>{showNewCat ? "Cancelar" : "+ Nueva categoría"}</button>
               </div>
             </div>
 
@@ -4236,8 +4236,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {configSubTab === "valoraciones" && (
           <div className="anim">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Opiniones visibles en la página web</div>
-              <button style={btnBlue} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
+              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Opiniones visibles en la página web</div>}
+              <button style={{...btnBlue, whiteSpace: "nowrap", flexShrink: 0}} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
             </div>
 
             {showNewVal && (
@@ -4319,23 +4319,44 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: "12px", minHeight: "80px", position: "relative" }}>
-                      <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "160px", flexShrink: 0, alignItems: "flex-start" }}>
-                        <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-                        <div style={{ display: "flex", gap: "2px" }}>
-                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                    <div style={{ cursor: "grab" }}>
+                      {isMobile ? (
+                        <div style={{ display: "flex", flexDirection: "column", padding: "16px", gap: "10px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                              <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+                              <div style={{ display: "flex", gap: "2px" }}>
+                                {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                              </div>
+                              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
+                              <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
+                            </div>
+                          </div>
+                          <p style={{ fontSize: "13px", color: "#475569", margin: "0 16px", fontStyle: "italic", lineHeight: "1.5", textAlign: "center", maxWidth: "280px", alignSelf: "center" }}>"{v.comentario}"</p>
                         </div>
-                        <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
-                      </div>
-                      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: "50%", textAlign: "center", pointerEvents: "none" }}>
-                        <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
-                      </div>
-                      <div style={{ flex: 1 }} />
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-                        <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
-                        <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
-                      </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: "12px", minHeight: "80px", position: "relative" }}>
+                          <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "160px", flexShrink: 0, alignItems: "flex-start" }}>
+                            <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+                            <div style={{ display: "flex", gap: "2px" }}>
+                              {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
+                            </div>
+                            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                          </div>
+                          <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: "50%", textAlign: "center", pointerEvents: "none" }}>
+                            <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                          </div>
+                          <div style={{ flex: 1 }} />
+                          <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                            <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
+                            <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
