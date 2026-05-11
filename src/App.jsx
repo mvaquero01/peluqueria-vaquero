@@ -4195,19 +4195,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "14px 20px", position: "relative" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 20px" }}>
                       <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
                       {cat.foto && <img src={cat.foto} style={{ width: "50px", height: "50px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} />}
-                      <div style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
+                      <div style={{ width: "160px", flexShrink: 0 }}>
                         <div style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{cat.nombre}</div>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                          {(cat.servicioIds || []).map(sid => {
-                            const svc = servicios.find(s => s.id === sid);
-                            return svc ? <span key={sid} style={{ fontSize: "10px", background: "#f0f4ff", color: "#1e3a8a", padding: "2px 8px", borderRadius: "10px", fontWeight: "600" }}>{svc.nombre}</span> : null;
-                          })}
-                        </div>
+                      <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {(cat.servicioIds || []).map(sid => {
+                          const svc = servicios.find(s => s.id === sid);
+                          return svc ? <span key={sid} style={{ fontSize: "10px", background: "#f0f4ff", color: "#1e3a8a", padding: "2px 8px", borderRadius: "10px", fontWeight: "600" }}>{svc.nombre}</span> : null;
+                        })}
                       </div>
                       <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
                         <button style={{ background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setEditCat({ ...cat })}>✏️</button>
@@ -4311,25 +4309,22 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                     </div>
                   ) : (
-                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: isMobile ? "550px" : "auto" }}>
-                        <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "140px", flexShrink: 0, alignItems: "flex-start" }}>
-                          <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
-                          <div style={{ display: "flex", gap: "2px" }}>
-                            {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
-                          </div>
-                          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                    <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: "12px", minHeight: "80px", position: "relative" }}>
+                      <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "160px", flexShrink: 0, alignItems: "flex-start" }}>
+                        <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+                        <div style={{ display: "flex", gap: "2px" }}>
+                          {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
                         </div>
-                        <div style={{ position: "relative", flex: 1 }}>
-                          <div style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
-                            <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
-                          <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
-                          <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
-                        </div>
+                        <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>{v.servicio}</span>
+                      </div>
+                      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: "50%", textAlign: "center", pointerEvents: "none" }}>
+                        <p style={{ fontSize: "13px", color: "#475569", margin: 0, fontStyle: "italic", lineHeight: "1.4" }}>"{v.comentario}"</p>
+                      </div>
+                      <div style={{ flex: 1 }} />
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                        <button style={btnSquareEdit} onClick={() => setEditVal({ ...v })}>✏️</button>
+                        <button style={btnSquareDel} onClick={() => setValBorrar({...v})}>🗑</button>
                       </div>
                     </div>
                   )}
