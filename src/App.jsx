@@ -4060,7 +4060,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {configSubTab === "categorias" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "16px" }}>
-              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", marginRight: "auto" }}>Arrastra para reordenar · Edita para cambiar los servicios de cada categoría</div>}
               <button style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => setShowNewCat(v => !v)}>{showNewCat ? "Cancelar" : "+ Nueva categoría"}</button>
             </div>
 
@@ -4234,7 +4233,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {configSubTab === "valoraciones" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "16px" }}>
-              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", marginRight: "auto" }}>Opiniones visibles en la página web</div>}
               <button style={{...btnBlue, whiteSpace: "nowrap", flexShrink: 0}} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
             </div>
 
@@ -4370,6 +4368,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           <div className="anim" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? "10px" : "2%", alignItems: "start" }}>
             {CONFIG.peluqueros.map(p => (
               <div key={p.id} style={{ ...cardS, padding: 0, overflow: "hidden" }}>
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                 
                 {/* CABECERA DEL PELUQUERO */}
                 <div style={{ background: "#f8fafc", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -4378,7 +4377,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
 
                 {/* TABLA DE HORARIOS ALINEADA */}
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", minWidth: "480px", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
                       <th style={{ ...thS, textAlign: "left", paddingLeft: "20px" }}>Día</th>
@@ -4402,6 +4401,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   </tbody>
                 </table>
               </div>
+            </div>
             ))}
           </div>
         )}
