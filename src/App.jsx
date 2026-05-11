@@ -3991,7 +3991,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             )}
 
             <div style={{ ...cardS, padding: 0, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: isMobile ? "600px" : "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead style={{ background: "#f8fafc" }}>
                   <tr>
                     <th style={thS}>Nombre</th>
@@ -4048,6 +4049,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   {servicios.length === 0 && <tr><td colSpan="5" style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No hay servicios registrados.</td></tr>}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -4195,21 +4197,23 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 20px" }}>
-                      <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
-                      {cat.foto && <img src={cat.foto} style={{ width: "50px", height: "50px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} />}
-                      <div style={{ width: "160px", flexShrink: 0 }}>
-                        <div style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>{cat.nombre}</div>
-                      </div>
-                      <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                        {(cat.servicioIds || []).map(sid => {
-                          const svc = servicios.find(s => s.id === sid);
-                          return svc ? <span key={sid} style={{ fontSize: "10px", background: "#f0f4ff", color: "#1e3a8a", padding: "2px 8px", borderRadius: "10px", fontWeight: "600" }}>{svc.nombre}</span> : null;
-                        })}
-                      </div>
-                      <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                        <button style={{ background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setEditCat({ ...cat })}>✏️</button>
-                        <button style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setCatBorrar({...cat})}>🗑</button>
+                    <div style={{ overflowX: isMobile ? "auto" : "visible", WebkitOverflowScrolling: "touch" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px", padding: "14px 20px", minWidth: isMobile ? "max-content" : "auto" }}>
+                        <span style={{ color: "#cbd5e1", fontSize: "18px", cursor: "grab", flexShrink: 0 }}>⠿</span>
+                        {cat.foto && <img src={cat.foto} style={{ width: "50px", height: "50px", borderRadius: "10px", objectFit: "cover", flexShrink: 0 }} />}
+                        <div style={{ width: isMobile ? "auto" : "160px", flexShrink: 0, marginRight: isMobile ? "4px" : "0" }}>
+                          <div style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: "800", color: "#1e293b", whiteSpace: "nowrap" }}>{cat.nombre}</div>
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "nowrap", gap: "4px", flexShrink: 0 }}>
+                          {(cat.servicioIds || []).map(sid => {
+                            const svc = servicios.find(s => s.id === sid);
+                            return svc ? <span key={sid} style={{ fontSize: "10px", background: "#f0f4ff", color: "#1e3a8a", padding: "2px 8px", borderRadius: "10px", fontWeight: "600", whiteSpace: "nowrap" }}>{svc.nombre}</span> : null;
+                          })}
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", flexShrink: 0, marginLeft: "12px" }}>
+                          <button style={{ background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setEditCat({ ...cat })}>✏️</button>
+                          <button style={{ background: "#fee2e2", color: "#ef4444", border: "none", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", fontSize: "15px" }} onClick={() => setCatBorrar({...cat})}>🗑</button>
+                        </div>
                       </div>
                     </div>
                   )}
