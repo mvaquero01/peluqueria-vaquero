@@ -4058,12 +4058,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB: CATEGORÍAS */}
         {configSubTab === "categorias" && (
-          <div className="anim">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Arrastra para reordenar · Edita para cambiar los servicios de cada categoría</div>}
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => setShowNewCat(v => !v)}>{showNewCat ? "Cancelar" : "+ Nueva categoría"}</button>
-              </div>
+          <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "16px" }}>
+              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", marginRight: "auto" }}>Arrastra para reordenar · Edita para cambiar los servicios de cada categoría</div>}
+              <button style={{ background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => setShowNewCat(v => !v)}>{showNewCat ? "Cancelar" : "+ Nueva categoría"}</button>
             </div>
 
             {showNewCat && (
@@ -4080,7 +4078,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
                 <div style={{ marginBottom: "12px" }}>
                   <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "8px", display: "block" }}>Servicios incluidos</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-start" }}>
                     {servicios.map(s => {
                       const sel = newCat.servicioIds.includes(s.id);
                       return (
@@ -4234,9 +4232,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* ───────────────────────────────────────────────────────── */}
         {/* TAB 2: VALORACIONES */}
         {configSubTab === "valoraciones" && (
-          <div className="anim">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>Opiniones visibles en la página web</div>}
+          <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "16px" }}>
+              {!isMobile && <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "600", marginRight: "auto" }}>Opiniones visibles en la página web</div>}
               <button style={{...btnBlue, whiteSpace: "nowrap", flexShrink: 0}} onClick={() => setShowNewVal(v => !v)}>{showNewVal ? "Cancelar" : "+ Añadir Opinión"}</button>
             </div>
 
