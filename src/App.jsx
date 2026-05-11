@@ -4077,7 +4077,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
                 <div style={{ marginBottom: "12px" }}>
                   <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "8px", display: "block" }}>Servicios incluidos</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-start" }}>
                     {servicios.map(s => {
                       const sel = newCat.servicioIds.includes(s.id);
                       return (
@@ -4377,13 +4377,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
 
                 {/* TABLA DE HORARIOS ALINEADA */}
-                <table style={{ width: "100%", minWidth: "480px", borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", minWidth: "360px", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      <th style={{ ...thS, textAlign: "left", paddingLeft: "20px" }}>Día</th>
-                      <th style={{ ...thS, textAlign: "center" }}>Entrada</th>
-                      <th style={{ ...thS, textAlign: "center" }}>Salida</th>
-                      <th style={{ ...thS, textAlign: "center" }}>Descanso</th>
+                      <th style={{ ...thS, textAlign: "left", padding: "8px 6px 8px 10px" }}>Día</th>
+                      <th style={{ ...thS, textAlign: "center", padding: "8px 6px" }}>Entrada</th>
+                      <th style={{ ...thS, textAlign: "center", padding: "8px 6px" }}>Salida</th>
+                      <th style={{ ...thS, textAlign: "center", padding: "8px 6px" }}>Descanso</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -4391,10 +4391,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       const h = p.horario[d];
                       return (
                         <tr key={d} style={{ transition: "0.2s" }}>
-                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", paddingLeft: "20px" }}>{DIAS_FULL[d]}</td>
-                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8" }}>{h ? h.entrada : "—"}</td>
-                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8" }}>{h ? h.salida : "—"}</td>
-                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8" }}>{h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}</td>
+                          <td style={{ ...tdS, fontWeight: "700", color: "#334155", textAlign: "left", padding: "6px 6px 6px 10px", fontSize: "12px" }}>{DIAS_FULL[d]}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8", padding: "6px", fontSize: "12px" }}>{h ? h.entrada : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", fontWeight: h ? "600" : "400", color: h ? "#1e293b" : "#94a3b8", padding: "6px", fontSize: "12px" }}>{h ? h.salida : "—"}</td>
+                          <td style={{ ...tdS, textAlign: "center", color: h?.descanso ? "#64748b" : "#94a3b8", padding: "6px", fontSize: "12px" }}>{h?.descanso ? `${h.descanso.inicio} - ${h.descanso.fin}` : "—"}</td>
                         </tr>
                       );
                     })}
