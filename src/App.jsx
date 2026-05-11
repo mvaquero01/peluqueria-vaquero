@@ -4078,7 +4078,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
                 <div style={{ marginBottom: "12px" }}>
                   <label style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", marginBottom: "8px", display: "block" }}>Servicios incluidos</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-start" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
                     {servicios.map(s => {
                       const sel = newCat.servicioIds.includes(s.id);
                       return (
