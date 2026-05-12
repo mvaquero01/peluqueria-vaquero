@@ -2703,22 +2703,24 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     };
 
     const AccionesCitaPremium=({c})=>(
-      <td style={{padding:"16px 10px", verticalAlign:"middle", position:"relative"}}>
-        <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"}}>
+      <td style={{padding:"16px 10px", verticalAlign:"middle"}}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", position:"relative"}}>
           {c.estado==="pendiente"&&<>
             <button title="Confirmar" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px", fontWeight:"900", transition:"0.2s"}} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
             <button title="No Show" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900", transition:"0.2s"}} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
           </>}
           {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
           <button title="Opciones" style={{width:"30px", height:"30px", borderRadius:"8px", background:"#F8FAFC", color:"#475569", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={()=>setMenuAbierto(menuAbierto===c.id?null:c.id)}>⋮</button>
+          {menuAbierto===c.id&&(
+            <>
+              <div style={{position:"fixed",inset:0,zIndex:9998}} onClick={()=>setMenuAbierto(null)}/>
+              <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:WH,border:`1px solid ${CR3}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:9999,minWidth:150,overflow:"hidden"}}>
+                <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar cita</button>
+                <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar cita</button>
+              </div>
+            </>
+          )}
         </div>
-
-        {menuAbierto===c.id&&(
-          <div style={{position:"fixed",right:"80px",background:WH,border:`1px solid ${CR3}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:9999,minWidth:140,overflow:"hidden"}}>
-            <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar cita</button>
-            <button style={{display:"block",width:"100%",padding:"12px 16px",fontSize:12,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
-          </div>
-        )}
       </td>
     );
 
@@ -2977,8 +2979,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box" }}>
             <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
             <LeyendaPeluqueros/>
-            <div style={{ marginTop: "16px" }}>
-              <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
+            <div style={{ marginTop: "16px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <div style={{ minWidth: "700px" }}>
+                <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
+              </div>
             </div>
           </div>
         )}
@@ -2997,8 +3001,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
               {pelFiltroCitas&&<div style={{marginBottom:8,display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:2,background:CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.color}}/><span style={{fontSize:12,fontWeight:700,color:TX}}>{CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.nombre}</span></div>}
               {!pelFiltroCitas&&<LeyendaPeluqueros/>}
-              <div style={{ marginTop: "16px" }}>
-                <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
+              <div style={{ marginTop: "16px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <div style={{ minWidth: "700px" }}>
+                  <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
+                </div>
               </div>
             </div>
           </div>
@@ -4319,8 +4325,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       {isMobile ? (
                         <div style={{ display: "flex", flexDirection: "column", padding: "16px", gap: "10px" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                              <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{v.nombre}</span>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
+                              <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b", textAlign: "left" }}>{v.nombre}</span>
                               <div style={{ display: "flex", gap: "2px" }}>
                                 {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ fontSize: "12px", color: i < v.estrellas ? "#F59E0B" : "#D1D5DB" }}>★</span>)}
                               </div>
