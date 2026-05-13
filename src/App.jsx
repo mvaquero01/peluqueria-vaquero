@@ -572,7 +572,7 @@ function MiniCalPicker({value,onChange,festivosSet,bloqueosPelId,bloqueos}){
 // ─────────────────────────────────────────────
 // CALENDARIO GRID — con cabeceras STICKY
 // ─────────────────────────────────────────────
-const PX_MIN=1.4;
+const PX_MIN=0.9;
 const HORA_APE=9*60,HORA_CIE=20*60+30;
 const TOTAL_MIN=HORA_CIE-HORA_APE;
 const GRID_H=TOTAL_MIN*PX_MIN;
@@ -580,13 +580,13 @@ const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
   return (
-    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "auto", height: "580px", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
+    <div className="cal-scroll" style={{ overflowX: "auto", height: "auto", maxHeight: "none", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
 
       {/* Eje de horas */}
       <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
         
         {/* Cabecera de horas pegajosa a 130px */}
-        <div className="cal-hour-header" style={{ background: CR, position: "sticky", top: "0", zIndex: 100, minHeight: "38px" }}></div>
+        <div style={{ height: "52px", flexShrink: 0, borderBottom: `1px solid ${CR3}`, background: CR }}></div>
         
         <div style={{ position: "relative", height: GRID_H }}>
           {HORA_LABELS.map((h) => (
@@ -611,9 +611,6 @@ function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
             {/* CABECERA STICKY A 130px, CENTRADA Y JUNTITA */}
             <div className="cal-day-header" style={{ 
               background: esHoy ? "#1B4F8A" : CR3, 
-              position: "sticky", 
-              top: "0", 
-              zIndex: 100,
               padding: "8px 4px", 
               display: "flex", 
               flexDirection: "column", 
@@ -2357,7 +2354,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const navigate=useNavigate();
   const [searchParams,setSearchParams]=useSearchParams();
   const tab=searchParams.get("tab")||"citas";
-  const setTab=t=>{setSearchParams({tab:t});window.scrollTo({top:0,behavior:"auto"});};
+  const setTab=t=>setSearchParams({tab:t});
+  useEffect(()=>{ window.scrollTo({top:0,behavior:"auto"}); },[tab]);
 
   // ★ subTab para Config elevado aquí para no perder el subtab al guardar
   const [configSubTab,setConfigSubTab]=useState("servicios");
@@ -2394,7 +2392,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   useEffect(()=>{ const u1=suscribirCitas(setCitas); const u2=suscribirClientes(setClientes); return()=>{u1();u2();}; },[]);
 
   const cambiarEstado=useCallback(async(id,estado,estadoAnterior="pendiente")=>{
+    const tw=document.querySelector('.admin-table-wrap');
+    const sl=tw?tw.scrollLeft:0;
     setCitas(prev=>prev.map(c=>c.id===id?{...c,estado}:c));
+    requestAnimationFrame(()=>{const tw2=document.querySelector('.admin-table-wrap');if(tw2)tw2.scrollLeft=sl;});
     try{
       await actualizarCita(id,{estado});
       const citaSnap=await getDoc(doc(db,"citas",id));
@@ -2602,7 +2603,10 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
     // Actualizar Método de Pago con un clic (Permite pasar null para deseleccionar)
     const cambiarMetodoPago = async (id, metodo) => {
+      const tw=document.querySelector('.admin-table-wrap');
+      const sl=tw?tw.scrollLeft:0;
       setCitas(prev => prev.map(c => c.id === id ? { ...c, metodoPago: metodo } : c));
+      requestAnimationFrame(()=>{const tw2=document.querySelector('.admin-table-wrap');if(tw2)tw2.scrollLeft=sl;});
       try {
         await actualizarCita(id, { metodoPago: metodo });
       } catch (error) {
@@ -2727,7 +2731,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           {[["hoy","📋 Vista Tabla"],["semana","📅 Vista Calendario"],["peluquero","✂️ Vista Peluquero"]].map(([v,l])=>(
             <button key={v} style={{background:vistaCitas===v?A:CR2,color:vistaCitas===v?WH:TX,border:`1px solid ${vistaCitas===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>{
               setVistaCitas(v);
-              if(v==="hoy"){ setFiltFecha("hoy"); setMostrarBuscador(false); }
             }}>{l}</button>
           ))}
           <button style={{marginLeft:"auto",background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setShowManual(true)}>+ Nueva cita</button>
@@ -2756,7 +2759,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   </button>
                   {showEditCalPicker&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={citaEditando.fecha} onChange={iso=>{setCitaEditando(f=>({...f,fecha:iso}));setShowEditCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={citaEditando.peluqueroId} bloqueos={bloqueos}/></div>}
                 </div>
-                <div><Lbl>Hora</Lbl><Inp type="time" value={citaEditando.hora} onChange={e=>setCitaEditando(f=>({...f,hora:e.target.value}))}/></div>
+                <div><Lbl>Hora</Lbl><Inp type="time" step="900" style={{padding:"6px 8px",fontSize:12,height:"34px",boxSizing:"border-box"}} value={citaEditando.hora} onChange={e=>setCitaEditando(f=>({...f,hora:e.target.value}))}/></div>
               </div>
               <div style={{marginBottom:8}}><Lbl>Estado</Lbl><Sel value={citaEditando.estado} onChange={e=>setCitaEditando(f=>({...f,estado:e.target.value}))}><option value="pendiente">Pendiente</option><option value="completada">Completada</option><option value="no-show">No show</option></Sel></div>
               <div style={{marginBottom:10}}><Lbl>Nota</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.nota||""} onChange={e=>setCitaEditando(f=>({...f,nota:e.target.value}))}/></div>
