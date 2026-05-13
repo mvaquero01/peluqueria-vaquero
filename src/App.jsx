@@ -580,13 +580,13 @@ const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
   return (
-    <div className="cal-scroll" style={{ overflow: "visible", height: "auto", maxHeight: "none", display: "flex", width: "100%" }}>
+    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "auto", height: "580px", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
 
       {/* Eje de horas */}
       <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
         
         {/* Cabecera de horas pegajosa a 130px */}
-        <div className="cal-hour-header" style={{ background: CR, position: "sticky", top: "130px", zIndex: 100, minHeight: "38px" }}></div>
+        <div className="cal-hour-header" style={{ background: CR, position: "sticky", top: "0", zIndex: 100, minHeight: "38px" }}></div>
         
         <div style={{ position: "relative", height: GRID_H }}>
           {HORA_LABELS.map((h) => (
@@ -612,8 +612,8 @@ function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
             <div className="cal-day-header" style={{ 
               background: esHoy ? "#1B4F8A" : CR3, 
               position: "sticky", 
-              top: "130px", 
-              zIndex: 100, 
+              top: "0", 
+              zIndex: 100,
               padding: "8px 4px", 
               display: "flex", 
               flexDirection: "column", 
@@ -2311,7 +2311,7 @@ function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosS
   if(!show) return null;
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:WH,borderRadius:18,padding:"28px",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+      <div style={{background:WH,borderRadius:14,padding:"14px",width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <h3 style={{fontSize:16,fontWeight:700,color:TX}}>Nueva cita manual</h3>
           <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:TX2}} onClick={onClose}>✕</button>
@@ -2357,7 +2357,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const navigate=useNavigate();
   const [searchParams,setSearchParams]=useSearchParams();
   const tab=searchParams.get("tab")||"citas";
-  const setTab=t=>setSearchParams({tab:t});
+  const setTab=t=>{setSearchParams({tab:t});window.scrollTo({top:0,behavior:"auto"});};
 
   // ★ subTab para Config elevado aquí para no perder el subtab al guardar
   const [configSubTab,setConfigSubTab]=useState("servicios");
@@ -2431,7 +2431,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       fontFamily: FONT, 
       color: TX, 
       width: "100%", 
-      margin: 0 
+      margin: 0,
+      overflowX: "hidden"
     },
     header: { 
       background: WH, 
@@ -2739,13 +2740,15 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {citaEditando&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"145px 20px 20px"}}>
             <div style={{background:WH,borderRadius:18,padding:"22px",width:"100%",maxWidth:440,maxHeight:"calc(100vh - 165px)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-                <h3 style={{fontSize:16,fontWeight:700,color:TX}}>Editar cita</h3>
-                <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:TX2}} onClick={()=>{setCitaEditando(null);setShowEditCalPicker(false);}}>✕</button>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <h3 style={{fontSize:14,fontWeight:700,color:TX}}>Editar cita</h3>
+                <button style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:TX2}} onClick={()=>{setCitaEditando(null);setShowEditCalPicker(false);}}>✕</button>
               </div>
-              <div style={{marginBottom:10}}><Lbl>Cliente</Lbl><Inp value={citaEditando.clienteNombre} onChange={e=>setCitaEditando(f=>({...f,clienteNombre:e.target.value}))}/></div>
-              <div style={{marginBottom:10}}><Lbl>Teléfono</Lbl><Inp value={citaEditando.clienteTel} onChange={e=>setCitaEditando(f=>({...f,clienteTel:e.target.value}))}/></div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                <div><Lbl>Cliente</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.clienteNombre} onChange={e=>setCitaEditando(f=>({...f,clienteNombre:e.target.value}))}/></div>
+                <div><Lbl>Teléfono</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.clienteTel} onChange={e=>setCitaEditando(f=>({...f,clienteTel:e.target.value}))}/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                 <div style={{position:"relative"}}>
                   <Lbl>Fecha</Lbl>
                   <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:citaEditando.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box",outline:"none"}} onClick={()=>setShowEditCalPicker(v=>!v)}>
@@ -2755,8 +2758,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 </div>
                 <div><Lbl>Hora</Lbl><Inp type="time" value={citaEditando.hora} onChange={e=>setCitaEditando(f=>({...f,hora:e.target.value}))}/></div>
               </div>
-              <div style={{marginBottom:10}}><Lbl>Estado</Lbl><Sel value={citaEditando.estado} onChange={e=>setCitaEditando(f=>({...f,estado:e.target.value}))}><option value="pendiente">Pendiente</option><option value="completada">Completada</option><option value="no-show">No show</option></Sel></div>
-              <div style={{marginBottom:16}}><Lbl>Nota</Lbl><Inp value={citaEditando.nota||""} onChange={e=>setCitaEditando(f=>({...f,nota:e.target.value}))}/></div>
+              <div style={{marginBottom:8}}><Lbl>Estado</Lbl><Sel value={citaEditando.estado} onChange={e=>setCitaEditando(f=>({...f,estado:e.target.value}))}><option value="pendiente">Pendiente</option><option value="completada">Completada</option><option value="no-show">No show</option></Sel></div>
+              <div style={{marginBottom:10}}><Lbl>Nota</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.nota||""} onChange={e=>setCitaEditando(f=>({...f,nota:e.target.value}))}/></div>
               <div style={{display:"flex",gap:8}}>
                 <Btn ok={false} onClick={()=>{setCitaEditando(null);setShowEditCalPicker(false);}}>Cancelar</Btn>
                 <Btn style={{flex:1}} onClick={async()=>{await actualizarCita(citaEditando.id,citaEditando);setCitas(prev=>prev.map(c=>c.id===citaEditando.id?citaEditando:c));setCitaEditando(null);setShowEditCalPicker(false);}}>Guardar cambios</Btn>
@@ -2960,10 +2963,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
             <LeyendaPeluqueros/>
             <div style={{ marginTop: "16px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <div style={{ marginTop: "16px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                <div style={{ minWidth: "780px" }}>
-                  <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
-                </div>
+              <div style={{ marginTop: "16px" }}>
+                <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
               </div>
             </div>
           </div>
@@ -2983,10 +2984,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
               {pelFiltroCitas&&<div style={{marginBottom:8,display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:2,background:CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.color}}/><span style={{fontSize:12,fontWeight:700,color:TX}}>{CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.nombre}</span></div>}
               {!pelFiltroCitas&&<LeyendaPeluqueros/>}
-              <div style={{ marginTop: "16px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                <div style={{ minWidth: "780px" }}>
-                  <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
-                </div>
+              <div style={{ marginTop: "16px" }}>
+                <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
               </div>
             </div>
           </div>
