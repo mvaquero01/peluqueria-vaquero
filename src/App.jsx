@@ -572,7 +572,7 @@ function MiniCalPicker({value,onChange,festivosSet,bloqueosPelId,bloqueos}){
 // ─────────────────────────────────────────────
 // CALENDARIO GRID — con cabeceras STICKY
 // ─────────────────────────────────────────────
-const PX_MIN=0.9;
+const PX_MIN=1.8;
 const HORA_APE=9*60,HORA_CIE=20*60+30;
 const TOTAL_MIN=HORA_CIE-HORA_APE;
 const GRID_H=TOTAL_MIN*PX_MIN;
@@ -2567,8 +2567,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const cambiarEstado=useCallback(async(id,estado,estadoAnterior="pendiente")=>{
     const tw=document.querySelector('.admin-table-wrap');
     const sl=tw?tw.scrollLeft:0;
+    const focoActivo=document.activeElement;
     setCitas(prev=>prev.map(c=>c.id===id?{...c,estado}:c));
-    requestAnimationFrame(()=>{const tw2=document.querySelector('.admin-table-wrap');if(tw2)tw2.scrollLeft=sl;});
+    requestAnimationFrame(()=>{
+      const tw2=document.querySelector('.admin-table-wrap');
+      if(tw2)tw2.scrollLeft=sl;
+      if(focoActivo&&focoActivo.focus)focoActivo.focus();
+    });
     try{
       await actualizarCita(id,{estado});
       const citaSnap=await getDoc(doc(db,"citas",id));
@@ -2784,8 +2789,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const cambiarMetodoPago = async (id, metodo) => {
       const tw=document.querySelector('.admin-table-wrap');
       const sl=tw?tw.scrollLeft:0;
+      const focoActivo=document.activeElement;
       setCitas(prev => prev.map(c => c.id === id ? { ...c, metodoPago: metodo } : c));
-      requestAnimationFrame(()=>{const tw2=document.querySelector('.admin-table-wrap');if(tw2)tw2.scrollLeft=sl;});
+      requestAnimationFrame(()=>{
+        const tw2=document.querySelector('.admin-table-wrap');
+        if(tw2)tw2.scrollLeft=sl;
+        if(focoActivo&&focoActivo.focus)focoActivo.focus();
+      });
       try {
         await actualizarCita(id, { metodoPago: metodo });
       } catch (error) {
