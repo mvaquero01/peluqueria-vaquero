@@ -119,7 +119,7 @@ STYLE.textContent = `
     padding: 4px 8px;
     gap: 3px;
     position: sticky;
-    top: 0;
+    top: 130px;
     z-index: 6;
     background: #F0F4F9;
   }
@@ -580,7 +580,7 @@ const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
   return (
-    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 130px)", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
+    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "visible", maxHeight: "none", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
 
       {/* Eje de horas */}
       <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
@@ -2868,12 +2868,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       <td style={{padding:"8px 10px", verticalAlign:"middle"}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"4px", flexWrap:"nowrap"}}>
           {c.estado==="pendiente"&&<>
-            <button title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
-            <button title="No Show" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
+            <button type="button" title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onClick={e=>{e.preventDefault();e.stopPropagation();cambiarEstado(c.id,"completada");}}>✓</button>
+            <button type="button" title="No Show" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", fontWeight:"900"}} onClick={e=>{e.preventDefault();e.stopPropagation();cambiarEstado(c.id,"no-show");}}>✕</button>
           </>}
-          {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
-          <button title="Editar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#E0E7FF", color:"#4F46E5", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px"}} onClick={()=>setCitaEditando({...c})}>✏️</button>
-          <button title="Eliminar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px"}} onClick={()=>setCitaBorrar({...c})}>🗑</button>
+          {c.estado!=="pendiente"&&<button type="button" title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onClick={e=>{e.preventDefault();e.stopPropagation();cambiarEstado(c.id,"pendiente",c.estado);}}>↩</button>}
+          <button type="button" title="Editar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#E0E7FF", color:"#4F46E5", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px"}} onClick={e=>{e.preventDefault();e.stopPropagation();setCitaEditando({...c});}}>✏️</button>
+          <button type="button" title="Eliminar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px"}} onClick={e=>{e.preventDefault();e.stopPropagation();setCitaBorrar({...c});}}>🗑</button>
         </div>
       </td>
     );
