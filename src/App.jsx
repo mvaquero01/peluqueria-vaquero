@@ -580,7 +580,7 @@ const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
   return (
-    <div className="cal-scroll" style={{ overflowX: "auto", height: "auto", maxHeight: "none", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
+    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 130px)", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
 
       {/* Eje de horas */}
       <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
@@ -2261,90 +2261,289 @@ function ClientePage({ sharedProps, startPaso=0 }){
 // ─────────────────────────────────────────────
 // ADMIN PANEL
 // ─────────────────────────────────────────────
-function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosSet, citas, onCreada}){
-  const [form,setForm]=useState({nombre:"",telefono:"",servicioId:"",peluqueroId:"",fecha:"",hora:"",nota:""});
-  const [clienteRec,setClienteRec]=useState(null);
-  const [showCal,setShowCal]=useState(false);
 
-  const buscarCliente=tel=>{
-    const found=clientes.find(c=>c.telefono===tel.replace(/\s/g,""));
-    setClienteRec(found||null);
-    if(found) setForm(f=>({...f,nombre:found.nombre,telefono:tel}));
-  };
+// ─────────────────────────────────────────────
+// MODAL UNIFICADO: NUEVA CITA / EDITAR CITA
+// ─────────────────────────────────────────────
+function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festivosSet, citaInicial, onGuardada }) {
+  const esEdicion = !!citaInicial;
 
-  const slotsManuales=useMemo(()=>{
-    if(!form.peluqueroId||!form.fecha||!form.servicioId) return [];
-    if(festivosSet.has(form.fecha)) return [];
-    const pel=CONFIG.peluqueros.find(p=>p.id===Number(form.peluqueroId));
-    if(!pel||peluqueroEstaBloqueado(pel.id,form.fecha,bloqueos)) return [];
-    const fecha=new Date(form.fecha+"T12:00:00");
-    const hp=pel.horario[fecha.getDay()]; if(!hp) return [];
-    const svc=servicios.find(s=>s.id===Number(form.servicioId)); if(!svc) return [];
-    const todos=generarSlots(hp,svc.duracionMin);
-    const citasDelDia=citas.filter(c=>c.fecha===form.fecha&&c.peluqueroId===pel.id&&c.estado!=="no-show");
-    const disponibles=filtrarSlotsOcupados(todos,svc.duracionMin,citasDelDia);
-    if(form.fecha===HOY_ISO){const ahora=new Date();const m=ahora.getHours()*60+ahora.getMinutes()+15;return disponibles.filter(h=>toMin(h)>m);}
-    return disponibles;
-  },[form.peluqueroId,form.fecha,form.servicioId,citas,bloqueos,festivosSet]);
+  const [form, setForm] = useState({
+    nombre: "", telefono: "", servicioId: "", peluqueroId: "",
+    fecha: "", hora: "", nota: "", estado: "pendiente"
+  });
+  const [clienteRec, setClienteRec] = useState(null);
+  const [showCal, setShowCal] = useState(false);
 
-  const confirmar=async()=>{
-    if(!form.nombre||!form.servicioId||!form.peluqueroId||!form.fecha||!form.hora) return;
-    const svc=servicios.find(s=>s.id===Number(form.servicioId));
-    const pel=CONFIG.peluqueros.find(p=>p.id===Number(form.peluqueroId));
-    await crearCita({clienteNombre:form.nombre,clienteTel:form.telefono,servicio:svc.nombre,servicioId:svc.id,peluqueroId:pel.id,peluquero:pel.nombre,fecha:form.fecha,hora:form.hora,precio:svc.precio,estado:"pendiente",nota:form.nota});
-    if(form.telefono){
-      const docId=form.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+form.telefono;
-      const ref=doc(db,"clientes",docId);
-      const snap=await getDoc(ref);
-      if(!snap.exists()){
-        await setDoc(ref,{nombre:form.nombre,telefono:form.telefono,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
-      }
+  // Cada vez que se abre el modal, inicializa el form
+  useEffect(() => {
+    if (!show) return;
+    if (esEdicion) {
+      setForm({
+        nombre:      citaInicial.clienteNombre || "",
+        telefono:    citaInicial.clienteTel    || "",
+        servicioId:  String(citaInicial.servicioId || ""),
+        peluqueroId: String(citaInicial.peluqueroId || ""),
+        fecha:       citaInicial.fecha         || "",
+        hora:        citaInicial.hora          || "",
+        nota:        citaInicial.nota          || "",
+        estado:      citaInicial.estado        || "pendiente",
+      });
+    } else {
+      setForm({ nombre:"", telefono:"", servicioId:"", peluqueroId:"", fecha:"", hora:"", nota:"", estado:"pendiente" });
+      setClienteRec(null);
     }
-    setForm({nombre:"",telefono:"",servicioId:"",peluqueroId:"",fecha:"",hora:"",nota:""});
-    setClienteRec(null);
-    onCreada();
+    setShowCal(false);
+  }, [show, citaInicial]);
+
+  const buscarCliente = tel => {
+    const found = clientes.find(c => c.telefono === tel.replace(/\s/g, ""));
+    setClienteRec(found || null);
+    if (found) setForm(f => ({ ...f, nombre: found.nombre, telefono: tel }));
   };
 
-  if(!show) return null;
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"140px 16px 16px"}}>
-      <div style={{background:WH,borderRadius:14,padding:"14px",width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <h3 style={{fontSize:14,fontWeight:700,color:TX}}>+ Nueva cita</h3>
-          <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:TX2}} onClick={onClose}>✕</button>
+  const slotsManuales = useMemo(() => {
+    if (!form.peluqueroId || !form.fecha || !form.servicioId) return [];
+    if (festivosSet.has(form.fecha)) return [];
+    const pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
+    if (!pel || peluqueroEstaBloqueado(pel.id, form.fecha, bloqueos)) return [];
+    const fecha = new Date(form.fecha + "T12:00:00");
+    const hp = pel.horario[fecha.getDay()];
+    if (!hp) return [];
+    const svc = servicios.find(s => s.id === Number(form.servicioId));
+    if (!svc) return [];
+    const todos = generarSlots(hp, svc.duracionMin);
+    const citasDelDia = citas.filter(c =>
+      c.fecha === form.fecha &&
+      c.peluqueroId === pel.id &&
+      c.estado !== "no-show" &&
+      (!esEdicion || c.id !== citaInicial?.id)   // excluir la propia cita al editar
+    );
+    const disponibles = filtrarSlotsOcupados(todos, svc.duracionMin, citasDelDia);
+    if (form.fecha === HOY_ISO) {
+      const ahora = new Date();
+      const m = ahora.getHours() * 60 + ahora.getMinutes() + 15;
+      return disponibles.filter(h => toMin(h) > m);
+    }
+    return disponibles;
+  }, [form.peluqueroId, form.fecha, form.servicioId, citas, bloqueos, festivosSet]);
+
+  const confirmar = async () => {
+    if (!form.nombre || !form.servicioId || !form.peluqueroId || !form.fecha || !form.hora) return;
+    const svc = servicios.find(s => s.id === Number(form.servicioId));
+    const pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
+
+    if (esEdicion) {
+      const datos = {
+        clienteNombre: form.nombre,
+        clienteTel:    form.telefono,
+        servicio:      svc.nombre,
+        servicioId:    svc.id,
+        peluqueroId:   pel.id,
+        peluquero:     pel.nombre,
+        fecha:         form.fecha,
+        hora:          form.hora,
+        precio:        svc.precio,
+        estado:        form.estado,
+        nota:          form.nota,
+      };
+      await actualizarCita(citaInicial.id, datos);
+      onGuardada({ id: citaInicial.id, ...datos });
+    } else {
+      await crearCita({
+        clienteNombre: form.nombre, clienteTel: form.telefono,
+        servicio: svc.nombre, servicioId: svc.id,
+        peluqueroId: pel.id, peluquero: pel.nombre,
+        fecha: form.fecha, hora: form.hora,
+        precio: svc.precio, estado: "pendiente", nota: form.nota,
+      });
+      if (form.telefono) {
+        const docId = form.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "_") + "_" + form.telefono;
+        const ref = doc(db, "clientes", docId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, { nombre: form.nombre, telefono: form.telefono, visitas: 0, gasto: 0, ultimaVisita: "", nota: "", historial: [] });
+        }
+      }
+      onGuardada(null);
+    }
+  };
+
+  if (!show) return null;
+
+  const inputS = { width:"100%", background:"#F0F4F9", border:"1px solid #CED9E8", borderRadius:9, padding:"10px 13px", fontSize:13, color:"#0D1F35", outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
+  const selS   = { ...inputS };
+  const lblS   = { fontSize:11, color:"#4A6080", textTransform:"uppercase", letterSpacing:1, marginBottom:5, fontWeight:700, display:"block" };
+
+  const formValido = !!(form.nombre && form.servicioId && form.peluqueroId && form.fecha && form.hora);
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"100px 16px 16px"}}>
+      <div style={{background:"#F8FBFF",borderRadius:18,padding:"22px",width:"100%",maxWidth:480,maxHeight:"calc(100vh - 120px)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+
+        {/* Cabecera */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <h3 style={{fontSize:15,fontWeight:700,color:"#0D1F35",margin:0}}>
+            {esEdicion ? "✏️ Editar cita" : "➕ Nueva cita"}
+          </h3>
+          <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#4A6080"}} onClick={onClose}>✕</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-          <div><Lbl>Teléfono</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={form.telefono} onChange={e=>{setForm(f=>({...f,telefono:e.target.value}));buscarCliente(e.target.value);}} placeholder="666 111 222"/></div>
-          <div><Lbl>Nombre</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre"/></div>
-        </div>
-        {clienteRec&&<div style={{background:`${OK}12`,border:`1px solid ${OK}33`,borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,color:TX}}>✓ {clienteRec.nombre} · {clienteRec.visitas} visitas</div>}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-          <div><Lbl>Servicio</Lbl><Sel value={form.servicioId} onChange={e=>setForm(f=>({...f,servicioId:e.target.value,hora:""}))}>
-            <option value="">Elige servicio</option>{servicios.map(s=><option key={s.id} value={s.id}>{s.nombre} — €{s.precio}</option>)}
-          </Sel></div>
-          <div><Lbl>Peluquero</Lbl><Sel value={form.peluqueroId} onChange={e=>setForm(f=>({...f,peluqueroId:e.target.value,hora:"",fecha:""}))}>
-            <option value="">Elige peluquero</option>{CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}
-          </Sel></div>
-        </div>
-        <div style={{marginBottom:8}}>
-          <Lbl>Fecha</Lbl>
-          <div style={{position:"relative"}}>
-            <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:form.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between"}} onClick={()=>setShowCal(v=>!v)}>
-              <span>{form.fecha||"Seleccionar fecha..."}</span><span>📅</span>
-            </button>
-            {showCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={form.fecha} onChange={iso=>{setForm(f=>({...f,fecha:iso,hora:""}));setShowCal(false);}} festivosSet={festivosSet} bloqueosPelId={form.peluqueroId?Number(form.peluqueroId):null} bloqueos={bloqueos}/></div>}
+
+        {/* Fila 1: Teléfono + Nombre */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <div>
+            <label style={lblS}>Teléfono</label>
+            <input style={inputS} value={form.telefono}
+              onChange={e=>{ setForm(f=>({...f,telefono:e.target.value})); if(!esEdicion) buscarCliente(e.target.value); }}
+              placeholder="666 111 222"/>
+          </div>
+          <div>
+            <label style={lblS}>Nombre</label>
+            <input style={inputS} value={form.nombre}
+              onChange={e=>setForm(f=>({...f,nombre:e.target.value}))}
+              placeholder="Nombre cliente"/>
           </div>
         </div>
-        <div style={{marginBottom:8}}><Lbl>Hora</Lbl><Sel value={form.hora} onChange={e=>setForm(f=>({...f,hora:e.target.value}))} disabled={!slotsManuales.length}><option value="">{!slotsManuales.length?"Elige servicio, peluquero y fecha":"Elige hora"}</option>{slotsManuales.map(h=><option key={h} value={h}>{h}</option>)}</Sel></div>
-        <div style={{marginBottom:10}}><Lbl>Nota (opcional)</Lbl><Inp value={form.nota} onChange={e=>setForm(f=>({...f,nota:e.target.value}))} placeholder="Observaciones..."/></div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn ok={false} onClick={onClose}>Cancelar</Btn>
-          <Btn ok={!!(form.nombre&&form.servicioId&&form.peluqueroId&&form.fecha&&form.hora)} onClick={confirmar} style={{flex:1}}>Confirmar cita →</Btn>
+
+        {/* Cliente encontrado */}
+        {!esEdicion && clienteRec && (
+          <div style={{background:"#D1FAE5",border:"1px solid #6EE7B7",borderRadius:8,padding:"6px 10px",marginBottom:10,fontSize:11,color:"#065F46"}}>
+            ✓ Cliente existente: {clienteRec.nombre} · {clienteRec.visitas} visitas · {clienteRec.gasto}€
+          </div>
+        )}
+
+        {/* Fila 2: Servicio + Peluquero */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <div>
+            <label style={lblS}>Servicio</label>
+            <select style={selS} value={form.servicioId}
+              onChange={e=>setForm(f=>({...f,servicioId:e.target.value,hora:""}))}>
+              <option value="">Elige servicio</option>
+              {servicios.map(s=><option key={s.id} value={s.id}>{s.nombre} — €{s.precio}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lblS}>Peluquero</label>
+            <select style={selS} value={form.peluqueroId}
+              onChange={e=>setForm(f=>({...f,peluqueroId:e.target.value,hora:"",fecha:""}))}>
+              <option value="">Elige peluquero</option>
+              {CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Fila 3: Fecha */}
+        <div style={{marginBottom:10}}>
+          <label style={lblS}>Fecha</label>
+          <div style={{position:"relative"}}>
+            <button style={{...inputS,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}
+              onClick={()=>setShowCal(v=>!v)}>
+              <span style={{color:form.fecha?"#0D1F35":"#4A6080"}}>{form.fecha||"Seleccionar fecha..."}</span>
+              <span>📅</span>
+            </button>
+            {showCal && (
+              <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}>
+                <MiniCalPicker
+                  value={form.fecha}
+                  onChange={iso=>{ setForm(f=>({...f,fecha:iso,hora:""})); setShowCal(false); }}
+                  festivosSet={festivosSet}
+                  bloqueosPelId={form.peluqueroId ? Number(form.peluqueroId) : null}
+                  bloqueos={bloqueos}/>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fila 4: Hora */}
+        <div style={{marginBottom:10}}>
+          <label style={lblS}>Hora</label>
+          <select style={selS} value={form.hora}
+            onChange={e=>setForm(f=>({...f,hora:e.target.value}))}
+            disabled={!slotsManuales.length && !esEdicion}>
+            <option value="">
+              {(!form.servicioId || !form.peluqueroId || !form.fecha)
+                ? "Elige servicio, peluquero y fecha"
+                : slotsManuales.length === 0
+                  ? "Sin huecos disponibles"
+                  : "Elige hora"}
+            </option>
+            {/* En edición, añadimos la hora actual si no está en los slots */}
+            {esEdicion && form.hora && !slotsManuales.includes(form.hora) && (
+              <option value={form.hora}>{form.hora} (hora actual)</option>
+            )}
+            {slotsManuales.map(h=><option key={h} value={h}>{h}</option>)}
+          </select>
+        </div>
+
+        {/* Fila 5: Estado (solo en edición) */}
+        {esEdicion && (
+          <div style={{marginBottom:10}}>
+            <label style={lblS}>Estado</label>
+            <select style={selS} value={form.estado}
+              onChange={e=>setForm(f=>({...f,estado:e.target.value}))}>
+              <option value="pendiente">Pendiente</option>
+              <option value="completada">Completada</option>
+              <option value="no-show">No show</option>
+            </select>
+          </div>
+        )}
+
+        {/* Fila 6: Nota */}
+        <div style={{marginBottom:16}}>
+          <label style={lblS}>Nota (opcional)</label>
+          <input style={inputS} value={form.nota}
+            onChange={e=>setForm(f=>({...f,nota:e.target.value}))}
+            placeholder="Observaciones..."/>
+        </div>
+
+        {/* Botones */}
+        <div style={{display:"flex",gap:10}}>
+          <button
+            style={{background:"#E0E8F2",color:"#4A6080",border:"1px solid #CED9E8",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}}
+            onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            style={{flex:1,background:formValido?"linear-gradient(135deg,#1B4F8A,#133A6A)":"#E0E8F2",color:formValido?"#F8FBFF":"#4A6080",border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:formValido?"pointer":"not-allowed"}}
+            onClick={formValido ? confirmar : undefined}>
+            {esEdicion ? "Guardar cambios" : "Confirmar cita →"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
+{/* Modal unificado: nueva cita */}
+        <CitaModal
+          show={showManual}
+          onClose={()=>setShowManual(false)}
+          citas={citas}
+          clientes={clientes}
+          servicios={servicios}
+          bloqueos={bloqueos}
+          festivosSet={festivosSet}
+          citaInicial={null}
+          onGuardada={()=>setShowManual(false)}
+        />
+
+        {/* Modal unificado: editar cita */}
+        <CitaModal
+          show={!!citaEditando}
+          onClose={()=>setCitaEditando(null)}
+          citas={citas}
+          clientes={clientes}
+          servicios={servicios}
+          bloqueos={bloqueos}
+          festivosSet={festivosSet}
+          citaInicial={citaEditando}
+          onGuardada={(datosActualizados)=>{
+            if(datosActualizados){
+              setCitas(prev=>prev.map(c=>c.id===datosActualizados.id?datosActualizados:c));
+            }
+            setCitaEditando(null);
+          }}
+        />
 
 function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios,categorias,setCategorias}){
   const [isMobile, setIsMobile] = useState(false);
@@ -2697,22 +2896,15 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     };
 
     const AccionesCitaPremium=({c})=>(
-      <td style={{padding:"8px 10px", verticalAlign:"middle", position:"sticky", right:0, background:WH, zIndex:2, boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>
-        <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"4px"}}>
+      <td style={{padding:"8px 10px", verticalAlign:"middle"}}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"4px", flexWrap:"nowrap"}}>
           {c.estado==="pendiente"&&<>
-            <button title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onPointerDown={e=>e.preventDefault()} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
-            <button title="No Show" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", fontWeight:"900"}} onPointerDown={e=>e.preventDefault()} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
+            <button title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
+            <button title="No Show" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
           </>}
-          {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onPointerDown={e=>e.preventDefault()} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
-          <div style={{position:"relative", flexShrink:0}}>
-            <button title="Opciones" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F8FAFC", color:"#475569", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={(e)=>{ if(menuAbierto===c.id){setMenuAbierto(null);}else{const r=e.currentTarget.getBoundingClientRect();setMenuPos({top:r.bottom+4,right:window.innerWidth-r.left});setMenuAbierto(c.id);} }}>⋮</button>
-            {menuAbierto===c.id&&(
-              <div style={{position:"fixed",top:menuPos.top,right:menuPos.right,background:WH,border:`1px solid ${CR3}`,borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,.12)",zIndex:9999,minWidth:130,overflow:"hidden",whiteSpace:"nowrap"}}>
-                <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onPointerDown={e=>e.preventDefault()} onClick={(e)=>{e.stopPropagation();setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar</button>
-                <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onPointerDown={e=>e.preventDefault()} onClick={(e)=>{e.stopPropagation();setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
-              </div>
-            )}
-          </div>
+          {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
+          <button title="Editar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#E0E7FF", color:"#4F46E5", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px"}} onClick={()=>setCitaEditando({...c})}>✏️</button>
+          <button title="Eliminar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px"}} onClick={()=>setCitaBorrar({...c})}>🗑</button>
         </div>
       </td>
     );
@@ -2745,39 +2937,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         </div>
 
         {/* Modal nueva cita */}
-        <NuevaCitaModal show={showManual} onClose={()=>setShowManual(false)} clientes={clientes} servicios={servicios} bloqueos={bloqueos} festivosSet={festivosSet} citas={citas} onCreada={()=>setShowManual(false)} />
-
-        {/* Modal editar cita */}
-        {citaEditando&&(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"145px 20px 20px"}}>
-            <div style={{background:WH,borderRadius:18,padding:"22px",width:"100%",maxWidth:440,maxHeight:"calc(100vh - 165px)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <h3 style={{fontSize:14,fontWeight:700,color:TX}}>Editar cita</h3>
-                <button style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:TX2}} onClick={()=>{setCitaEditando(null);setShowEditCalPicker(false);}}>✕</button>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                <div><Lbl>Cliente</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.clienteNombre} onChange={e=>setCitaEditando(f=>({...f,clienteNombre:e.target.value}))}/></div>
-                <div><Lbl>Teléfono</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.clienteTel} onChange={e=>setCitaEditando(f=>({...f,clienteTel:e.target.value}))}/></div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                <div style={{position:"relative"}}>
-                  <Lbl>Fecha</Lbl>
-                  <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:citaEditando.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box",outline:"none"}} onClick={()=>setShowEditCalPicker(v=>!v)}>
-                    <span>{citaEditando.fecha||"Seleccionar..."}</span><span>📅</span>
-                  </button>
-                  {showEditCalPicker&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={citaEditando.fecha} onChange={iso=>{setCitaEditando(f=>({...f,fecha:iso}));setShowEditCalPicker(false);}} festivosSet={festivosSet} bloqueosPelId={citaEditando.peluqueroId} bloqueos={bloqueos}/></div>}
-                </div>
-                <div><Lbl>Hora</Lbl><Inp type="time" step="900" style={{padding:"6px 8px",fontSize:12,height:"34px",boxSizing:"border-box"}} value={citaEditando.hora} onChange={e=>setCitaEditando(f=>({...f,hora:e.target.value}))}/></div>
-              </div>
-              <div style={{marginBottom:8}}><Lbl>Estado</Lbl><Sel value={citaEditando.estado} onChange={e=>setCitaEditando(f=>({...f,estado:e.target.value}))}><option value="pendiente">Pendiente</option><option value="completada">Completada</option><option value="no-show">No show</option></Sel></div>
-              <div style={{marginBottom:10}}><Lbl>Nota</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={citaEditando.nota||""} onChange={e=>setCitaEditando(f=>({...f,nota:e.target.value}))}/></div>
-              <div style={{display:"flex",gap:8}}>
-                <Btn ok={false} onClick={()=>{setCitaEditando(null);setShowEditCalPicker(false);}}>Cancelar</Btn>
-                <Btn style={{flex:1}} onClick={async()=>{await actualizarCita(citaEditando.id,citaEditando);setCitas(prev=>prev.map(c=>c.id===citaEditando.id?citaEditando:c));setCitaEditando(null);setShowEditCalPicker(false);}}>Guardar cambios</Btn>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Modal confirmar borrado */}
         {citaBorrar&&(
@@ -2885,7 +3045,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <th className="th-premium" style={{textAlign:"center", fontSize:"10px"}}>Precio</th>
                           <th className="th-premium">Estado</th>
                           <th className="th-premium">Pago</th>
-                          <th className="th-premium" style={{position:"sticky",right:0,background:CR,zIndex:3,boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>Acc.</th>
+                          <th className="th-premium">Acc.</th>
                         </tr>
                       </thead>
                       <tbody>{citasFiltradas.map(c=>(
@@ -2929,7 +3089,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <th className="th-premium">Estado</th>
                           <th className="th-premium">Pago</th>
                           <th className="th-premium">Nota</th>
-                          <th className="th-premium" style={{position:"sticky",right:0,background:CR,zIndex:3,boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>Acc.</th>
+                          <th className="th-premium">Acc.</th>
                         </tr>
                       </thead>
                       <tbody>{citasHoy.map(c=>(
