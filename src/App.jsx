@@ -119,7 +119,7 @@ STYLE.textContent = `
     padding: 4px 8px;
     gap: 3px;
     position: sticky;
-    top: 130px;
+    top: 0px;
     z-index: 6;
     background: #F0F4F9;
   }
@@ -580,7 +580,7 @@ const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
   return (
-    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "visible", maxHeight: "none", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
+    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 200px)", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
 
       {/* Eje de horas */}
       <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
@@ -2371,15 +2371,15 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
 
   if (!show) return null;
 
-  const inputS = { width:"100%", background:"#F0F4F9", border:"1px solid #CED9E8", borderRadius:9, padding:"10px 13px", fontSize:13, color:"#0D1F35", outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
+  const inputS = { width:"100%", background:"#F0F4F9", border:"1px solid #CED9E8", borderRadius:9, padding:"7px 11px", fontSize:13, color:"#0D1F35", outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
   const selS   = { ...inputS };
   const lblS   = { fontSize:11, color:"#4A6080", textTransform:"uppercase", letterSpacing:1, marginBottom:5, fontWeight:700, display:"block" };
 
   const formValido = !!(form.nombre && form.servicioId && form.peluqueroId && form.fecha && form.hora);
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"100px 16px 16px"}}>
-      <div style={{background:"#F8FBFF",borderRadius:18,padding:"22px",width:"100%",maxWidth:480,maxHeight:"calc(100vh - 120px)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:10000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"140px 16px 16px"}}>
+      <div style={{background:"#F8FBFF",borderRadius:18,padding:"16px",width:"100%",maxWidth:440,maxHeight:"calc(100vh - 160px)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
 
         {/* Cabecera */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -2390,7 +2390,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         </div>
 
         {/* Fila 1: Teléfono + Nombre */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
           <div>
             <label style={lblS}>Teléfono</label>
             <input style={inputS} value={form.telefono}
@@ -2413,7 +2413,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         )}
 
         {/* Fila 2: Servicio + Peluquero */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:7}}>
           <div>
             <label style={lblS}>Servicio</label>
             <select style={selS} value={form.servicioId}
@@ -2433,7 +2433,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         </div>
 
         {/* Fila 3: Fecha */}
-        <div style={{marginBottom:10}}>
+        <div style={{marginBottom:7}}>
           <label style={lblS}>Fecha</label>
           <div style={{position:"relative"}}>
             <button style={{...inputS,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}
@@ -2455,7 +2455,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         </div>
 
         {/* Fila 4: Hora */}
-        <div style={{marginBottom:10}}>
+        <div style={{marginBottom:7}}>
           <label style={lblS}>Hora</label>
           <select style={selS} value={form.hora}
             onChange={e=>setForm(f=>({...f,hora:e.target.value}))}
@@ -2477,7 +2477,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
 
         {/* Fila 5: Estado (solo en edición) */}
         {esEdicion && (
-          <div style={{marginBottom:10}}>
+          <div style={{marginBottom:7}}>
             <label style={lblS}>Estado</label>
             <select style={selS} value={form.estado}
               onChange={e=>setForm(f=>({...f,estado:e.target.value}))}>
@@ -2499,12 +2499,12 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         {/* Botones */}
         <div style={{display:"flex",gap:10}}>
           <button
-            style={{background:"#E0E8F2",color:"#4A6080",border:"1px solid #CED9E8",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}}
+            style={{background:"#E0E8F2",color:"#4A6080",border:"1px solid #CED9E8",borderRadius:11,padding:"9px 16px",fontSize:13,fontWeight:700,cursor:"pointer"}}
             onClick={onClose}>
             Cancelar
           </button>
           <button
-            style={{flex:1,background:formValido?"linear-gradient(135deg,#1B4F8A,#133A6A)":"#E0E8F2",color:formValido?"#F8FBFF":"#4A6080",border:"none",borderRadius:11,padding:"12px 20px",fontSize:13,fontWeight:700,cursor:formValido?"pointer":"not-allowed"}}
+            style={{flex:1,background:formValido?"linear-gradient(135deg,#1B4F8A,#133A6A)":"#E0E8F2",color:formValido?"#F8FBFF":"#4A6080",border:"none",borderRadius:11,padding:"9px 16px",fontSize:13,fontWeight:700,cursor:formValido?"pointer":"not-allowed"}}
             onClick={formValido ? confirmar : undefined}>
             {esEdicion ? "Guardar cambios" : "Confirmar cita →"}
           </button>
