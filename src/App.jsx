@@ -2307,15 +2307,18 @@ function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosS
 
   if(!show) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"140px 16px 16px"}}>
       <div style={{background:WH,borderRadius:14,padding:"14px",width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <h3 style={{fontSize:16,fontWeight:700,color:TX}}>Nueva cita manual</h3>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <h3 style={{fontSize:14,fontWeight:700,color:TX}}>+ Nueva cita</h3>
           <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:TX2}} onClick={onClose}>✕</button>
         </div>
-        <div style={{marginBottom:10}}><Lbl>Teléfono</Lbl><Inp value={form.telefono} onChange={e=>{setForm(f=>({...f,telefono:e.target.value}));buscarCliente(e.target.value);}} placeholder="Ej: 666 111 222"/>{clienteRec&&<div style={{background:`${OK}12`,border:`1px solid ${OK}33`,borderRadius:8,padding:"8px 12px",marginTop:6,fontSize:12,color:TX}}>✓ {clienteRec.nombre} · {clienteRec.visitas} visitas</div>}</div>
-        <div style={{marginBottom:10}}><Lbl>Nombre</Lbl><Inp value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre del cliente"/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+          <div><Lbl>Teléfono</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={form.telefono} onChange={e=>{setForm(f=>({...f,telefono:e.target.value}));buscarCliente(e.target.value);}} placeholder="666 111 222"/></div>
+          <div><Lbl>Nombre</Lbl><Inp style={{padding:"7px 10px",fontSize:12}} value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre"/></div>
+        </div>
+        {clienteRec&&<div style={{background:`${OK}12`,border:`1px solid ${OK}33`,borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,color:TX}}>✓ {clienteRec.nombre} · {clienteRec.visitas} visitas</div>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
           <div><Lbl>Servicio</Lbl><Sel value={form.servicioId} onChange={e=>setForm(f=>({...f,servicioId:e.target.value,hora:""}))}>
             <option value="">Elige servicio</option>{servicios.map(s=><option key={s.id} value={s.id}>{s.nombre} — €{s.precio}</option>)}
           </Sel></div>
@@ -2323,7 +2326,7 @@ function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosS
             <option value="">Elige peluquero</option>{CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}
           </Sel></div>
         </div>
-        <div style={{marginBottom:10}}>
+        <div style={{marginBottom:8}}>
           <Lbl>Fecha</Lbl>
           <div style={{position:"relative"}}>
             <button style={{width:"100%",background:CR,border:`1px solid ${CR3}`,borderRadius:9,padding:"10px 13px",fontSize:13,color:form.fecha?TX:TX2,textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between"}} onClick={()=>setShowCal(v=>!v)}>
@@ -2332,8 +2335,8 @@ function NuevaCitaModal({show, onClose, clientes, servicios, bloqueos, festivosS
             {showCal&&<div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200}}><MiniCalPicker value={form.fecha} onChange={iso=>{setForm(f=>({...f,fecha:iso,hora:""}));setShowCal(false);}} festivosSet={festivosSet} bloqueosPelId={form.peluqueroId?Number(form.peluqueroId):null} bloqueos={bloqueos}/></div>}
           </div>
         </div>
-        <div style={{marginBottom:10}}><Lbl>Hora</Lbl><Sel value={form.hora} onChange={e=>setForm(f=>({...f,hora:e.target.value}))} disabled={!slotsManuales.length}><option value="">{!slotsManuales.length?"Elige servicio, peluquero y fecha":"Elige hora"}</option>{slotsManuales.map(h=><option key={h} value={h}>{h}</option>)}</Sel></div>
-        <div style={{marginBottom:16}}><Lbl>Nota (opcional)</Lbl><Inp value={form.nota} onChange={e=>setForm(f=>({...f,nota:e.target.value}))} placeholder="Observaciones..."/></div>
+        <div style={{marginBottom:8}}><Lbl>Hora</Lbl><Sel value={form.hora} onChange={e=>setForm(f=>({...f,hora:e.target.value}))} disabled={!slotsManuales.length}><option value="">{!slotsManuales.length?"Elige servicio, peluquero y fecha":"Elige hora"}</option>{slotsManuales.map(h=><option key={h} value={h}>{h}</option>)}</Sel></div>
+        <div style={{marginBottom:10}}><Lbl>Nota (opcional)</Lbl><Inp value={form.nota} onChange={e=>setForm(f=>({...f,nota:e.target.value}))} placeholder="Observaciones..."/></div>
         <div style={{display:"flex",gap:8}}>
           <Btn ok={false} onClick={onClose}>Cancelar</Btn>
           <Btn ok={!!(form.nombre&&form.servicioId&&form.peluqueroId&&form.fecha&&form.hora)} onClick={confirmar} style={{flex:1}}>Confirmar cita →</Btn>
@@ -2354,7 +2357,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const navigate=useNavigate();
   const [searchParams,setSearchParams]=useSearchParams();
   const tab=searchParams.get("tab")||"citas";
-  const setTab=t=>{ setSearchParams({tab:t}); setTimeout(()=>window.scrollTo({top:0}),0); };
+  const setTab=t=>{ setSearchParams({tab:t}); requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:0}))); };
   useEffect(()=>{ const tm=setTimeout(()=>window.scrollTo({top:0}),80); return ()=>clearTimeout(tm); },[tab]);
   useEffect(()=>{ window.scrollTo({top:0,behavior:"auto"}); },[tab]);
 
@@ -2390,6 +2393,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const [filtSemanaOffset,setFiltSemanaOffset]=useState(0);
   const busqCitaRef=useRef("");
 
+  useEffect(()=>{ window.history.scrollRestoration='manual'; },[]);
   useEffect(()=>{ const u1=suscribirCitas(setCitas); const u2=suscribirClientes(setClientes); return()=>{u1();u2();}; },[]);
 
   const cambiarEstado=useCallback(async(id,estado,estadoAnterior="pendiente")=>{
@@ -2427,14 +2431,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const festivosSet=useMemo(()=>new Set(festivos.map(f=>f.fecha)),[festivos]);
 
   const as = {
-    root: { 
+   root: { 
       minHeight: "100vh", 
       background: CR, 
       fontFamily: FONT, 
       color: TX, 
       width: "100%", 
-      margin: 0,
-      overflowX: "hidden"
+      margin: 0
     },
     header: { 
       background: WH, 
@@ -2518,6 +2521,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const [showFiltHastaCalPicker,setShowFiltHastaCalPicker]=useState(false);
     const [menuAbierto,setMenuAbierto]=useState(null);
     const [menuPos,setMenuPos]=useState({top:0,right:0});
+    useEffect(()=>{
+      if(!menuAbierto) return;
+      const h=()=>setMenuAbierto(null);
+      const t=setTimeout(()=>document.addEventListener('click',h,{once:true}),150);
+      return ()=>{clearTimeout(t);document.removeEventListener('click',h);};
+    },[menuAbierto]);
     const [citaEditando,setCitaEditando]=useState(null);
     const [citaBorrar,setCitaBorrar]=useState(null);
     const [showEditCalPicker,setShowEditCalPicker]=useState(false);
@@ -2691,20 +2700,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       <td style={{padding:"8px 10px", verticalAlign:"middle", position:"sticky", right:0, background:WH, zIndex:2, boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"4px"}}>
           {c.estado==="pendiente"&&<>
-            <button title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
-            <button title="No Show" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
+            <button title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onPointerDown={e=>e.preventDefault()} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
+            <button title="No Show" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#FEE2E2", color:"#DC2626", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", fontWeight:"900"}} onPointerDown={e=>e.preventDefault()} onClick={()=>cambiarEstado(c.id,"no-show")}>✕</button>
           </>}
-          {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
+          {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onPointerDown={e=>e.preventDefault()} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
           <div style={{position:"relative", flexShrink:0}}>
             <button title="Opciones" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F8FAFC", color:"#475569", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={(e)=>{ if(menuAbierto===c.id){setMenuAbierto(null);}else{const r=e.currentTarget.getBoundingClientRect();setMenuPos({top:r.bottom+4,right:window.innerWidth-r.left});setMenuAbierto(c.id);} }}>⋮</button>
             {menuAbierto===c.id&&(
-              <>
-                <div style={{position:"fixed",inset:0,zIndex:9998}} onClick={()=>setMenuAbierto(null)}/>
-                <div style={{position:"fixed",top:menuPos.top,right:menuPos.right,background:WH,border:`1px solid ${CR3}`,borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,.12)",zIndex:9999,minWidth:130,overflow:"hidden",whiteSpace:"nowrap"}}>
-                  <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar</button>
-                  <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
-                </div>
-              </>
+              <div style={{position:"fixed",top:menuPos.top,right:menuPos.right,background:WH,border:`1px solid ${CR3}`,borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,.12)",zIndex:9999,minWidth:130,overflow:"hidden",whiteSpace:"nowrap"}}>
+                <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onPointerDown={e=>e.preventDefault()} onClick={(e)=>{e.stopPropagation();setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar</button>
+                <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onPointerDown={e=>e.preventDefault()} onClick={(e)=>{e.stopPropagation();setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
+              </div>
             )}
           </div>
         </div>
