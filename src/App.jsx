@@ -2354,7 +2354,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
   const navigate=useNavigate();
   const [searchParams,setSearchParams]=useSearchParams();
   const tab=searchParams.get("tab")||"citas";
-  const setTab=t=>setSearchParams({tab:t});
+  const setTab=t=>{ setSearchParams({tab:t}); setTimeout(()=>window.scrollTo({top:0}),0); };
+  useEffect(()=>{ const tm=setTimeout(()=>window.scrollTo({top:0}),80); return ()=>clearTimeout(tm); },[tab]);
   useEffect(()=>{ window.scrollTo({top:0,behavior:"auto"}); },[tab]);
 
   // ★ subTab para Config elevado aquí para no perder el subtab al guardar
@@ -2516,6 +2517,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const [showFiltDesdeCalPicker,setShowFiltDesdeCalPicker]=useState(false);
     const [showFiltHastaCalPicker,setShowFiltHastaCalPicker]=useState(false);
     const [menuAbierto,setMenuAbierto]=useState(null);
+    const [menuPos,setMenuPos]=useState({top:0,right:0});
     const [citaEditando,setCitaEditando]=useState(null);
     const [citaBorrar,setCitaBorrar]=useState(null);
     const [showEditCalPicker,setShowEditCalPicker]=useState(false);
@@ -2686,7 +2688,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     };
 
     const AccionesCitaPremium=({c})=>(
-      <td style={{padding:"8px 10px", verticalAlign:"middle"}}>
+      <td style={{padding:"8px 10px", verticalAlign:"middle", position:"sticky", right:0, background:WH, zIndex:2, boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:"4px"}}>
           {c.estado==="pendiente"&&<>
             <button title="Confirmar" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#D1FAE5", color:"#059669", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:"900"}} onClick={()=>cambiarEstado(c.id,"completada")}>✓</button>
@@ -2694,11 +2696,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           </>}
           {c.estado!=="pendiente"&&<button title="Revertir" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F1F5F9", color:"#64748B", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px"}} onClick={()=>cambiarEstado(c.id,"pendiente",c.estado)}>↩</button>}
           <div style={{position:"relative", flexShrink:0}}>
-            <button title="Opciones" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F8FAFC", color:"#475569", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={()=>setMenuAbierto(menuAbierto===c.id?null:c.id)}>⋮</button>
+            <button title="Opciones" style={{width:"28px", height:"28px", borderRadius:"8px", background:"#F8FAFC", color:"#475569", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px"}} onClick={(e)=>{ if(menuAbierto===c.id){setMenuAbierto(null);}else{const r=e.currentTarget.getBoundingClientRect();setMenuPos({top:r.bottom+4,right:window.innerWidth-r.left});setMenuAbierto(c.id);} }}>⋮</button>
             {menuAbierto===c.id&&(
               <>
                 <div style={{position:"fixed",inset:0,zIndex:9998}} onClick={()=>setMenuAbierto(null)}/>
-                <div style={{position:"absolute",top:"0",right:"calc(100% + 6px)",background:WH,border:`1px solid ${CR3}`,borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,.12)",zIndex:9999,minWidth:130,overflow:"hidden",whiteSpace:"nowrap"}}>
+                <div style={{position:"fixed",top:menuPos.top,right:menuPos.right,background:WH,border:`1px solid ${CR3}`,borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,.12)",zIndex:9999,minWidth:130,overflow:"hidden",whiteSpace:"nowrap"}}>
                   <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:TX,background:"none",border:"none",borderBottom:`1px solid ${CR3}`,cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaEditando({...c});setMenuAbierto(null);}}>✏️ Editar</button>
                   <button style={{display:"block",width:"100%",padding:"10px 14px",fontSize:11,fontWeight:600,color:ER,background:"none",border:"none",cursor:"pointer",textAlign:"left"}} onClick={()=>{setCitaBorrar({...c});setMenuAbierto(null);}}>🗑 Eliminar</button>
                 </div>
@@ -2877,7 +2879,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <th className="th-premium" style={{textAlign:"center", fontSize:"10px"}}>Precio</th>
                           <th className="th-premium">Estado</th>
                           <th className="th-premium">Pago</th>
-                          <th className="th-premium">Acc.</th>
+                          <th className="th-premium" style={{position:"sticky",right:0,background:CR,zIndex:3,boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>Acc.</th>
                         </tr>
                       </thead>
                       <tbody>{citasFiltradas.map(c=>(
@@ -2921,7 +2923,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                           <th className="th-premium">Estado</th>
                           <th className="th-premium">Pago</th>
                           <th className="th-premium">Nota</th>
-                          <th className="th-premium">Acciones</th>
+                          <th className="th-premium" style={{position:"sticky",right:0,background:CR,zIndex:3,boxShadow:"-2px 0 5px rgba(0,0,0,0.07)"}}>Acc.</th>
                         </tr>
                       </thead>
                       <tbody>{citasHoy.map(c=>(
@@ -3758,7 +3760,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
             return (
               <div key={p.id} style={{ ...as.card, borderTop: `5px solid ${p.color}`, position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, textAlign: "left" }}>
                   <img 
                     src={p.foto || FOTO_DEFAULT} 
                     alt={p.nombre} 
