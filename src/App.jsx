@@ -2514,37 +2514,6 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
   );
 }
 
-{/* Modal unificado: nueva cita */}
-        <CitaModal
-          show={showManual}
-          onClose={()=>setShowManual(false)}
-          citas={citas}
-          clientes={clientes}
-          servicios={servicios}
-          bloqueos={bloqueos}
-          festivosSet={festivosSet}
-          citaInicial={null}
-          onGuardada={()=>setShowManual(false)}
-        />
-
-        {/* Modal unificado: editar cita */}
-        <CitaModal
-          show={!!citaEditando}
-          onClose={()=>setCitaEditando(null)}
-          citas={citas}
-          clientes={clientes}
-          servicios={servicios}
-          bloqueos={bloqueos}
-          festivosSet={festivosSet}
-          citaInicial={citaEditando}
-          onGuardada={(datosActualizados)=>{
-            if(datosActualizados){
-              setCitas(prev=>prev.map(c=>c.id===datosActualizados.id?datosActualizados:c));
-            }
-            setCitaEditando(null);
-          }}
-        />
-
 function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios,categorias,setCategorias}){
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -2936,8 +2905,36 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           <button style={{marginLeft:"auto",background:`linear-gradient(135deg,${A},#133A6A)`,color:WH,border:"none",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>setShowManual(true)}>+ Nueva cita</button>
         </div>
 
-        {/* Modal nueva cita */}
-        
+        {/* Modal unificado: nueva cita */}
+        <CitaModal
+          show={showManual}
+          onClose={()=>setShowManual(false)}
+          citas={citas}
+          clientes={clientes}
+          servicios={servicios}
+          bloqueos={bloqueos}
+          festivosSet={festivosSet}
+          citaInicial={null}
+          onGuardada={()=>setShowManual(false)}
+        />
+
+        {/* Modal unificado: editar cita */}
+        <CitaModal
+          show={!!citaEditando}
+          onClose={()=>setCitaEditando(null)}
+          citas={citas}
+          clientes={clientes}
+          servicios={servicios}
+          bloqueos={bloqueos}
+          festivosSet={festivosSet}
+          citaInicial={citaEditando}
+          onGuardada={(datosActualizados)=>{
+            if(datosActualizados){
+              setCitas(prev=>prev.map(c=>c.id===datosActualizados.id?datosActualizados:c));
+            }
+            setCitaEditando(null);
+          }}
+        />
 
         {/* Modal confirmar borrado */}
         {citaBorrar&&(
