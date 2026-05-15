@@ -119,7 +119,7 @@ STYLE.textContent = `
     padding: 4px 8px;
     gap: 3px;
     position: sticky;
-    top: 0px;
+    top: 130px;
     z-index: 6;
     background: #F0F4F9;
   }
@@ -129,7 +129,7 @@ STYLE.textContent = `
     flex-shrink:0;
     border-bottom:1px solid #CED9E8;
     position:sticky;
-    top:0;
+    top:130px;
     z-index:7;
   }
 
@@ -580,7 +580,7 @@ const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
   return (
-    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 200px)", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
+    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "visible", maxHeight: "none", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
 
       {/* Eje de horas */}
       <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
