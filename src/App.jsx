@@ -33,7 +33,7 @@ STYLE.textContent = `
     width: 100%; 
     min-height: 100vh; 
     background: #0D1F35; 
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* Contenedor principal: eliminamos el max-width de 1200px */
@@ -119,7 +119,7 @@ STYLE.textContent = `
     padding: 4px 8px;
     gap: 3px;
     position: sticky;
-    top: 130px;
+    top: 0px;
     z-index: 6;
     background: #F0F4F9;
   }
@@ -129,7 +129,7 @@ STYLE.textContent = `
     flex-shrink:0;
     border-bottom:1px solid #CED9E8;
     position:sticky;
-    top:130px;
+    top: 0px;
     z-index:7;
   }
 
@@ -573,120 +573,149 @@ function MiniCalPicker({value,onChange,festivosSet,bloqueosPelId,bloqueos}){
 // CALENDARIO GRID — con cabeceras STICKY
 // ─────────────────────────────────────────────
 const PX_MIN=1.8;
-const HORA_APE=9*60,HORA_CIE=20*60+30;
+const HORA_APE=8*60+45,HORA_CIE=20*60+30;
 const TOTAL_MIN=HORA_CIE-HORA_APE;
 const GRID_H=TOTAL_MIN*PX_MIN;
 const HORA_LABELS=Array.from({length:12},(_,i)=>i+9);
 
 function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
-  return (
-    <div className="cal-scroll" style={{ overflowX: "auto", overflowY: "visible", maxHeight: "none", display: "flex", width: "100%", WebkitOverflowScrolling: "touch" }}>
+  const scrollRef = useRef(null);
 
-      {/* Eje de horas */}
-      <div style={{ width: 44, flexShrink: 0, position: "relative", borderRight: `1px solid ${CR3}`, background: CR, height: "auto", maxHeight: "none" }}>
-        
-        {/* Cabecera de horas pegajosa a 130px */}
-        <div style={{ height: "52px", flexShrink: 0, borderBottom: `1px solid ${CR3}`, background: CR }}></div>
-        
-        <div style={{ position: "relative", height: GRID_H }}>
-          {HORA_LABELS.map((h) => (
-            <div key={h} style={{ position: "absolute", top: (h * 60 - HORA_APE) * PX_MIN - 7, left: 0, right: 0, textAlign: "right", paddingRight: 6, fontSize: 9, color: TX2, fontWeight: 600 }}>
-              {h}:00
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Columnas por día */}
-      {dias.map((d, i) => {
-        const iso = isoDate(d);
-        const esHoy = iso === HOY_ISO;
-        const hGen = CONFIG.horarioGeneral[d.getDay()];
-        const citasDia = citas.filter((c) => c.fecha === iso && (!peluqueroFiltroId || c.peluqueroId === peluqueroFiltroId)).sort((a, b) => a.hora.localeCompare(b.hora));
-        const pelEnEsteDia = CONFIG.peluqueros.filter((p) => !!p.horario[d.getDay()]);
-        
-        return (
-          <div key={i} className="cal-day-col" style={{ flex: 1, minWidth: "100px", height: "auto", maxHeight: "none", overflow: "visible" }}>
-            
-            {/* CABECERA STICKY A 130px, CENTRADA Y JUNTITA */}
-            <div className="cal-day-header" style={{ 
-              background: esHoy ? "#1B4F8A" : CR3, 
-              padding: "8px 4px", 
-              display: "flex", 
-              flexDirection: "column", 
-              alignItems: "center", 
-              justifyContent: "center", 
-              gap: "10px" 
-            }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: esHoy ? "#fff" : TX2, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", lineHeight: 1 }}>
+  // Sincroniza el scroll horizontal de cabecera y cuerpo
+  const onBodyScroll = () => {
+    if (scrollRef.current) {
+      const header = document.getElementById('cal-header-row');
+      if (header) header.scrollLeft = scrollRef.current.scrollLeft;
+    }
+  };
+
+  return (
+    <div style={{ width: "100%", position: "relative" }}>
+
+      {/* CABECERA FIJA — sticky respecto a la página */}
+      <div
+        id="cal-header-row"
+        style={{
+          position: "sticky",
+          top: "130px",
+          zIndex: 5,
+          background: "#F8FBFF",
+          display: "flex",
+          overflowX: "hidden",
+          borderRadius: "13px 13px 0 0",
+          border: "1px solid #CED9E8",
+          borderBottom: "none",
+        }}
+      >
+        {/* Hueco del eje de horas */}
+        <div style={{ width: 52, flexShrink: 0, background: "#E8EEF6", borderRight: "1px solid #CED9E8", height: 52, zIndex: 0 }} />
+        {/* Cabeceras de días */}
+        {dias.map((d, i) => {
+          const iso = isoDate(d);
+          const esHoy = iso === HOY_ISO;
+          return (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                minWidth: 130,
+                height: 52,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRight: "1px solid #CED9E8",
+                background: esHoy ? "#1B4F8A" : "#E8EEF6",
+                padding: "4px 8px",
+                gap: 7,
+              }}
+            >
+              <span style={{ fontSize: 9, fontWeight: 700, color: esHoy ? "#fff" : "#4A6080", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", lineHeight: 1 }}>
                 {DIAS_ES[d.getDay()]}
               </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: esHoy ? "#fff" : TX, whiteSpace: "nowrap", lineHeight: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: esHoy ? "#fff" : "#0D1F35", whiteSpace: "nowrap", lineHeight: 1 }}>
                 {d.getDate()} {MESES_ES[d.getMonth()]}
               </span>
             </div>
-            
-            {/* Cuerpo del calendario */}
-            <div style={{ position: "relative", height: GRID_H, flexShrink: 0 }}>
-              
-              {/* Líneas divisorias de horas */}
-              {HORA_LABELS.map((h) => (
-                <div key={h} style={{ position: "absolute", top: (h * 60 - HORA_APE) * PX_MIN, left: 0, right: 0, borderTop: `1px solid ${h % 2 === 0 ? CR3 : CR2}`, zIndex: 0 }}></div>
-              ))}
-              
-              {/* Fondo rayado si está cerrado */}
-              {!hGen && (
-                <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(45deg,#F5F0E8,#F5F0E8 4px,#EDE6D9 4px,#EDE6D9 8px)", zIndex: 1, opacity: 0.6 }}></div>
-              )}
-              
-              {/* Descansos de los peluqueros */}
-              {hGen && pelEnEsteDia.map((p) => {
-                const hp = p.horario[d.getDay()];
-                if (!hp?.descanso) return null;
-                const top = (toMin(hp.descanso.inicio) - HORA_APE) * PX_MIN;
-                const height = (toMin(hp.descanso.fin) - toMin(hp.descanso.inicio)) * PX_MIN;
-                return (
-                  <div key={p.id} style={{ position: "absolute", left: 0, right: 0, top: top, height: height, background: p.color + "0A", zIndex: 1, borderTop: `1px dashed ${p.color}33`, borderBottom: `1px dashed ${p.color}33` }}></div>
-                );
-              })}
-              
-              {/* Citas del día */}
-              {citasDia.map((c) => {
-                const svc = CONFIG.serviciosDefault.find((s) => s.id === c.servicioId) || { duracionMin: 30 };
-                const pel = CONFIG.peluqueros.find((p) => p.id === c.peluqueroId);
-                const col = pel?.color || A;
-                const top = (toMin(c.hora) - HORA_APE) * PX_MIN;
-                const height = Math.max(svc.duracionMin * PX_MIN - 2, 18);
-                const pelIdx = peluqueroFiltroId ? 0 : CONFIG.peluqueros.findIndex((p) => p.id === c.peluqueroId);
-                const total = peluqueroFiltroId ? 1 : CONFIG.peluqueros.length;
-                const cw = 100 / total;
-                
-                return (
-                  <div key={c.id} style={{ position: "absolute", top: top, left: `calc(${pelIdx * cw}% + 1px)`, width: `calc(${cw}% - 2px)`, height: height, background: `${col}22`, border: `1.5px solid ${col}99`, borderLeft: `3px solid ${col}`, borderRadius: 4, padding: "2px 4px", overflow: "hidden", zIndex: 2, boxSizing: "border-box" }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: col, lineHeight: 1.3 }}>{c.hora}</div>
-                    {height > 20 && (
-                      <div style={{ fontSize: 9, color: TX, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {c.clienteNombre.split(" ")[0]}
-                      </div>
-                    )}
-                    {height > 34 && (
-                      <div style={{ fontSize: 8, color: TX2, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {c.servicio}
-                      </div>
-                    )}
-                    {height > 48 && (
-                      <div style={{ fontSize: 8, color: col, fontWeight: 600 }}>
-                        {pel?.nombre}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              
-            </div>
+          );
+        })}
+      </div>
+
+      {/* CUERPO — scroll horizontal, sin cabeceras */}
+      <div
+        ref={scrollRef}
+        onScroll={onBodyScroll}
+        style={{
+          display: "flex",
+          overflowX: "auto",
+          overflowY: "visible",
+          background: "#F8FBFF",
+          border: "1px solid #CED9E8",
+          borderTop: "none",
+          borderRadius: "0 0 13px 13px",
+          width: "100%",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {/* Eje de horas */}
+        <div style={{ width: 52, flexShrink: 0, position: "relative", borderRight: "1px solid #CED9E8", background: "#E8EEF6" }}>
+          <div style={{ position: "relative", height: GRID_H, paddingTop: 8 }}>
+            {HORA_LABELS.map((h) => (
+              <div key={h} style={{ position: "absolute", top: (h * 60 - HORA_APE) * PX_MIN, left: 0, right: 0, textAlign: "center", fontSize: 11, color: "#4A6080", fontWeight: 700, transform: "translateY(-50%)" }}>
+                {h}:00
+              </div>
+            ))}
           </div>
-        );
-      })}
+        </div>
+
+        {/* Columnas por día */}
+        {dias.map((d, i) => {
+          const iso = isoDate(d);
+          const hGen = CONFIG.horarioGeneral[d.getDay()];
+          const citasDia = citas.filter((c) => c.fecha === iso && (!peluqueroFiltroId || c.peluqueroId === peluqueroFiltroId)).sort((a, b) => a.hora.localeCompare(b.hora));
+          const pelEnEsteDia = CONFIG.peluqueros.filter((p) => !!p.horario[d.getDay()]);
+
+          return (
+            <div key={i} style={{ flex: 1, minWidth: 130, borderRight: "1px solid #CED9E8", display: "flex", flexDirection: "column" }}>
+              <div style={{ position: "relative", height: GRID_H, flexShrink: 0, paddingTop: 8 }}>
+                {HORA_LABELS.map((h) => (
+                  <div key={h} style={{ position: "absolute", top: (h * 60 - HORA_APE) * PX_MIN, left: 0, right: 0, borderTop: `1px solid ${h % 2 === 0 ? "#CED9E8" : "#E0E8F2"}`, zIndex: 0 }} />
+                ))}
+                {!hGen && (
+                  <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(45deg,#F5F0E8,#F5F0E8 4px,#EDE6D9 4px,#EDE6D9 8px)", zIndex: 1, opacity: 0.6 }} />
+                )}
+                {hGen && pelEnEsteDia.map((p) => {
+                  const hp = p.horario[d.getDay()];
+                  if (!hp?.descanso) return null;
+                  const top = (toMin(hp.descanso.inicio) - HORA_APE) * PX_MIN;
+                  const height = (toMin(hp.descanso.fin) - toMin(hp.descanso.inicio)) * PX_MIN;
+                  return (
+                    <div key={p.id} style={{ position: "absolute", left: 0, right: 0, top, height, background: p.color + "0A", zIndex: 1, borderTop: `1px dashed ${p.color}33`, borderBottom: `1px dashed ${p.color}33` }} />
+                  );
+                })}
+                {citasDia.map((c) => {
+                  const svc = CONFIG.serviciosDefault.find((s) => s.id === c.servicioId) || { duracionMin: 30 };
+                  const pel = CONFIG.peluqueros.find((p) => p.id === c.peluqueroId);
+                  const col = pel?.color || "#1B4F8A";
+                  const top = (toMin(c.hora) - HORA_APE) * PX_MIN;
+                  const height = Math.max(svc.duracionMin * PX_MIN - 2, 18);
+                  const pelIdx = peluqueroFiltroId ? 0 : CONFIG.peluqueros.findIndex((p) => p.id === c.peluqueroId);
+                  const total = peluqueroFiltroId ? 1 : CONFIG.peluqueros.length;
+                  const cw = 100 / total;
+                  return (
+                    <div key={c.id} style={{ position: "absolute", top, left: `calc(${pelIdx * cw}% + 1px)`, width: `calc(${cw}% - 2px)`, height, background: `${col}22`, border: `1.5px solid ${col}99`, borderLeft: `3px solid ${col}`, borderRadius: 4, padding: "2px 4px", overflow: "hidden", zIndex: 2, boxSizing: "border-box" }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: col, lineHeight: 1.3 }}>{c.hora}</div>
+                      {height > 20 && <div style={{ fontSize: 9, color: "#0D1F35", fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.clienteNombre.split(" ")[0]}</div>}
+                      {height > 34 && <div style={{ fontSize: 8, color: "#4A6080", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.servicio}</div>}
+                      {height > 48 && <div style={{ fontSize: 8, color: col, fontWeight: 600 }}>{pel?.nombre}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -704,13 +733,14 @@ function LeyendaPeluqueros(){
 }
 
 function NavSemana({offset,onChange,weekDays}){
+  const btnS={background:WH,border:`2px solid ${CR3}`,borderRadius:50,padding:"6px 18px",fontSize:12,fontWeight:700,cursor:"pointer",color:TX,transition:"all 0.2s ease"};
   return(
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-      <button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer",color:TX}} onClick={()=>onChange(o=>o-1)}>← Anterior</button>
-      <span style={{fontSize:12,fontWeight:700,color:TX}}>{weekDays[0].getDate()} {MESES_ES[weekDays[0].getMonth()]} – {weekDays[5].getDate()} {MESES_ES[weekDays[5].getMonth()]}</span>
-      <div style={{display:"flex",gap:5}}>
-        {offset!==0&&<button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:7,padding:"5px 10px",fontSize:11,cursor:"pointer",color:TX2}} onClick={()=>onChange(0)}>Hoy</button>}
-        <button style={{background:CR2,border:`1px solid ${CR3}`,borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer",color:TX}} onClick={()=>onChange(o=>o+1)}>Siguiente →</button>
+    <div style={{display:"flex",alignItems:"center",marginBottom:12,position:"relative"}}>
+      <button style={btnS} onClick={()=>onChange(o=>o-1)}>← Anterior</button>
+      <span style={{fontSize:12,fontWeight:700,color:TX,position:"absolute",left:"50%",transform:"translateX(-50%)",whiteSpace:"nowrap"}}>{weekDays[0].getDate()} {MESES_ES[weekDays[0].getMonth()]} – {weekDays[5].getDate()} {MESES_ES[weekDays[5].getMonth()]}</span>
+      <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
+        {offset!==0&&<button style={{...btnS,background:A,color:WH,border:`2px solid ${A}`}} onClick={()=>onChange(0)}>Hoy</button>}
+        <button style={btnS} onClick={()=>onChange(o=>o+1)}>Siguiente →</button>
       </div>
     </div>
   );
@@ -2639,7 +2669,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       padding: "18px", 
       width: "90%", 
       maxWidth: "90%", 
-      margin: 0 
+      margin: 0,
+      overflow: "visible"
     },
     card: { 
       background: WH, 
@@ -2907,8 +2938,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
         {/* 2. PESTAÑAS PRINCIPALES DE VISTA */}
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-          {[["hoy","📋 Vista Tabla"],["semana","📅 Vista Calendario"],["peluquero","✂️ Vista Peluquero"]].map(([v,l])=>(
-            <button key={v} style={{background:vistaCitas===v?A:CR2,color:vistaCitas===v?WH:TX,border:`1px solid ${vistaCitas===v?A:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={()=>{
+          {[["hoy","📋 Tabla"],["peluquero","📅 Calendario"]].map(([v,l])=>(
+            <button key={v} style={{background:vistaCitas===v?A:WH,color:vistaCitas===v?WH:TX,border:`2px solid ${vistaCitas===v?A:CR3}`,borderRadius:50,padding:"7px 20px",fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.2s ease"}} onClick={()=>{
               setVistaCitas(v);
             }}>{l}</button>
           ))}
@@ -3137,15 +3168,17 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
         {/* --- VISTA: CALENDARIO SEMANAL --- */}
         {vistaCitas==="semana"&&(
-          <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box" }}>
-            <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
-            <LeyendaPeluqueros/>
-            <div style={{ marginTop: "16px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <div style={{ marginTop: "16px" }}>
-                <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box" }}>
+                <div style={{ position: "sticky", top: 130, zIndex: 10, background: WH, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, marginTop: -20, paddingTop: 20, paddingBottom: 12, borderRadius: "24px 24px 0 0" }}>
+                  <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
+                </div>
+                <LeyendaPeluqueros/>
+                <div style={{ marginTop: "16px" }}>
+                  <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={null}/>
+                </div>
               </div>
             </div>
-          </div>
         )}
 
         {/* --- VISTA: CALENDARIO POR PELUQUERO --- */}
@@ -3153,15 +3186,16 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           <div>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
               {CONFIG.peluqueros.map(p=>(
-                <button key={p.id} style={{background:pelFiltroCitas===p.id?p.color:CR2,color:pelFiltroCitas===p.id?WH:TX,border:`1px solid ${pelFiltroCitas===p.id?p.color:CR3}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}} onClick={()=>setPelFiltroCitas(pelFiltroCitas===p.id?null:p.id)}>
-                  {p.emoji} {p.nombre}{pelFiltroCitas===p.id&&<span style={{fontSize:10}}>✓</span>}
+                <button key={p.id} style={{background:pelFiltroCitas===p.id?p.color:WH,color:pelFiltroCitas===p.id?WH:TX,border:`2px solid ${pelFiltroCitas===p.id?p.color:CR3}`,borderRadius:50,padding:"5px 14px 5px 5px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all 0.2s ease"}} onClick={()=>setPelFiltroCitas(pelFiltroCitas===p.id?null:p.id)}>
+                  <img src={p.foto} alt={p.nombre} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",border:`2px solid ${pelFiltroCitas===p.id?"rgba(255,255,255,0.5)":CR3}`,flexShrink:0}}/>
+                  {p.nombre}
                 </button>
               ))}
             </div>
-            <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box" }}>
-              <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
-              {pelFiltroCitas&&<div style={{marginBottom:8,display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:2,background:CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.color}}/><span style={{fontSize:12,fontWeight:700,color:TX}}>{CONFIG.peluqueros.find(p=>p.id===pelFiltroCitas)?.nombre}</span></div>}
-              {!pelFiltroCitas&&<LeyendaPeluqueros/>}
+            <div style={{ background: WH, borderRadius: "24px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", padding: "20px", width: "100%", boxSizing: "border-box", overflow: "visible" }}>
+              <div style={{ position: "sticky", top: 130, zIndex: 10, background: WH, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, marginTop: -20, paddingTop: 20, paddingBottom: 12, borderRadius: "24px 24px 0 0" }}>
+                <NavSemana offset={weekOffsetCitas} onChange={setWeekOffsetCitas} weekDays={weekDays}/>
+              </div>
               <div style={{ marginTop: "16px" }}>
                 <CalendarioGrid dias={weekDays} citas={citas} peluqueroFiltroId={pelFiltroCitas}/>
               </div>
