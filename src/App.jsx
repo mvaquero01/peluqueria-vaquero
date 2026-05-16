@@ -684,7 +684,10 @@ function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
                 {!hGen && (
                   <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(45deg,#F5F0E8,#F5F0E8 4px,#EDE6D9 4px,#EDE6D9 8px)", zIndex: 1, opacity: 0.6 }} />
                 )}
-                {hGen && pelEnEsteDia.map((p) => {
+                {hGen && (peluqueroFiltroId
+                  ? CONFIG.peluqueros.filter(p => p.id === peluqueroFiltroId)
+                  : pelEnEsteDia
+                ).map((p) => {
                   const hp = p.horario[d.getDay()];
                   if (!hp?.descanso) return null;
                   const top = (toMin(hp.descanso.inicio) - HORA_APE) * PX_MIN;
