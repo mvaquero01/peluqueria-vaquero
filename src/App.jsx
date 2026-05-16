@@ -597,7 +597,7 @@ function CalendarioGrid({ dias, citas, peluqueroFiltroId }) {
         id="cal-header-row"
         style={{
           position: "sticky",
-          top: "130px",
+          top: "213px",
           zIndex: 5,
           background: "#F8FBFF",
           display: "flex",
