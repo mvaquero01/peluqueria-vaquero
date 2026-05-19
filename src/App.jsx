@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useLocation } from 'react-router-dom';
 import {
-  BrowserRouter, Routes, Route, useNavigate, Navigate, useSearchParams
+  BrowserRouter, Routes, Route, useNavigate, Navigate, useSearchParams, useParams
 } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { db } from "./firebase.js";
@@ -200,13 +200,13 @@ STYLE.textContent = `
     transition: opacity 0.55s ease, transform 0.55s ease;
   }
   .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
+    opacity: 1 !important;
+    transform: translateY(0) !important;
   }
 
   .cat-content {
     overflow: hidden;
-    animation: fadeUp 0.25s ease both;
+    animation: fadeUp 0.4s ease both;
   }
 
   @keyframes fadeSlotIn {
@@ -281,6 +281,7 @@ const MESES_ES  = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","
 const MESES_FULL= ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const normalize = s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 const isoDate   = d=>{ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; };
+const fmtFechaES = iso => { if(!iso) return ""; const [y,m,d]=iso.split("-"); return `${d}/${m}/${y}`; };
 const fmtLarga  = d=>`${DIAS_FULL[d.getDay()]} ${d.getDate()} de ${MESES_ES[d.getMonth()]}`;
 const haceNSemanas = n=>{ const d=new Date(); d.setDate(d.getDate()-n*7); return isoDate(d); };
 const HOY = new Date(); HOY.setHours(0,0,0,0);
@@ -393,10 +394,16 @@ function suscribirCategorias(cb){
   });
 }
 async function guardarCategoriaFB(cat){
-  await setDoc(doc(db,"categorias",String(cat.id)),cat);
+  const docId = cat.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_");
+  await setDoc(doc(db,"categorias",docId),cat);
 }
-async function borrarCategoriaFB(id){
-  await deleteDoc(doc(db,"categorias",String(id)));
+async function borrarCategoriaFB(id, nombre){
+  if(nombre){
+    const docId = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_");
+    await deleteDoc(doc(db,"categorias",docId));
+  } else {
+    await deleteDoc(doc(db,"categorias",String(id)));
+  }
 }
 async function seedCategorias(){
   for(const cat of CONFIG.categorias){
@@ -863,41 +870,87 @@ function ClientePage({ sharedProps, startPaso=0 }){
   const [selServicio, setSelServicio] = useState(null);
   const [selPeluquero, setSelPeluquero] = useState(null);
   const navigate = useNavigate();
+  const { serviceId } = useParams();
+  const location = useLocation();
+
+  // Resetear datos al volver al home con flecha del navegador
+  useEffect(() => {
+    if (location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      setSelServicio(null);
+      setSelPeluquero(null);
+      setSelHora(null);
+      setForm({nombre:"", telefono:""});
+      setCatAbierta(null);
+      setTimeout(() => {
+        document.querySelectorAll('.reveal').forEach(el => {
+          el.classList.remove('visible');
+          void el.offsetHeight;
+          el.classList.add('visible');
+        });
+      }, 50);
+    } else if (location.pathname === '/reservar') {
+      setSelPeluquero(null);
+      setSelHora(null);
+      if (selServicio) {
+        const catDelSvc = categorias?.find(cat => (cat.servicioIds||[]).includes(selServicio.id));
+        if (catDelSvc) setCatAbierta(catDelSvc.id);
+      }
+    }
+  }, [location.pathname, categorias]);
 
   // Escuchador de la URL + Motor de Animaciones
   useEffect(() => {
-    // --- NUEVO: ESTO HACE QUE LA PÁGINA DEJE DE ESTAR VACÍA/INVISIBLE ---
-    const els = document.querySelectorAll('.reveal');
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { 
-        if (e.isIntersecting) e.target.classList.add('visible'); 
-      });
-    }, { threshold: 0.12 });
-    els.forEach(el => obs.observe(el));
-    // ------------------------------------------------------------------
-
-    const params = new URLSearchParams(window.location.search);
-    const sId = params.get('serviceId');
-    const stepUrl = params.get('step');
+    const sId = serviceId;
 
     if (sId && servicios && servicios.length > 0) {
       const encontrado = servicios.find(s => String(s.id) === String(sId));
       if (encontrado) {
         setSelServicio(encontrado);
-        if (stepUrl) setPaso(parseInt(stepUrl));
-        else setPaso(2); 
+        setSelPeluquero(null);
+        setSelHora(null);
+        setSelDia(new Date());
+        setCatAbierta(null);
+        setPaso(2);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
-    } else if (stepUrl) {
-      setPaso(parseInt(stepUrl));
+    } else if (location.pathname === '/reservar') {
+      setCatAbierta(null);
+      setPaso(1);
+    } else if (location.pathname === '/') {
+      setPaso(0);
     }
-
-    // Limpieza al desmontar
-    return () => obs.disconnect();
-  }, [servicios, window.location.search]);
+  }, [servicios, location.pathname, serviceId]);
   
   // Función para avanzar/retroceder
   const irAPaso = (n) => {
     setPaso(n);
+
+    if (n === 1) {
+      setSelPeluquero(null);
+      setSelHora(null);
+      setSelDia(new Date());
+      if (selServicio) {
+        const catDelSvc = categorias?.find(cat => (cat.servicioIds||[]).includes(selServicio.id));
+        setTimeout(() => {
+          if (catDelSvc) setCatAbierta(catDelSvc.id);
+          else setCatAbierta(null);
+        }, 50);
+      } else {
+        setCatAbierta(null);
+      }
+    }
+    if (n === 2) {
+      setSelHora(null);
+      setSelDia(new Date());
+    }
+    if (n === 0) {
+      setSelServicio(null);
+      setSelPeluquero(null);
+      setSelHora(null);
+      setForm({nombre:"", telefono:""});
+      setCatAbierta(null);
+    }
     
     const params = new URLSearchParams();
     // El servicio siempre se mantiene si existe
@@ -908,17 +961,14 @@ function ClientePage({ sharedProps, startPaso=0 }){
     } else if (n === 1) {
       navigate("/reservar", { replace: false });
     } else if (n === 2) {
-      // Al volver al 2, NO ponemos el peluqueroId para que el link esté limpio
-      params.set('step', 2);
-      navigate(`/reservar?${params.toString()}`, { replace: false });
+      const svcId = selServicio?.id || params.get('serviceId');
+      navigate(`/reservar/${svcId}`, { replace: false });
     } else {
-      // Pasos 3 y 4: Aquí sí incluimos el peluquero en la URL
-      if (selPeluquero) params.set('peluqueroId', selPeluquero.id);
-      params.set('step', n);
-      navigate(`/reservar?${params.toString()}`, { replace: false });
+      const svcId = selServicio?.id || params.get('serviceId');
+      navigate(`/reservar/${svcId}`, { replace: false });
     }
     
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
   const [catAbierta,setCatAbierta]=useState(null);
   const [selDia, setSelDia] = useState(new Date()); // Inicializa con hoy
@@ -945,7 +995,12 @@ function ClientePage({ sharedProps, startPaso=0 }){
   const confirmarReserva=async()=>{
     if(!form.nombre||!form.telefono) return;
     await crearCita({clienteNombre:form.nombre,clienteTel:form.telefono,servicio:selServicio.nombre,servicioId:selServicio.id,peluqueroId:selPeluquero.id,peluquero:selPeluquero.nombre,fecha:isoDate(selDia),hora:selHora,precio:selServicio.precio,estado:"pendiente",nota:""});
-    await crearOActualizarCliente({nombre:form.nombre,telefono:form.telefono,visitas:1,gasto:selServicio.precio,ultimaVisita:isoDate(selDia),nota:"",historial:[{fecha:isoDate(selDia),servicio:selServicio.nombre,peluquero:selPeluquero.nombre,precio:selServicio.precio}]});
+    const docId=form.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+form.telefono;
+    const ref=doc(db,"clientes",docId);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){
+      await setDoc(ref,{nombre:form.nombre,telefono:form.telefono,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
+    }
     setPaso(5); scrollTop();
   };
   const waMsgCliente=`Hola ${form.nombre} 👋%0AReserva confirmada en *${CONFIG.nombre}*%0A%0A✂️ ${selServicio?.nombre}%0A💈 ${selPeluquero?.nombre}%0A📅 ${selDia?fmtLarga(selDia):""}%0A🕐 ${selHora}%0A💶 €${selServicio?.precio}%0A%0ATe esperamos 😊`;
@@ -1198,14 +1253,14 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     {abierta && (
                       <div style={{ borderTop: `1px solid ${CR2}` }}>
                         {svcs.map(s => (
-                          <div key={s.id} onClick={(e) => { e.stopPropagation(); navigate(`/reservar?serviceId=${s.id}&step=2`); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${CR2}`, cursor: "pointer" }}>
-                            <div>
-                              <div style={{ fontSize: "13px", fontWeight: 700, color: TX, textAlign: "left" }}>{s.nombre}</div>
-                              {s.desc && <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>{s.desc}</div>}
-                              <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>⏱ {s.duracionMin} min</div>
+                          <div key={s.id} onClick={(e) => { e.stopPropagation(); window.scrollTo({ top: 0, behavior: "smooth" }); navigate(`/reservar/${s.id}`); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${CR2}`, cursor: "pointer" }}>
+                              <div>
+                                <div style={{ fontSize: "13px", fontWeight: 700, color: TX, textAlign: "left" }}>{s.nombre}</div>
+                                {s.desc && <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>{s.desc}</div>}
+                                <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>⏱ {s.duracionMin} min</div>
+                              </div>
+                              <div style={{ fontWeight: 800, fontSize: "15px", color: A, flexShrink: 0, marginLeft: "10px" }}>{s.precio}€</div>
                             </div>
-                            <div style={{ fontWeight: 800, fontSize: "15px", color: A, flexShrink: 0, marginLeft: "10px" }}>{s.precio}€</div>
-                          </div>
                         ))}
                       </div>
                     )}
@@ -1251,15 +1306,15 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       </div>
                       <div style={{ 
                         width: "100%", 
-                        maxHeight: abierta ? "350px" : "0", 
+                        maxHeight: abierta ? "400px" : "0", 
                         opacity: abierta ? 1 : 0, 
                         transform: abierta ? "translateY(0)" : "translateY(10px)", 
                         overflowY: "auto", 
-                        transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                        transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
                         scrollbarWidth: "none"
                       }}>
                         {svcs.map(s => (
-                          <div key={s.id} onClick={(e) => { e.stopPropagation(); navigate(`/reservar?serviceId=${s.id}&step=2`); }} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+                          <div key={s.id} onClick={(e) => { e.stopPropagation(); window.scrollTo({ top: 0, behavior: "smooth" }); navigate(`/reservar/${s.id}`); }} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
                             <div style={{ textAlign: "left", flex: 1, paddingRight: "10px" }}>
                               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
                                 <span style={{ color: "#FFF", fontSize: "12px", fontWeight: "600" }}>{s.nombre}</span>
@@ -1565,17 +1620,15 @@ function ClientePage({ sharedProps, startPaso=0 }){
   // ── FLUJO RESERVA (pasos 1-5) ──
   // ★ Botón CONTINUAR fijo en la parte inferior
   // --- LÓGICA DE BOTÓN CONTINUAR ---
-  const btnOk = paso === 1 ? !!selServicio : paso === 2 ? !!selPeluquero : paso === 3 ? !!(selDia && selHora) : paso === 4 ? !!(form.nombre && form.telefono) : false;
   const formValido = form.nombre?.trim() !== '' && form.telefono?.trim() !== '';
-  const btnLabel = paso === 4 
-    ? (formValido ? "CONFIRMAR RESERVA ✓" : "RELLENA LOS DATOS PARA CONFIRMAR") 
+  const btnOk = paso === 1 ? !!selServicio : paso === 2 ? !!(selPeluquero && selDia && selHora && formValido) : false;
+  const btnLabel = paso === 2
+    ? (btnOk ? "CONFIRMAR RESERVA ✓" : "COMPLETA TODOS LOS CAMPOS")
     : "CONTINUAR →";
   const btnAction = () => {
     if (!btnOk) return;
     if (paso === 1) irAPaso(2);
-    else if (paso === 2) irAPaso(3);
-    else if (paso === 3) irAPaso(4);
-    else if (paso === 4) confirmarReserva();
+    else if (paso === 2) confirmarReserva();
   };
 
   // --- RETURN ÚNICO (Sustituye todo el flujo anterior) ---
@@ -1614,19 +1667,17 @@ function ClientePage({ sharedProps, startPaso=0 }){
       <div style={{ maxWidth: CONFIG_RESERVA.anchoContenedor, margin: "0 auto", padding: `0 20px`, paddingTop: CONFIG_RESERVA.separacionSuperior }}>
         
         {/* 3. BOTONES VOLVER ATRÁS (Fácil de modificar) */}
-        <div style={{ textAlign: 'left', marginBottom: '10px', height: '30px' }}>
-          {paso === 1 && <button style={cs.backBtn} onClick={() => irAPaso(0)}>← Volver al inicio</button>}
-          {paso === 2 && <button style={cs.backBtn} onClick={() => irAPaso(1)}>← Cambiar servicio</button>}
-          {paso === 3 && <button style={cs.backBtn} onClick={() => irAPaso(2)}>← Cambiar profesional</button>}
-          {paso === 4 && <button style={cs.backBtn} onClick={() => irAPaso(3)}>← Cambiar fecha</button>}
-        </div>
-
-        {/* 4. TÍTULOS DE PASOS (Distancia configurable arriba) */}
-        <div style={{ ...cs.sTitle, marginBottom: CONFIG_RESERVA.distanciaTituloCajas, textAlign: 'center' }}>
-          {paso === 1 && "✦ ¿Qué servicio necesitas?"}
-          {paso === 2 && "✦ Elige tu profesional"}
-          {paso === 3 && "✦ Elige fecha y hora"}
-          {paso === 4 && "✦ Confirmar reserva"}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", position: "relative", marginBottom: CONFIG_RESERVA.distanciaTituloCajas }}>
+          {paso === 1 && (
+            <button style={{ position: "absolute", left: 0, background: "transparent", border: "none", color: TX2, cursor: "pointer", fontSize: "20px", padding: 0, lineHeight: 1 }} onClick={() => irAPaso(0)}>←</button>
+          )}
+          {paso === 2 && (
+            <button style={{ position: "absolute", left: 0, background: "transparent", border: "none", color: TX2, cursor: "pointer", fontSize: "20px", padding: 0, lineHeight: 1 }} onClick={() => irAPaso(1)}>←</button>
+          )}
+          <div style={{ ...cs.sTitle, marginBottom: 0 }}>
+            {paso === 1 && "✦ ¿Qué servicio necesitas?"}
+            {paso === 2 && "✦ Completa tu reserva"}
+          </div>
         </div>
 
         {/* 5. CONTENIDO DE LOS PASOS */}
@@ -1710,7 +1761,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                           <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
                         </div>
                       </div>
-                      <div style={{ width: "100%", maxHeight: abierta ? "350px" : "0", opacity: abierta ? 1 : 0, transform: abierta ? "translateY(0)" : "translateY(10px)", overflowY: "auto", transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)", scrollbarWidth: "none" }}>
+                      <div style={{ width: "100%", maxHeight: abierta ? "400px" : "0", opacity: abierta ? 1 : 0, transform: abierta ? "translateY(0)" : "translateY(10px)", overflowY: "auto", transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)", scrollbarWidth: "none" }}>
                         {svcs.map((s, index) => {
                           const esSeleccionado = selServicio?.id === s.id;
                           return (
@@ -1737,55 +1788,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
             </div>
           )}
 
-          {paso === 2 && (
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: esMovil ? "16px" : "25px", width: "100%", paddingBottom: "40px" }}>
-                {CONFIG.peluqueros.map(p => {
-                  const esSeleccionado = selPeluquero?.id === p.id;
-                  const colorActivo = "#1B4F8A";
-                  return (
-                    <div key={p.id} onClick={() => setSelPeluquero(p)} style={{
-                      width: esMovil ? "100%" : 260,
-                      flex: esMovil ? "0 0 100%" : "none",
-                      padding: esMovil ? "16px 20px" : "40px 20px",
-                      background: "#FFF",
-                      border: `2px solid ${esSeleccionado ? colorActivo : "#E8EEF6"}`,
-                      borderRadius: esMovil ? "16px" : "24px",
-                      textAlign: esMovil ? "left" : "center",
-                      cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      display: "flex",
-                      flexDirection: esMovil ? "row" : "column",
-                      alignItems: "center",
-                      gap: esMovil ? "20px" : "0",
-                      boxShadow: esSeleccionado ? "0 10px 25px rgba(27, 79, 138, 0.15)" : "0 4px 12px rgba(0,0,0,0.03)",
-                      transform: esSeleccionado ? "translateY(-5px)" : "none"
-                    }}>
-                      <div style={{ width: esMovil ? 80 : 130, height: esMovil ? 80 : 130, borderRadius: "50%", flexShrink: 0, margin: esMovil ? "0" : "0 auto 20px auto", display: "flex", alignItems: "center", justifyContent: "center", border: `3px solid ${esSeleccionado ? colorActivo : "#F0F4F9"}`, padding: "4px", transition: "all 0.3s ease" }}>
-                        <img src={p.foto} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: esMovil ? "17px" : "18px", color: "#0A1F3D", textTransform: "uppercase" }}>{p.nombre}</div>
-                        <div style={{ fontSize: esMovil ? "12px" : "12px", color: colorActivo, fontWeight: 600, marginTop: esMovil ? "4px" : "8px", textTransform: "uppercase", lineHeight: "1.2" }}>{p.especialidad || "Barber Specialist"}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {paso === 3 && (() => {
-            // ... [MANTÉN TUS CONFIGURACIONES CAL_ST Y FUNCIONES IGUAL] ...
-            const CAL_ST = {
-              borderRadius: "20px",
-              shadow: "0 10px 30px rgba(0,0,0,0.05)",
-              anchoMax: "90%",
-              alturaCajas: "350px",
-              separacionTituloMes: "20px",
-              separacionMesCalendario: "5px"
-            };
-
+          {paso === 2 && (() => {
             const generarTodasLasHoras = () => {
               const horas = [];
               for (let h = 9; h <= 20; h++) {
@@ -1800,184 +1803,13 @@ function ClientePage({ sharedProps, startPaso=0 }){
             const endOfMonth = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 0);
             let startCol = startOfMonth.getDay();
             if (startCol === 0) startCol = 7;
-
             const diasLocal = [];
             for (let i = 1; i < startCol; i++) diasLocal.push(null);
             for (let i = 1; i <= endOfMonth.getDate(); i++) {
               diasLocal.push(new Date(mesRef.getFullYear(), mesRef.getMonth(), i));
             }
-
             const navegar = (n) => setMesRef(new Date(mesRef.getFullYear(), mesRef.getMonth() + n, 1));
 
-            return (
-              <div style={{ width: '100%', margin: '0 auto', padding: '0', animation: 'fadeIn 0.5s ease' }}>
-
-                <div style={{ 
-                  display: "flex", 
-                  flexDirection: window.innerWidth > 850 ? "row" : "column", 
-                  gap: "20px", 
-                  alignItems: "flex-start" 
-                }}>
-                  
-                  {/* COLUMNA IZQUIERDA: CALENDARIO */}
-                  <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column" }}>
-                    
-                    <div style={{ 
-                      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', height: '32px', marginBottom: CAL_ST.separacionMesCalendario 
-                    }}>
-                      <button onClick={() => navegar(-1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px', display: 'inline-flex', alignItems: 'center', transform: 'rotate(90deg)' }}>▼</button>
-                      <h3 style={{ margin: 0, textTransform: 'uppercase', fontSize: '14px', fontWeight: '900', color: "#0A1F3D", minWidth: '150px', textAlign: 'center' }}>
-                        {mesRef.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
-                      </h3>
-                      <button onClick={() => navegar(1)} style={{ background: "none", border: 'none', cursor: 'pointer', fontSize: '11px', color: TX2, padding: '0 6px', display: 'inline-flex', alignItems: 'center', transform: 'rotate(-90deg)' }}>▼</button>
-                    </div>
-
-                    <div style={{ 
-                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto", minHeight: window.innerWidth <= 850 ? "290px" : undefined,
-                      background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
-                    }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: '10px' }}>
-                        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => (
-                          <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '900', color: "#A0AEC0" }}>{d}</div>
-                        ))}
-                      </div>
-
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "5px", flex: 1 }}>
-                        {diasLocal.map((d, di) => {
-                          if (!d) return <div key={di} />;
-                          const iso = isoDate(d);
-                          const isSel = selDia?.toDateString() === d.toDateString();
-                          const isHoy = iso === HOY_ISO;
-                          const festivo = festivosSet.has(iso);
-                          const bloq = selPeluquero ? peluqueroEstaBloqueado(selPeluquero.id, iso, bloqueos) : false;
-                          const disp = d >= HOY && d.getDay() !== 0 && !festivo && !bloq;
-
-                          return (
-                            <button 
-                              key={di} 
-                              // CAMBIO CLAVE AQUÍ: Cuando cambias de día, reseteamos la hora a null
-                              onClick={() => {
-                                if (disp) {
-                                  setSelDia(d);
-                                  setSelHora(null); // <-- ESTO ARREGLA EL BUG
-                                }
-                              }} 
-                              style={{
-                              borderRadius: '10px',
-                              border: isSel ? `2px solid #1B4F8A` : '1px solid #F7FAFC',
-                              background: isSel ? "#1B4F8A" : isHoy ? "#F0F7FF" : "#F7FAFC",
-                              color: isSel ? "#FFF" : disp ? "#0A1F3D" : "#CBD5E0",
-                              fontWeight: disp || isSel || isHoy ? '800' : '500',
-                              cursor: disp ? 'pointer' : 'default',
-                              fontSize: '12px',
-                              position: 'relative'
-                            }}>
-                              {d.getDate()}
-                              {isHoy && (
-                                <div style={{ position: 'absolute', bottom: '4px', left: '50%', transform: 'translateX(-50%)', width: '3px', height: '3px', borderRadius: '50%', background: isSel ? "#FFF" : "#1B4F8A" }} />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* COLUMNA DERECHA: HORAS */}
-                  <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column" }}>
-                    
-                    <div style={{ height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: CAL_ST.separacionMesCalendario }}>
-                      <p style={{ margin: 0, fontSize: '10px', fontWeight: '800', color: "#A0AEC0", textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        ✦ Disponibilidad {selDia ? `${selDia.getDate()} ${selDia.toLocaleString('es-ES', { month: 'short' })}` : ''}
-                      </p>
-                    </div>
-
-                    <div style={{ 
-                      height: window.innerWidth > 850 ? CAL_ST.alturaCajas : "auto",
-                      background: "#FFF", borderRadius: CAL_ST.borderRadius, padding: '20px', border: '1px solid #E2E8F0', boxShadow: CAL_ST.shadow, display: "flex", flexDirection: "column"
-                    }}>
-                      <div style={{ display: "grid", gridTemplateColumns: window.innerWidth <= 850 ? "repeat(4, 1fr)" : "repeat(8, 1fr)", gap: '4px', flex: 1 }}>
-                        {todasLasHoras.map(h => {
-                          const disponible = slots.includes(h);
-                          const seleccionado = selHora === h;
-
-                          return (
-                            <button 
-                              key={h} 
-                              disabled={!disponible}
-                              onClick={() => disponible && setSelHora(h)} 
-                              style={{
-                                borderRadius: "6px", 
-                                fontWeight: "700", 
-                                fontSize: "10px", 
-                                transition: 'all 0.2s',
-                                cursor: disponible ? 'pointer' : 'default',
-                                border: seleccionado ? "1.5px solid #1B4F8A" : "1px solid #E2E8F0",
-                                background: seleccionado ? "#1B4F8A" : disponible ? "#FFF" : "#F7FAFC", 
-                                color: seleccionado ? "#FFF" : disponible ? "#2D3748" : "#CBD5E0",
-                                padding: "4px 0"
-                              }}
-                            >
-                              {h}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            );
-          })()}
-
-          {paso === 4 && (() => {
-            // --- PANEL DE CONTROL TOTAL DEL PASO 4 ---
-            const RES_ST = {
-              // 1. DIMENSIONES GLOBALES
-              anchoMax: window.innerWidth <= 850 ? "100%" : "40%",
-
-              // 2. COLORES
-              colorPrimario: "#1B4F8A",
-              colorTexto: "#0A1F3D",
-              colorSecundario: "#A0AEC0",
-              colorFondo: "#FFF",
-              colorBorde: "#E2E8F0",
-              bgCajita: "#F8FAFC",
-
-              // 3. BORDES Y SOMBRAS
-              borderRadiusMarco: "20px",
-              borderRadiusCajita: "16px",
-              borderRadiusInput: "14px",
-              shadow: "0 10px 30px rgba(0,0,0,0.05)",
-
-              // 4. MÁRGENES (Separaciones hacia AFUERA)
-              margenInferiorPagina: "0px",
-              margenInferiorTarjeta: "30px",
-              margenInferiorTitulo: "20px",
-              margenInferiorEtiquetas: "6px",
-
-              // 5. PADDINGS (Rellenos hacia ADENTRO)
-              paddingPaginaLateral: "20px",
-              paddingMarcoInterno: "25px",
-              
-              // 👇 NUEVOS CONTROLES SEPARADOS PARA EQUILIBRAR LA VISTA 👇
-              paddingTopCajitas: "10px",       // Relleno SUPERIOR (encima de "Servicio" y "Día"). Bájalo si hay mucho hueco.
-              paddingBottomCajitas: "20px",    // Relleno INFERIOR (debajo de "Corte" y la "Hora"). Súbelo si hay poco hueco.
-              paddingLadosCajitas: "0px",     // Relleno a los LADOS de las cajitas.
-              // 👆 =================================================== 👆
-
-              paddingCajitaCentral: "10px",    // Relleno interior de la caja del "Profesional"
-              paddingTextosMitad: "0 0px",    // Aleja los textos de la línea vertical divisoria.
-              paddingInputs: "16px",           // Grosor interno de las casillas de Nombre y Teléfono.
-
-              // 6. GAPS (Huecos entre elementos)
-              gapCajitasResumen: "12px",
-              gapFotoNombre: "8px",
-              gapFormulario: "20px"
-            };
-
-            // --- FORMATEO PERSONALIZADO DE LA FECHA ---
             let textoDia = '';
             if (selDia) {
               const nombreDia = selDia.toLocaleDateString('es-ES', { weekday: 'long' });
@@ -1986,96 +1818,150 @@ function ClientePage({ sharedProps, startPaso=0 }){
               textoDia = `${nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1)} ${diaNum} de ${mes}`;
             }
 
+            const sty = {
+              card: { background: "#FFF", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 4px 12px rgba(0,0,0,0.04)", padding: "14px" },
+              lbl: { fontSize: "10px", fontWeight: 800, color: "#A0AEC0", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" },
+            };
+
+            // SELECTOR DE PELUQUERO
+            const SelectorPeluquero = () => (
+              <div>
+                <div style={sty.lbl}>Profesional</div>
+                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
+                  {CONFIG.peluqueros.map(p => {
+                    const sel = selPeluquero?.id === p.id;
+                    return (
+                      <div key={p.id} onClick={() => { setSelPeluquero(p); setSelHora(null); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                        <img src={p.foto} style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: `3px solid ${sel ? A : "#E2E8F0"}`, transition: "border 0.2s", boxShadow: sel ? `0 0 0 3px ${A}30` : "none" }} />
+                        <span style={{ fontSize: "11px", fontWeight: sel ? 800 : 600, color: sel ? A : "#64748B" }}>{p.nombre}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+
+            // CALENDARIO
+            const Calendario = () => (
+              <div>
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                  <button onClick={() => navegar(-1)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "11px", color: "#A0AEC0", transform: "rotate(90deg)" }}>▼</button>
+                  <span style={{ fontSize: "13px", fontWeight: 900, color: "#0A1F3D", textTransform: "uppercase", minWidth: "160px", textAlign: "center" }}>{mesRef.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}</span>
+                  <button onClick={() => navegar(1)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "11px", color: "#A0AEC0", transform: "rotate(-90deg)" }}>▼</button>
+                </div>
+                <div style={sty.card}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: "6px" }}>
+                    {['L','M','X','J','V','S','D'].map(d => <div key={d} style={{ textAlign: "center", fontSize: "10px", fontWeight: 900, color: "#A0AEC0" }}>{d}</div>)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "3px" }}>
+                    {diasLocal.map((d, di) => {
+                      if (!d) return <div key={di} />;
+                      const iso = isoDate(d);
+                      const isSel = selDia?.toDateString() === d.toDateString();
+                      const isHoy = iso === HOY_ISO;
+                      const festivo = festivosSet.has(iso);
+                      const bloq = selPeluquero ? peluqueroEstaBloqueado(selPeluquero.id, iso, bloqueos) : false;
+                      const disp = d >= HOY && d.getDay() !== 0 && !festivo && !bloq;
+                      return (
+                        <button key={di} onClick={() => { if (disp) { setSelDia(d); setSelHora(null); } }} style={{ borderRadius: "8px", border: isSel ? "2px solid #1B4F8A" : "1px solid transparent", background: isSel ? "#1B4F8A" : isHoy ? "#F0F7FF" : "#F7FAFC", color: isSel ? "#FFF" : disp ? "#0A1F3D" : "#CBD5E0", fontWeight: disp || isSel || isHoy ? 800 : 500, cursor: disp ? "pointer" : "default", fontSize: "12px", padding: "7px 0", position: "relative" }}>
+                          {d.getDate()}
+                          {isHoy && <div style={{ position: "absolute", bottom: "2px", left: "50%", transform: "translateX(-50%)", width: "3px", height: "3px", borderRadius: "50%", background: isSel ? "#FFF" : "#1B4F8A" }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+
+            // HORAS
+            const Horas = () => (
+              <div>
+                <div style={{ ...sty.lbl, marginTop: "4px" }}>✦ Disponibilidad {selDia ? `${selDia.getDate()} ${selDia.toLocaleString('es-ES', { month: 'short' })}` : ""}</div>
+                <div style={sty.card}>
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${esMovil ? 4 : 8}, 1fr)`, gap: "4px" }}>
+                    {todasLasHoras.map(h => {
+                      const disponible = slots.includes(h);
+                      const seleccionado = selHora === h;
+                      return (
+                        <button key={h} disabled={!disponible} onClick={() => disponible && setSelHora(h)} style={{ borderRadius: "6px", fontWeight: 700, fontSize: "10px", cursor: disponible ? "pointer" : "default", border: seleccionado ? "2px solid #1B4F8A" : "1px solid #E2E8F0", background: seleccionado ? "#1B4F8A" : disponible ? "#FFF" : "#F7FAFC", color: seleccionado ? "#FFF" : disponible ? "#2D3748" : "#CBD5E0", padding: "5px 0" }}>
+                          {h}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+
+            // RESUMEN
+            const Resumen = () => (
+              <div style={sty.card}>
+                <div style={sty.lbl}>Resumen</div>
+                {/* Fila 1: servicio | tiempo + coste */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", paddingBottom: "12px", borderBottom: "1px solid #F1F5F9" }}>
+                  <span style={{ fontSize: "14px", fontWeight: 800, color: "#0A1F3D" }}>{selServicio?.nombre || "—"}</span>
+                  <span style={{ fontSize: "12px", color: "#94A3B8", whiteSpace: "nowrap" }}>⏱ {selServicio?.duracionMin} min</span>
+                  <span style={{ fontSize: "14px", fontWeight: 800, color: "#0A1F3D", whiteSpace: "nowrap" }}>{selServicio?.precio} €</span>
+                </div>
+                {/* Fila 2: profesional centrado */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 4px", borderBottom: "1px solid #F1F5F9" }}>
+                  {selPeluquero?.foto && <img src={selPeluquero.foto} style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover" }} />}
+                  <span style={{ fontSize: "15px", fontWeight: 700, color: "#0A1F3D" }}>{selPeluquero?.nombre || "—"}</span>
+                </div>
+                {/* Fila 3: fecha centrada */}
+                <div style={{ textAlign: "center", padding: "14px 8px 0 8px" }}>
+                  <span style={{ fontSize: "15px", fontWeight: 700, color: "#0A1F3D" }}>
+                    {selDia ? textoDia : "—"}{selHora ? ` · ${selHora}` : ""}
+                  </span>
+                </div>
+              </div>
+            );
+
             return (
-              <div style={{ 
-                width: '100%', 
-                maxWidth: RES_ST.anchoMax, 
-                margin: '0 auto', 
-                animation: 'fadeIn 0.5s ease', 
-                padding: `0 ${RES_ST.paddingPaginaLateral}`, 
-                paddingBottom: RES_ST.margenInferiorPagina 
-              }}>
-                
-                {/* --- TARJETA DE RESUMEN SIMÉTRICA --- */}
-                <div style={{ 
-                  background: RES_ST.colorFondo, 
-                  borderRadius: RES_ST.borderRadiusMarco, 
-                  padding: RES_ST.paddingMarcoInterno, 
-                  border: `1px solid ${RES_ST.colorBorde}`, 
-                  boxShadow: RES_ST.shadow,
-                  marginBottom: RES_ST.margenInferiorTarjeta
-                }}>
-                  <h3 style={{ margin: 0, marginBottom: RES_ST.margenInferiorTitulo, fontSize: '13px', color: RES_ST.colorTexto, textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center', fontWeight: '900' }}>
-                    Resumen de tu cita
-                  </h3>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: RES_ST.gapCajitasResumen }}>
-
-                    {/* CAJITA 1: SERVICIO Y PRECIO */}
-                    {/* Fíjate cómo aplicamos aquí el padding separado */}
-                    <div style={{ background: RES_ST.bgCajita, padding: `${RES_ST.paddingTopCajitas} ${RES_ST.paddingLadosCajitas} ${RES_ST.paddingBottomCajitas} ${RES_ST.paddingLadosCajitas}`, borderRadius: RES_ST.borderRadiusCajita, display: 'flex', alignItems: 'stretch' }}>
-                      <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid ${RES_ST.colorBorde}`, padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Servicio</span>
-                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2', display: 'block' }}>{selServicio?.nombre}</span>
+              <div style={{ width: "100%", animation: "fadeIn 0.5s ease", paddingBottom: "120px" }}>
+                {esMovil ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <SelectorPeluquero />
+                    <Calendario />
+                    <Horas />
+                    <Resumen />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div>
+                          <label style={{ ...sty.lbl, marginBottom: "5px", display: "block" }}>Nombre completo</label>
+                          <input style={{ width: "100%", padding: "11px 14px", borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: "14px", fontWeight: 600, color: "#0A1F3D", outline: "none", background: "#FFF", boxSizing: "border-box" }} placeholder="Escribe tu nombre" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ ...sty.lbl, marginBottom: "5px", display: "block" }}>Teléfono</label>
+                          <input type="tel" inputMode="numeric" pattern="[0-9]*" style={{ width: "100%", padding: "11px 14px", borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: "14px", fontWeight: 600, color: "#0A1F3D", outline: "none", background: "#FFF", boxSizing: "border-box" }} placeholder="Tu número de móvil" value={form.telefono} onKeyDown={e => { if(!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+onChange={e => setForm({ ...form, telefono: e.target.value.replace(/\D/g, '') })} />
+                        </div>
                       </div>
-                      <div style={{ flex: 1, textAlign: 'center', padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Precio</span>
-                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2' }}>{selServicio?.precio}€</span>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
+                    {/* Columna izquierda */}
+                    <div style={{ flex: "1.3", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <Calendario />
+                      <Horas />
+                    </div>
+                    {/* Columna derecha */}
+                    <div style={{ flex: "0.9", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <SelectorPeluquero />
+                      <Resumen />
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div>
+                          <label style={{ ...sty.lbl, marginBottom: "5px", display: "block" }}>Nombre completo</label>
+                          <input style={{ width: "100%", padding: "11px 14px", borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: "14px", fontWeight: 600, color: "#0A1F3D", outline: "none", background: "#FFF", boxSizing: "border-box" }} placeholder="Escribe tu nombre" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ ...sty.lbl, marginBottom: "5px", display: "block" }}>Teléfono</label>
+                          <input type="tel" style={{ width: "100%", padding: "11px 14px", borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: "14px", fontWeight: 600, color: "#0A1F3D", outline: "none", background: "#FFF", boxSizing: "border-box" }} placeholder="Tu número de móvil" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} />
+                        </div>
                       </div>
                     </div>
-
-                    {/* CAJITA 2: PROFESIONAL */}
-                    <div style={{ background: RES_ST.bgCajita, padding: RES_ST.paddingCajitaCentral, borderRadius: RES_ST.borderRadiusCajita, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', marginBottom: '10px' }}>Profesional</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: RES_ST.gapFotoNombre }}>
-                        {selPeluquero?.foto && (
-                          <img src={selPeluquero.foto} alt={selPeluquero.nombre} style={{ width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${RES_ST.colorBorde}` }} />
-                        )}
-                        <span style={{ fontSize: '15px', fontWeight: '800', color: RES_ST.colorTexto }}>{selPeluquero?.nombre}</span>
-                      </div>
-                    </div>
-
-                    {/* CAJITA 3: DÍA Y HORA */}
-                    <div style={{ background: RES_ST.bgCajita, padding: `${RES_ST.paddingTopCajitas} ${RES_ST.paddingLadosCajitas} ${RES_ST.paddingBottomCajitas} ${RES_ST.paddingLadosCajitas}`, borderRadius: RES_ST.borderRadiusCajita, display: 'flex', alignItems: 'stretch' }}>
-                      <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid ${RES_ST.colorBorde}`, padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Día</span>
-                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2' }}>
-                          {textoDia}
-                        </span>
-                      </div>
-                      <div style={{ flex: 1, textAlign: 'center', padding: RES_ST.paddingTextosMitad, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '10px', fontWeight: '800', color: RES_ST.colorSecundario, textTransform: 'uppercase', display: 'block', marginBottom: RES_ST.margenInferiorEtiquetas }}>Hora</span>
-                        <span style={{ fontSize: '16px', fontWeight: '900', color: RES_ST.colorTexto, lineHeight: '1.2' }}>{selHora}</span>
-                      </div>
-                    </div>
-
                   </div>
-                </div>
-
-                {/* --- FORMULARIO --- */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: RES_ST.gapFormulario }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: RES_ST.colorSecundario, marginBottom: '8px', letterSpacing: '1px' }}>NOMBRE COMPLETO</label>
-                    <input 
-                      style={{ width: '100%', padding: RES_ST.paddingInputs, borderRadius: RES_ST.borderRadiusInput, border: `1px solid ${RES_ST.colorBorde}`, fontSize: '15px', fontWeight: '600', color: RES_ST.colorTexto, outline: 'none', background: RES_ST.colorFondo, boxSizing: 'border-box' }}
-                      placeholder="Escribe tu nombre" 
-                      value={form.nombre} 
-                      onChange={e => setForm({ ...form, nombre: e.target.value })} 
-                    />
-                  </div>
-                  
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: RES_ST.colorSecundario, marginBottom: '8px', letterSpacing: '1px' }}>TELÉFONO</label>
-                    <input 
-                      style={{ width: '100%', padding: RES_ST.paddingInputs, borderRadius: RES_ST.borderRadiusInput, border: `1px solid ${RES_ST.colorBorde}`, fontSize: '15px', fontWeight: '600', color: RES_ST.colorTexto, outline: 'none', background: RES_ST.colorFondo, boxSizing: 'border-box' }}
-                      type="tel"
-                      placeholder="Tu número de móvil" 
-                      value={form.telefono} 
-                      onChange={e => setForm({ ...form, telefono: e.target.value })} 
-                    />
-                  </div>
-
-                </div>
+                )}
               </div>
             );
           })()}
@@ -2084,11 +1970,10 @@ function ClientePage({ sharedProps, startPaso=0 }){
           {paso === 5 && (() => {
   // --- PANEL DE CONTROL DEL PASO 5 ---
   const OK_ST = {
-    // 1. DIMENSIONES Y FORMAS
-    anchoMax: "40%",               
+    anchoMax: "30%",               
     alturaCaja: "auto",              
-    borderRadiusMarco: "24px",
-    borderRadiusBtn: "16px",
+    borderRadiusMarco: "20px",
+    borderRadiusBtn: "12px",
     
     // 2. COLORES
     colorPrimario: "#1B4F8A",
@@ -2105,7 +1990,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     // 4. DISTANCIAS (Control de posición en pantalla)
     margenSuperior: "-70px",  // <-- REDUCE esto para SUBIR la caja (ej: "0px", "-20px", "-40px")
     margenInferior: "-70px",  // <-- Aumenta esto si quieres más aire por debajo
-    paddingMarco: "40px 30px",       
+    paddingMarco: "28px 24px",      
     shadow: "0 20px 40px rgba(0,0,0,0.08)" 
   };
 
@@ -2450,7 +2335,30 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
           <div>
             <label style={lblS}>Servicio</label>
             <select style={selS} value={form.servicioId}
-              onChange={e=>setForm(f=>({...f,servicioId:e.target.value,hora:""}))}>
+              onChange={e=>{
+                const nuevoSvcId = e.target.value;
+                const nuevoSvc = servicios.find(s=>s.id===Number(nuevoSvcId));
+                setForm(f=>{
+                  if(!f.hora || !nuevoSvc) return {...f, servicioId:nuevoSvcId, hora:""};
+                  // Comprobar si la hora actual cabe con el nuevo servicio
+                  const pel = CONFIG.peluqueros.find(p=>p.id===Number(f.peluqueroId));
+                  if(!pel) return {...f, servicioId:nuevoSvcId, hora:""};
+                  const fecha = new Date(f.fecha+"T12:00:00");
+                  const hp = pel.horario[fecha.getDay()];
+                  if(!hp) return {...f, servicioId:nuevoSvcId, hora:""};
+                  const finSlot = toMin(f.hora) + nuevoSvc.duracionMin;
+                  const finJornada = toMin(hp.salida);
+                  const cabeEnJornada = finSlot <= finJornada;
+                  // Comprobar que no choca con otras citas
+                  const citasDelDia = citas.filter(c=>c.fecha===f.fecha&&c.peluqueroId===pel.id&&c.estado!=="no-show"&&(!esEdicion||c.id!==citaInicial?.id));
+                  const noCruce = !citasDelDia.some(c=>{
+                    const cI=toMin(c.hora), cF=cI+(servicios.find(s=>s.id===c.servicioId)||{duracionMin:30}).duracionMin;
+                    const sI=toMin(f.hora), sF=sI+nuevoSvc.duracionMin;
+                    return sI<cF&&sF>cI;
+                  });
+                  return {...f, servicioId:nuevoSvcId, hora: cabeEnJornada&&noCruce ? f.hora : ""};
+                });
+              }}>
               <option value="">Elige servicio</option>
               {servicios.map(s=><option key={s.id} value={s.id}>{s.nombre} — €{s.precio}</option>)}
             </select>
@@ -2507,19 +2415,6 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
             {slotsManuales.map(h=><option key={h} value={h}>{h}</option>)}
           </select>
         </div>
-
-        {/* Fila 5: Estado (solo en edición) */}
-        {esEdicion && (
-          <div style={{marginBottom:7}}>
-            <label style={lblS}>Estado</label>
-            <select style={selS} value={form.estado}
-              onChange={e=>setForm(f=>({...f,estado:e.target.value}))}>
-              <option value="pendiente">Pendiente</option>
-              <option value="completada">Completada</option>
-              <option value="no-show">No show</option>
-            </select>
-          </div>
-        )}
 
         {/* Fila 6: Nota */}
         <div style={{marginBottom:16}}>
@@ -3091,7 +2986,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       </thead>
                       <tbody>{citasFiltradas.map(c=>(
                         <tr key={c.id} className="fila-premium">
-                          <td className="td-premium" style={{fontSize:"10px",color:TX2}}>{c.fecha===HOY_ISO?"Hoy":c.fecha}</td>
+                          <td className="td-premium" style={{fontSize:"10px",color:TX2}}>{c.fecha===HOY_ISO?"Hoy":fmtFechaES(c.fecha)}</td>
                           <td className="td-premium" style={{fontWeight:700,color:A, fontSize:"12px"}}>{c.hora}</td>
                           <td className="td-premium">
                             <div style={{fontWeight:600, fontSize:"12px"}}>{c.clienteNombre}</div>
@@ -3254,29 +3149,6 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             }} 
             placeholder="🔍 Buscar nombre o móvil..."
           />
-          <button 
-            style={{
-              background: inactivos ? A : CR2,
-              color: inactivos ? WH : TX,
-              border: `1px solid ${inactivos ? A : CR3}`,
-              borderRadius: 8,
-              padding: "10px 14px",
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              boxSizing: "border-box",
-              flex: isMobile ? "1 1 auto" : "none"
-            }} 
-            onClick={() => {
-              setInactivos(v => {
-                window._inactivosCache = !v; 
-                return !v;
-              });
-            }}
-          >
-            {inactivos ? "✓ " : ""}{`+${CONFIG.semanasSinVisita} sem`}
-          </button>
         </div>
 
         <div style={{ fontSize: 11, color: TX2, marginBottom: 10 }}>
@@ -3307,7 +3179,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   <div style={{ textAlign: "left", maxWidth: "65%" }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: TX, marginBottom: 2 }}>{c.nombre}</div>
                     <div style={{ fontSize: 11, color: TX2 }}>📞 {c.telefono}</div>
-                    <div style={{ fontSize: 11, color: TX2 }}>Última: {c.ultimaVisita}</div>
+                    <div style={{ fontSize: 11, color: TX2 }}>Última: {fmtFechaES(c.ultimaVisita)}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: A }}>{c.gasto} €</div>
@@ -3377,7 +3249,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontWeight: 600, color: TX, marginBottom: 2 }}>{h.servicio}</div>
                         <div style={{ fontSize: 10, color: TX2 }}>
-                          {h.fecha} <span style={{ margin: "0 4px" }}>•</span> {h.peluquero}
+                          {fmtFechaES(h.fecha)} <span style={{ margin: "0 4px" }}>•</span> {h.peluquero}
                         </div>
                       </div>
                       
@@ -3770,7 +3642,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* COLUMNA 1: CIERRES GLOBALES */}
         <div style={colStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
-            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>🗓️ Cierres</h4>
+            <h4 style={{ margin: 10, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>Cierres</h4>
             <button onClick={() => setShowFF(!showFF)} style={btnBlue}>{showFF ? "Cancelar" : "+ Añadir"}</button>
           </div>
 
@@ -3782,7 +3654,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                     <button style={inputS} onClick={() => setShowFestCal(!showFestCal)}>{festForm.desde ? toDMY(festForm.desde) : "..."}</button>
                     {showFestCal && (
                       <div style={{ position: "absolute", zIndex: 200, marginTop: "4px" }}>
-                        <MiniCalPicker value={festForm.desde} onChange={d => { setFestForm({...festForm, desde: d}); setShowFestCal(false); }} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                        <MiniCalPicker value={festForm.desde} onChange={d => { setFestForm({...festForm, desde: d}); setShowFestCal(false); }} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]} />
                       </div>
                     )}
                   </div>
@@ -3791,7 +3663,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                     <button style={inputS} onClick={() => setShowFestHastaCal(!showFestHastaCal)}>{festForm.hasta ? toDMY(festForm.hasta) : "..."}</button>
                     {showFestHastaCal && (
                       <div style={{ position: "absolute", zIndex: 200, marginTop: "4px", right: 0 }}>
-                        <MiniCalPicker value={festForm.hasta} onChange={d => { setFestForm({...festForm, hasta: d}); setShowFestHastaCal(false); }} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                        <MiniCalPicker value={festForm.hasta} onChange={d => { setFestForm({...festForm, hasta: d}); setShowFestHastaCal(false); }} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]} />
                       </div>
                     )}
                   </div>
@@ -3825,7 +3697,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {/* COLUMNA 2: BLOQUEOS POR PELUQUERO */}
         <div style={colStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
-            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>✂️ Ausencias</h4>
+            <h4 style={{ margin: 10, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>Ausencias</h4>
             <button onClick={() => setShowBF(!showBF)} style={btnBlue}>{showBF ? "Cancelar" : "+ Añadir"}</button>
           </div>
 
@@ -3841,7 +3713,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   <button style={inputS} onClick={()=>setShowBloqDesdeCal(!showBloqDesdeCal)}>{bloqForm.desde ? toDMY(bloqForm.desde) : "..."}</button>
                   {showBloqDesdeCal && (
                     <div style={{ position: "absolute", zIndex: 200, marginTop: "4px" }}>
-                      <MiniCalPicker value={bloqForm.desde} onChange={d=>{setBloqForm({...bloqForm, desde:d});setShowBloqDesdeCal(false);}} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                      <MiniCalPicker value={bloqForm.desde} onChange={d=>{setBloqForm({...bloqForm, desde:d});setShowBloqDesdeCal(false);}} festivosSet={festivosSet} bloqueosPelId={bloqForm.peluqueroId ? Number(bloqForm.peluqueroId) : null} bloqueos={bloqueos} />
                     </div>
                   )}
                 </div>
@@ -3850,7 +3722,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                   <button style={inputS} onClick={()=>setShowBloqHastaCal(!showBloqHastaCal)}>{bloqForm.hasta ? toDMY(bloqForm.hasta) : "..."}</button>
                   {showBloqHastaCal && (
                     <div style={{ position: "absolute", zIndex: 200, marginTop: "4px", right: 0 }}>
-                      <MiniCalPicker value={bloqForm.hasta} onChange={d=>{setBloqForm({...bloqForm, hasta:d});setShowBloqHastaCal(false);}} festivosSet={new Set()} bloqueosPelId={null} bloqueos={[]} />
+                      <MiniCalPicker value={bloqForm.hasta} onChange={d=>{setBloqForm({...bloqForm, hasta:d});setShowBloqHastaCal(false);}} festivosSet={festivosSet} bloqueosPelId={bloqForm.peluqueroId ? Number(bloqForm.peluqueroId) : null} bloqueos={bloqueos} />
                     </div>
                   )}
                 </div>
@@ -4088,7 +3960,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const confirmarBorradoCat = async () => {
       const copia = {...catBorrar};
       setCategorias(prev => prev.filter(c => c.id !== copia.id));
-      await borrarCategoriaFB(copia.id);
+      await borrarCategoriaFB(copia.id, copia.nombre);
       setCatBorrar(null);
       if(onCatEliminada) onCatEliminada(copia);
     };
@@ -4965,6 +4837,7 @@ function AppData(){
       {/* Fíjate cómo ahora le pasamos sharedProps={sharedProps} pero sin BrowserRouter */}
       <Route path="/" element={<ClientePage sharedProps={sharedProps} />} />
       <Route path="/reservar" element={<ClientePage sharedProps={sharedProps} />} />
+      <Route path="/reservar/:serviceId" element={<ClientePage sharedProps={sharedProps} />} />
       <Route path="/admin" element={<AdminPage {...sharedProps} />} />
       <Route path="/login" element={<LoginPage />} />
     </Routes>
