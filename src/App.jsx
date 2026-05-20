@@ -971,6 +971,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     if (n === 2) {
       setSelHora(null);
       setSelDia(new Date());
+      setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
     }
     if (n === 0) {
       setSelServicio(null);
@@ -1883,7 +1884,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
             };
 
             // SELECTOR DE PELUQUERO
-            const pelOpciones = [{ id: CUALQUIERA_ID, nombre: "Cualquiera", foto: "https://i.postimg.cc/4xxWbVq0/postepelu.webp" }, ...CONFIG.peluqueros];
+            const pelOpciones = [{ id: CUALQUIERA_ID, nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" }, ...CONFIG.peluqueros];
             const SelectorPeluquero = () => (
               <div>
                 <div style={sty.lbl}>Profesional</div>
