@@ -935,7 +935,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
       const encontrado = servicios.find(s => String(s.id) === String(sId));
       if (encontrado) {
         setSelServicio(encontrado);
-        setSelPeluquero(null);
+        setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
         setSelHora(null);
         setSelDia(new Date());
         setCatAbierta(null);
@@ -955,7 +955,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     setPaso(n);
 
     if (n === 1) {
-      setSelPeluquero(null);
+      setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
       setSelHora(null);
       setSelDia(new Date());
       if (selServicio) {
