@@ -497,6 +497,28 @@ const STATS_SERVICIOS=[{nombre:"Corte",c:38},{nombre:"Fade",c:24},{nombre:"Corte
   const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap";document.head.appendChild(l);
 })();
 
+function asignarPeluqueroAleatorio(servicioId, fecha, hora, citas, bloqueos, festivosSet, servicios) {
+  const disponibles = CONFIG.peluqueros.filter(p => {
+    if (!p.horario[new Date(fecha+"T12:00:00").getDay()]) return false;
+    if (peluqueroEstaBloqueado(p.id, fecha, bloqueos)) return false;
+    if (festivosSet && festivosSet.has(fecha)) return false;
+    const hp = p.horario[new Date(fecha+"T12:00:00").getDay()];
+    if (!hp) return false;
+    const svc = servicios.find(s => s.id === servicioId);
+    if (!svc) return false;
+    const citasDelDia = citas.filter(c => c.fecha === fecha && c.peluqueroId === p.id && c.estado !== "no-show");
+    const sI = toMin(hora), sF = sI + svc.duracionMin;
+    const libre = !citasDelDia.some(c => {
+      const sv = servicios.find(s => s.id === c.servicioId) || {duracionMin:30};
+      const cI = toMin(c.hora), cF = cI + sv.duracionMin;
+      return sI < cF && sF > cI;
+    });
+    return libre;
+  });
+  if (disponibles.length === 0) return null;
+  return disponibles[Math.floor(Math.random() * disponibles.length)];
+}
+
 const FONT="'Plus Jakarta Sans',sans-serif";
 const A="#1B4F8A",CR="#F0F4F9",CR2="#E0E8F2",CR3="#CED9E8";
 const WH="#F8FBFF",TX="#0D1F35",TX2="#4A6080";
@@ -874,7 +896,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
   const [paso, setPaso] = useState(startPaso);
   const [selServicio, setSelServicio] = useState(null);
-  const [selPeluquero, setSelPeluquero] = useState(null);
+  const [selPeluquero, setSelPeluquero] = useState({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
   const navigate = useNavigate();
   const { serviceId } = useParams();
   const location = useLocation();
@@ -983,8 +1005,27 @@ function ClientePage({ sharedProps, startPaso=0 }){
   const [form,setForm]=useState({nombre:"",telefono:""});
   const festivosSet=useMemo(()=>new Set(festivos.map(f=>f.fecha)),[festivos]);
 
+  const CUALQUIERA_ID = "cualquiera";
   const slots=useMemo(()=>{
     if(!selPeluquero||!selDia||!selServicio) return [];
+    if(selPeluquero.id===CUALQUIERA_ID){
+      // Unión de todos los slots disponibles de todos los peluqueros
+      const slotsSet = new Set();
+      CONFIG.peluqueros.forEach(p=>{
+        if(peluqueroEstaBloqueado(p.id,isoDate(selDia),bloqueos)) return;
+        const hp=p.horario[selDia.getDay()]; if(!hp) return;
+        const todos=generarSlots(hp,selServicio.duracionMin);
+        const citasDelDia=citas.filter(c=>c.fecha===isoDate(selDia)&&c.peluqueroId===p.id&&c.estado!=="no-show");
+        const disponibles=filtrarSlotsOcupados(todos,selServicio.duracionMin,citasDelDia);
+        disponibles.forEach(h=>slotsSet.add(h));
+      });
+      let arr=[...slotsSet].sort();
+      if(isoDate(selDia)===HOY_ISO){
+        const ahora=new Date(); const minAhora=ahora.getHours()*60+ahora.getMinutes()+15;
+        arr=arr.filter(h=>toMin(h)>minAhora);
+      }
+      return arr;
+    }
     const hp=selPeluquero.horario[selDia.getDay()]; if(!hp) return [];
     const todos=generarSlots(hp,selServicio.duracionMin);
     const citasDelDia=citas.filter(c=>c.fecha===isoDate(selDia)&&c.peluqueroId===selPeluquero.id&&c.estado!=="no-show");
@@ -994,13 +1035,19 @@ function ClientePage({ sharedProps, startPaso=0 }){
       return disponibles.filter(h=>toMin(h)>minAhora);
     }
     return disponibles;
-  },[selPeluquero,selDia,selServicio,citas]);
+  },[selPeluquero,selDia,selServicio,citas,bloqueos]);
 
   const scrollTop=()=>window.scrollTo({top:0,behavior:"smooth"});
   const reset=()=>{ scrollTop(); navigate("/"); };
   const confirmarReserva=async()=>{
     if(!form.nombre||!form.telefono) return;
-    await crearCita({clienteNombre:form.nombre,clienteTel:form.telefono,servicio:selServicio.nombre,servicioId:selServicio.id,peluqueroId:selPeluquero.id,peluquero:selPeluquero.nombre,fecha:isoDate(selDia),hora:selHora,precio:selServicio.precio,estado:"pendiente",nota:""});
+    let pelFinal = selPeluquero;
+    if(selPeluquero.id === CUALQUIERA_ID){
+      const asignado = asignarPeluqueroAleatorio(selServicio.id, isoDate(selDia), selHora, citas, bloqueos, festivosSet, servicios);
+      if(!asignado) return; // no hay nadie disponible (no debería pasar)
+      pelFinal = asignado;
+    }
+    await crearCita({clienteNombre:form.nombre,clienteTel:form.telefono,servicio:selServicio.nombre,servicioId:selServicio.id,peluqueroId:pelFinal.id,peluquero:pelFinal.nombre,fecha:isoDate(selDia),hora:selHora,precio:selServicio.precio,estado:"pendiente",nota:""});
     const docId=form.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+form.telefono;
     const ref=doc(db,"clientes",docId);
     const snap=await getDoc(ref);
@@ -1674,7 +1721,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
       )}
 
       {/* 2. CONTENEDOR MAESTRO (Controla el ancho) */}
-      <div style={{ maxWidth: CONFIG_RESERVA.anchoContenedor, margin: "0 auto", padding: `0 20px`, paddingTop: CONFIG_RESERVA.separacionSuperior }}>
+      <div style={{ maxWidth: CONFIG_RESERVA.anchoContenedor, margin: "0 auto", padding: `0 20px`, paddingTop: esMovil ? "20px" : CONFIG_RESERVA.separacionSuperior }}>
         
         {/* 3. BOTONES VOLVER ATRÁS (Fácil de modificar) */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", position: "relative", marginBottom: CONFIG_RESERVA.distanciaTituloCajas }}>
@@ -1836,11 +1883,12 @@ function ClientePage({ sharedProps, startPaso=0 }){
             };
 
             // SELECTOR DE PELUQUERO
+            const pelOpciones = [{ id: CUALQUIERA_ID, nombre: "Cualquiera", foto: "https://i.postimg.cc/4xxWbVq0/postepelu.webp" }, ...CONFIG.peluqueros];
             const SelectorPeluquero = () => (
               <div>
                 <div style={sty.lbl}>Profesional</div>
                 <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
-                  {CONFIG.peluqueros.map(p => {
+                  {pelOpciones.map(p => {
                     const sel = selPeluquero?.id === p.id;
                     return (
                       <div key={p.id} onClick={() => { setSelPeluquero(p); setSelHora(null); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer" }}>
@@ -2235,6 +2283,22 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
   const slotsManuales = useMemo(() => {
     if (!form.peluqueroId || !form.fecha || !form.servicioId) return [];
     if (festivosSet.has(form.fecha)) return [];
+    if(form.peluqueroId === "cualquiera"){
+      const svc = servicios.find(s => s.id === Number(form.servicioId));
+      if(!svc) return [];
+      const slotsSet = new Set();
+      CONFIG.peluqueros.forEach(p=>{
+        if(peluqueroEstaBloqueado(p.id,form.fecha,bloqueos)) return;
+        const fecha=new Date(form.fecha+"T12:00:00");
+        const hp=p.horario[fecha.getDay()]; if(!hp) return;
+        const todos=generarSlots(hp,svc.duracionMin);
+        const citasDelDia=citas.filter(c=>c.fecha===form.fecha&&c.peluqueroId===p.id&&c.estado!=="no-show"&&(!esEdicion||c.id!==citaInicial?.id));
+        filtrarSlotsOcupados(todos,svc.duracionMin,citasDelDia).forEach(h=>slotsSet.add(h));
+      });
+      let arr=[...slotsSet].sort();
+      if(form.fecha===HOY_ISO){ const ahora=new Date(); const m=ahora.getHours()*60+ahora.getMinutes()+15; arr=arr.filter(h=>toMin(h)>m); }
+      return arr;
+    }
     const pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
     if (!pel || peluqueroEstaBloqueado(pel.id, form.fecha, bloqueos)) return [];
     const fecha = new Date(form.fecha + "T12:00:00");
@@ -2261,7 +2325,12 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
   const confirmar = async () => {
     if (!form.nombre || !form.servicioId || !form.peluqueroId || !form.fecha || !form.hora) return;
     const svc = servicios.find(s => s.id === Number(form.servicioId));
-    const pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
+    let pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
+    if(form.peluqueroId === "cualquiera"){
+      const festivosSetLocal = new Set(festivos ? festivos.map(f=>f.fecha) : []);
+      pel = asignarPeluqueroAleatorio(svc.id, form.fecha, form.hora, citas, bloqueos, festivosSetLocal, servicios);
+      if(!pel) return;
+    }
 
     if (esEdicion) {
       const datos = {
@@ -2380,6 +2449,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
             <select style={selS} value={form.peluqueroId}
               onChange={e=>setForm(f=>({...f,peluqueroId:e.target.value,hora:"",fecha:""}))}>
               <option value="">Elige peluquero</option>
+              <option value="cualquiera">🎲 Cualquiera (aleatorio)</option>
               {CONFIG.peluqueros.map(p=><option key={p.id} value={p.id}>{p.emoji} {p.nombre}</option>)}
             </select>
           </div>
