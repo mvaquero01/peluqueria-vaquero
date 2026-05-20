@@ -745,13 +745,19 @@ function LeyendaPeluqueros(){
 function NavSemana({offset,onChange,weekDays}){
   const btnS={background:WH,border:`2px solid ${CR3}`,borderRadius:50,padding:"6px 18px",fontSize:12,fontWeight:700,cursor:"pointer",color:TX,transition:"all 0.2s ease"};
   return(
-    <div style={{display:"flex",alignItems:"center",marginBottom:12,position:"relative"}}>
-      <button style={btnS} onClick={()=>onChange(o=>o-1)}>← Anterior</button>
-      <span style={{fontSize:12,fontWeight:700,color:TX,position:"absolute",left:"50%",transform:"translateX(-50%)",whiteSpace:"nowrap"}}>{weekDays[0].getDate()} {MESES_ES[weekDays[0].getMonth()]} – {weekDays[5].getDate()} {MESES_ES[weekDays[5].getMonth()]}</span>
-      <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
-        {offset!==0&&<button style={{...btnS,background:A,color:WH,border:`2px solid ${A}`}} onClick={()=>onChange(0)}>Hoy</button>}
-        <button style={btnS} onClick={()=>onChange(o=>o+1)}>Siguiente →</button>
+    <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <button style={btnS} onClick={()=>onChange(o=>o-1)}>← Anterior</button>
+        <span style={{fontSize:12,fontWeight:700,color:TX,textAlign:"center"}}>{weekDays[0].getDate()} {MESES_ES[weekDays[0].getMonth()]} – {weekDays[5].getDate()} {MESES_ES[weekDays[5].getMonth()]}</span>
+        <div style={{display:"flex",gap:8}}>
+          <button style={btnS} onClick={()=>onChange(o=>o+1)}>Siguiente →</button>
+        </div>
       </div>
+      {offset!==0&&(
+        <div style={{display:"flex",justifyContent:"center"}}>
+          <button style={{...btnS,background:A,color:WH,border:`2px solid ${A}`}} onClick={()=>onChange(0)}>Volver a hoy</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1255,9 +1261,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                         {svcs.map(s => (
                           <div key={s.id} onClick={(e) => { e.stopPropagation(); window.scrollTo({ top: 0, behavior: "smooth" }); navigate(`/reservar/${s.id}`); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${CR2}`, cursor: "pointer" }}>
                               <div>
-                                <div style={{ fontSize: "13px", fontWeight: 700, color: TX, textAlign: "left" }}>{s.nombre}</div>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                                  <span style={{ fontSize: "13px", fontWeight: 700, color: TX }}>{s.nombre}</span>
+                                  <span style={{ fontSize: "11px", color: TX2 }}>⏱ {s.duracionMin}'</span>
+                                </div>
                                 {s.desc && <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>{s.desc}</div>}
-                                <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>⏱ {s.duracionMin} min</div>
                               </div>
                               <div style={{ fontWeight: 800, fontSize: "15px", color: A, flexShrink: 0, marginLeft: "10px" }}>{s.precio}€</div>
                             </div>
@@ -1633,35 +1641,37 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
   // --- RETURN ÚNICO (Sustituye todo el flujo anterior) ---
   return (
-    <div className="cliente-wrap" style={{ fontFamily: FONT, background: CONFIG_RESERVA.colorFondo, minHeight: "100vh", paddingTop: "70px" }}>
+    <div className="cliente-wrap" style={{ fontFamily: FONT, background: CONFIG_RESERVA.colorFondo, minHeight: "100vh", paddingTop: esMovil ? "0px" : "70px" }}>
       
-      {/* 1. HEADER FIJO */}
-      <div style={{ 
-        position: "fixed", 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        height: "70px", 
-        background: WH, 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        padding: "0 4%", 
-        zIndex: 2000, 
-        borderBottom: `1px solid ${CR3}`,
-        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.05)"
-      }}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
-            <img 
-              src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
-              alt="Logo Peluquería" 
-              style={{ width: "100%", height: "100%", objectFit: "contain" }} 
-            />
+      {/* 1. HEADER FIJO — solo en escritorio */}
+      {!esMovil && (
+        <div style={{ 
+          position: "fixed", 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          height: "70px", 
+          background: WH, 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          padding: "0 4%", 
+          zIndex: 2000, 
+          borderBottom: `1px solid ${CR3}`,
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.05)"
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:40, height:40, display:"flex", alignItems:"center", justifyContent:"center"}}>
+              <img 
+                src="https://i.postimg.cc/4xxWbVq0/postepelu.webp" 
+                alt="Logo Peluquería" 
+                style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+              />
+            </div>
+            <span style={{fontSize:17,fontWeight:700,color:TX}}>{CONFIG.nombre}</span>
           </div>
-          <span style={{fontSize:17,fontWeight:700,color:TX}}>{CONFIG.nombre}</span>
         </div>
-      </div>
+      )}
 
       {/* 2. CONTENEDOR MAESTRO (Controla el ancho) */}
       <div style={{ maxWidth: CONFIG_RESERVA.anchoContenedor, margin: "0 auto", padding: `0 20px`, paddingTop: CONFIG_RESERVA.separacionSuperior }}>
@@ -1710,9 +1720,11 @@ function ClientePage({ sharedProps, startPaso=0 }){
                           return (
                             <div key={s.id} onClick={(e) => { e.stopPropagation(); setSelServicio(s); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${CR2}`, cursor: "pointer", background: esSeleccionado ? `${A}10` : WH }}>
                               <div style={{ textAlign: "left" }}>
-                                <div style={{ fontSize: "13px", fontWeight: 700, color: TX, textAlign: "left" }}>{s.nombre}</div>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                                  <span style={{ fontSize: "13px", fontWeight: 700, color: TX }}>{s.nombre}</span>
+                                  <span style={{ fontSize: "11px", color: TX2 }}>⏱ {s.duracionMin}'</span>
+                                </div>
                                 {s.desc && <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>{s.desc}</div>}
-                                <div style={{ fontSize: "11px", color: TX2, marginTop: "2px", textAlign: "left" }}>⏱ {s.duracionMin} min</div>
                               </div>
                               <div style={{ fontWeight: 800, fontSize: "15px", color: A, flexShrink: 0, marginLeft: "10px" }}>{s.precio}€</div>
                             </div>
@@ -1970,7 +1982,7 @@ onChange={e => setForm({ ...form, telefono: e.target.value.replace(/\D/g, '') })
           {paso === 5 && (() => {
   // --- PANEL DE CONTROL DEL PASO 5 ---
   const OK_ST = {
-    anchoMax: "30%",               
+    anchoMax: esMovil ? "100%" : "30%",            
     alturaCaja: "auto",              
     borderRadiusMarco: "20px",
     borderRadiusBtn: "12px",
@@ -1988,8 +2000,8 @@ onChange={e => setForm({ ...form, telefono: e.target.value.replace(/\D/g, '') })
     bgHalo: "rgba(16, 185, 129, 0.12)", 
 
     // 4. DISTANCIAS (Control de posición en pantalla)
-    margenSuperior: "-70px",  // <-- REDUCE esto para SUBIR la caja (ej: "0px", "-20px", "-40px")
-    margenInferior: "-70px",  // <-- Aumenta esto si quieres más aire por debajo
+    margenSuperior: esMovil ? "0px" : "-70px",
+    margenInferior: esMovil ? "0px" : "-70px",
     paddingMarco: "28px 24px",      
     shadow: "0 20px 40px rgba(0,0,0,0.08)" 
   };
