@@ -1940,17 +1940,22 @@ function ClientePage({ sharedProps, startPaso=0 }){
               <div>
                 <div style={{ ...sty.lbl, marginTop: "4px" }}>✦ Disponibilidad {selDia ? `${selDia.getDate()} ${selDia.toLocaleString('es-ES', { month: 'short' })}` : ""}</div>
                 <div style={sty.card}>
-                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${esMovil ? 4 : 8}, 1fr)`, gap: "4px" }}>
-                    {todasLasHoras.map(h => {
-                      const disponible = slots.includes(h);
-                      const seleccionado = selHora === h;
-                      return (
-                        <button key={h} disabled={!disponible} onClick={() => disponible && setSelHora(h)} style={{ borderRadius: "6px", fontWeight: 700, fontSize: "10px", cursor: disponible ? "pointer" : "default", border: seleccionado ? "2px solid #1B4F8A" : "1px solid #E2E8F0", background: seleccionado ? "#1B4F8A" : disponible ? "#FFF" : "#F7FAFC", color: seleccionado ? "#FFF" : disponible ? "#2D3748" : "#CBD5E0", padding: "5px 0" }}>
-                          {h}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {slots.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "20px 0", fontSize: "13px", color: "#94A3B8", fontStyle: "italic" }}>
+                      No hay horas disponibles para este día
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center" }}>
+                      {slots.map(h => {
+                        const seleccionado = selHora === h;
+                        return (
+                          <button key={h} onClick={() => setSelHora(h)} style={{ borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", border: seleccionado ? "2px solid #1B4F8A" : "1px solid #E2E8F0", background: seleccionado ? "#1B4F8A" : "#FFF", color: seleccionado ? "#FFF" : "#2D3748", padding: "8px 14px", transition: "all 0.15s ease" }}>
+                            {h}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             );
