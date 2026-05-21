@@ -1949,7 +1949,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       {slots.map(h => {
                         const seleccionado = selHora === h;
                         return (
-                          <button key={h} onClick={() => setSelHora(h)} style={{ borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", border: seleccionado ? "2px solid #1B4F8A" : "1px solid #E2E8F0", background: seleccionado ? "#1B4F8A" : "#FFF", color: seleccionado ? "#FFF" : "#2D3748", padding: "8px 14px", transition: "all 0.15s ease" }}>
+                          <button key={h} onClick={() => setSelHora(h)} style={{ borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", border: seleccionado ? "2px solid #1B4F8A" : "1px solid #E2E8F0", background: seleccionado ? "#1B4F8A" : "#FFF", color: seleccionado ? "#FFF" : "#2D3748", width: "72px", height: "38px", transition: "all 0.15s ease", flexShrink: 0 }}>
                             {h}
                           </button>
                         );
