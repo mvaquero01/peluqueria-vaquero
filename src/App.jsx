@@ -909,7 +909,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
       setSelPeluquero(null);
       setSelHora(null);
       setForm({nombre:"", telefono:""});
-      setCatAbierta(null);
+      setCatAbiertaSync(null);
       setTimeout(() => {
         document.querySelectorAll('.reveal').forEach(el => {
           el.classList.remove('visible');
@@ -920,10 +920,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     } else if (location.pathname === '/reservar') {
       setSelPeluquero(null);
       setSelHora(null);
-      if (selServicio) {
-        const catDelSvc = categorias?.find(cat => (cat.servicioIds||[]).includes(selServicio.id));
-        if (catDelSvc) setCatAbierta(catDelSvc.id);
-      }
+      if(catAbiertaRef.current) setCatAbierta(catAbiertaRef.current);
     }
   }, [location.pathname, categorias]);
 
@@ -960,12 +957,10 @@ function ClientePage({ sharedProps, startPaso=0 }){
       setSelDia(new Date());
       if (selServicio) {
         const catDelSvc = categorias?.find(cat => (cat.servicioIds||[]).includes(selServicio.id));
-        setTimeout(() => {
-          if (catDelSvc) setCatAbierta(catDelSvc.id);
-          else setCatAbierta(null);
-        }, 50);
+        if (catDelSvc) setCatAbiertaSync(catDelSvc.id);
+        else setCatAbiertaSync(null);
       } else {
-        setCatAbierta(null);
+        setCatAbiertaSync(null);
       }
     }
     if (n === 2) {
@@ -988,7 +983,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     if (n === 0) {
       navigate("/", { replace: false });
     } else if (n === 1) {
-      navigate("/reservar", { replace: false });
+      // no navegamos, solo cambiamos estado
     } else if (n === 2) {
       const svcId = selServicio?.id || params.get('serviceId');
       navigate(`/reservar/${svcId}`, { replace: false });
@@ -1000,6 +995,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   const [catAbierta,setCatAbierta]=useState(null);
+  const catAbiertaRef = useRef(null);
+  const setCatAbiertaSync = (id) => { catAbiertaRef.current = id; setCatAbierta(id); };
   const [selDia, setSelDia] = useState(new Date()); // Inicializa con hoy
   const [selHora,setSelHora]=useState(null);
   const [mesRef, setMesRef] = useState(new Date());
@@ -1821,7 +1818,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                           <div style={{ color: "#FFF", fontSize: "9px", transform: abierta ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.4s" }}>▼</div>
                         </div>
                       </div>
-                      <div style={{ width: "100%", maxHeight: abierta ? "400px" : "0", opacity: abierta ? 1 : 0, transform: abierta ? "translateY(0)" : "translateY(10px)", overflowY: "auto", transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)", scrollbarWidth: "none" }}>
+                      <div style={{ width: "100%", maxHeight: abierta ? "400px" : "0", opacity: abierta ? 1 : 0, transform: abierta ? "translateY(0)" : "translateY(10px)", overflowY: "auto", transition: catAbierta === cat.id && paso === 1 ? "none" : "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)", scrollbarWidth: "none" }}>
                         {svcs.map((s, index) => {
                           const esSeleccionado = selServicio?.id === s.id;
                           return (
@@ -1903,6 +1900,37 @@ function ClientePage({ sharedProps, startPaso=0 }){
             );
 
             // CALENDARIO
+
+            // HELPER DISPONIBILIDAD POR DÍA
+            const getDisponibilidadDia = (fecha) => {
+              if(!selServicio) return null;
+              const iso = isoDate(fecha);
+              if(festivosSet.has(iso)) return null;
+              if(fecha.getDay() === 0) return null;
+              let count = 0;
+              if(selPeluquero?.id === CUALQUIERA_ID){
+                const slotsSet = new Set();
+                CONFIG.peluqueros.forEach(p => {
+                  if(peluqueroEstaBloqueado(p.id, iso, bloqueos)) return;
+                  const hp = p.horario[fecha.getDay()]; if(!hp) return;
+                  const todos = generarSlots(hp, selServicio.duracionMin);
+                  const citasDelDia = citas.filter(c => c.fecha === iso && c.peluqueroId === p.id && c.estado !== "no-show");
+                  filtrarSlotsOcupados(todos, selServicio.duracionMin, citasDelDia).forEach(h => slotsSet.add(h));
+                });
+                count = slotsSet.size;
+              } else {
+                if(peluqueroEstaBloqueado(selPeluquero.id, iso, bloqueos)) return null;
+                const hp = selPeluquero.horario[fecha.getDay()]; if(!hp) return null;
+                const todos = generarSlots(hp, selServicio.duracionMin);
+                const citasDelDia = citas.filter(c => c.fecha === iso && c.peluqueroId === selPeluquero.id && c.estado !== "no-show");
+                count = filtrarSlotsOcupados(todos, selServicio.duracionMin, citasDelDia).length;
+              }
+              if(count === 0) return null;
+              if(count >= 4) return { color: "#10B981", ancho: "55%" };
+              if(count >= 2) return { color: "#F59E0B", ancho: "35%" };
+              return { color: "#EF4444", ancho: "20%" };
+            };
+
             const Calendario = () => (
               <div>
                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
@@ -1924,9 +1952,29 @@ function ClientePage({ sharedProps, startPaso=0 }){
                       const bloq = selPeluquero ? peluqueroEstaBloqueado(selPeluquero.id, iso, bloqueos) : false;
                       const disp = d >= HOY && d.getDay() !== 0 && !festivo && !bloq;
                       return (
-                        <button key={di} onClick={() => { if (disp) { setSelDia(d); setSelHora(null); } }} style={{ borderRadius: "8px", border: isSel ? "2px solid #1B4F8A" : "1px solid transparent", background: isSel ? "#1B4F8A" : isHoy ? "#F0F7FF" : "#F7FAFC", color: isSel ? "#FFF" : disp ? "#0A1F3D" : "#CBD5E0", fontWeight: disp || isSel || isHoy ? 800 : 500, cursor: disp ? "pointer" : "default", fontSize: "12px", padding: "7px 0", position: "relative" }}>
+                        <button key={di} onClick={() => { if (disp) { setSelDia(d); setSelHora(null); } }} style={{ borderRadius: "8px", border: isSel ? "2px solid #1B4F8A" : "1px solid transparent", background: "#F7FAFC",
+                          color: disp ? "#0A1F3D" : "#CBD5E0",
+                          fontWeight: disp || isSel || isHoy ? 800 : 500,
+                          cursor: disp ? "pointer" : "default",
+                          fontSize: "12px",
+                          padding: "7px 0",
+                          position: "relative",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "3px",
+                          border: isHoy ? "1.5px solid #1B4F8A" : "1px solid transparent",
+                          outline: isSel ? "2.5px solid #1B4F8A" : "none",
+                          outlineOffset: "-1px",}}>
                           {d.getDate()}
-                          {isHoy && <div style={{ position: "absolute", bottom: "2px", left: "50%", transform: "translateX(-50%)", width: "3px", height: "3px", borderRadius: "50%", background: isSel ? "#FFF" : "#1B4F8A" }} />}
+                          {(() => {
+                            if(d < HOY) return null;
+                            const disp2 = getDisponibilidadDia(d);
+                            if(!disp2) return null;
+                            return (
+                              <div style={{ width: disp2.ancho, height: "2.5px", borderRadius: "2px", background: disp2.color, transition: "width 0.3s ease" }} />
+                            );
+                          })()}
                         </button>
                       );
                     })}
