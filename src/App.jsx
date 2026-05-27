@@ -1889,14 +1889,19 @@ function ClientePage({ sharedProps, startPaso=0 }){
             const SelectorPeluquero = () => (
               <div>
                 <div style={sty.lbl}>Profesional</div>
-                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
-                  {pelOpciones.map(p => {
+                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
+                  {pelOpciones.map((p, idx) => {
                     const sel = selPeluquero?.id === p.id;
                     return (
-                      <div key={p.id} onClick={() => { setSelPeluquero(p); setSelHora(null); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-                        <img src={p.foto} style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: `3px solid ${sel ? A : "#E2E8F0"}`, transition: "border 0.2s", boxShadow: sel ? `0 0 0 3px ${A}30` : "none" }} />
-                        <span style={{ fontSize: "11px", fontWeight: sel ? 800 : 600, color: sel ? A : "#64748B" }}>{p.nombre}</span>
-                      </div>
+                      <React.Fragment key={p.id}>
+                        {idx === 1 && (
+                          <div style={{ width: "1px", height: "36px", background: "#E2E8F0", flexShrink: 0 }} />
+                        )}
+                        <div onClick={() => { setSelPeluquero(p); setSelHora(null); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                          <img src={p.foto} style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: `3px solid ${sel ? A : "#E2E8F0"}`, transition: "border 0.2s", boxShadow: sel ? `0 0 0 3px ${A}30` : "none" }} />
+                          <span style={{ fontSize: "11px", fontWeight: sel ? 800 : 600, color: sel ? A : "#64748B" }}>{p.nombre}</span>
+                        </div>
+                      </React.Fragment>
                     );
                   })}
                 </div>
