@@ -1006,6 +1006,8 @@ function ClientePage({ sharedProps, startPaso=0 }){
   const CUALQUIERA_ID = "cualquiera";
   const slots=useMemo(()=>{
     if(!selPeluquero||!selDia||!selServicio) return [];
+    if(festivosSet.has(isoDate(selDia))) return [];
+    if(!CONFIG.horarioGeneral[selDia.getDay()]) return [];
     if(selPeluquero.id===CUALQUIERA_ID){
       // Unión de todos los slots disponibles de todos los peluqueros
       const slotsSet = new Set();
