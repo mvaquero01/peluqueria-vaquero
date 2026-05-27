@@ -1893,7 +1893,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                   {pelOpciones.map((p, idx) => {
                     const sel = selPeluquero?.id === p.id;
                     return (
-                      <React.Fragment key={p.id}>
+                      <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                         {idx === 1 && (
                           <div style={{ width: "1px", height: "36px", background: "#E2E8F0", flexShrink: 0 }} />
                         )}
@@ -1901,7 +1901,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                           <img src={p.foto} style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: `3px solid ${sel ? A : "#E2E8F0"}`, transition: "border 0.2s", boxShadow: sel ? `0 0 0 3px ${A}30` : "none" }} />
                           <span style={{ fontSize: "11px", fontWeight: sel ? 800 : 600, color: sel ? A : "#64748B" }}>{p.nombre}</span>
                         </div>
-                      </React.Fragment>
+                      </div>
                     );
                   })}
                 </div>
