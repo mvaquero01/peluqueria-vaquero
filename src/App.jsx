@@ -935,6 +935,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
         setSelHora(null);
         setSelDia(new Date());
+        setMesRef(new Date());
         setCatAbierta(null);
         setPaso(2);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -966,6 +967,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     if (n === 2) {
       setSelHora(null);
       setSelDia(new Date());
+      setMesRef(new Date());
       setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
     }
     if (n === 0) {
