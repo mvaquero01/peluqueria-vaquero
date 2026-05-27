@@ -876,24 +876,6 @@ function PeluqueroPage({citas}){
 // ─────────────────────────────────────────────
 // CLIENTE APP — página home + flujo reserva
 // ─────────────────────────────────────────────
-
-function primerDiaDisponible(festivosSet, bloqueos, peluquero) {
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  for(let i = 0; i < 60; i++) {
-    const d = new Date(hoy); d.setDate(hoy.getDate() + i);
-    const iso = isoDate(d);
-    if(d.getDay() === 0) continue;
-    if(festivosSet.has(iso)) continue;
-    if(!CONFIG.horarioGeneral[d.getDay()]) continue;
-    if(peluquero && peluquero.id !== "cualquiera") {
-      if(peluqueroEstaBloqueado(peluquero.id, iso, bloqueos)) continue;
-      if(!peluquero.horario[d.getDay()]) continue;
-    }
-    return d;
-  }
-  return hoy;
-}
-
 function ClientePage({ sharedProps, startPaso=0 }){ 
 
   // PEGA ESTA LÍNEA AQUÍ (Justo después de la llave de apertura)
@@ -952,7 +934,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
         setSelServicio(encontrado);
         setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
         setSelHora(null);
-        setSelDia(primerDiaDisponible(festivosSet, bloqueos, selPeluquero));;
+        setSelDia(new Date());
         setCatAbierta(null);
         setPaso(2);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -972,7 +954,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     if (n === 1) {
       setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
       setSelHora(null);
-      setSelDia(primerDiaDisponible(festivosSet, bloqueos, selPeluquero));;
+      setSelDia(new Date());
       if (selServicio) {
         const catDelSvc = categorias?.find(cat => (cat.servicioIds||[]).includes(selServicio.id));
         if (catDelSvc) setCatAbiertaSync(catDelSvc.id);
@@ -983,7 +965,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     }
     if (n === 2) {
       setSelHora(null);
-      setSelDia(primerDiaDisponible(festivosSet, bloqueos, selPeluquero));;
+      setSelDia(new Date());
       setSelPeluquero({ id: "cualquiera", nombre: "Cualquiera", foto: "https://i.postimg.cc/k44vVkYC/cualquiera.png" });
     }
     if (n === 0) {
@@ -1015,7 +997,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
   const [catAbierta,setCatAbierta]=useState(null);
   const catAbiertaRef = useRef(null);
   const setCatAbiertaSync = (id) => { catAbiertaRef.current = id; setCatAbierta(id); };
-  const [selDia, setSelDia] = useState(()=> primerDiaDisponible(new Set(), [], null)); // Inicializa con hoy
+  const [selDia, setSelDia] = useState(new Date()); // Inicializa con hoy
   const [selHora,setSelHora]=useState(null);
   const [mesRef, setMesRef] = useState(new Date());
   const [form,setForm]=useState({nombre:"",telefono:""});
