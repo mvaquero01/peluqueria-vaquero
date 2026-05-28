@@ -435,35 +435,28 @@ async function borrarCita(id){
   if(citaSnap.exists()){
     const cita=citaSnap.data();
     if(cita.clienteTel){
-      const q=query(collection(db,"citas"),where("clienteTel","==",cita.clienteTel));
-      const todasCitas=await getDocs(q);
-      const otrasCitas=todasCitas.docs.filter(d=>d.id!==id);
-      if(otrasCitas.length===0){
-        const docId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
-        const clienteRef=doc(db,"clientes",docId);
-        const clienteSnap=await getDoc(clienteRef);
-        if(clienteSnap.exists()){
-          const cl=clienteSnap.data();
-          if((cl.visitas||0)===0&&(cl.gasto||0)===0&&(cl.noShows||0)===0){
-            await deleteDoc(clienteRef);
-          }
-        }
-      } else {
-        console.log("Estado de la cita a borrar:", cita.estado, "clienteTel:", cita.clienteTel);
+      const docId = cita.clienteTel.replace(/\D/g,'');
+      const clienteRef = doc(db,"clientes",docId);
+      const clienteSnap = await getDoc(clienteRef);
+      if(clienteSnap.exists()){
+        const cl = clienteSnap.data();
         if(cita.estado==="completada"){
-          const docId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
-          const clienteRef=doc(db,"clientes",docId);
-          const clienteSnap=await getDoc(clienteRef);
-          if(clienteSnap.exists()){
-            const cl=clienteSnap.data();
-            const nuevoHistorial=(cl.historial||[]).filter(h=>!(h.fecha===cita.fecha&&h.servicio===cita.servicio&&h.peluquero===cita.peluquero));
-            await updateDoc(clienteRef,{
-              visitas:Math.max((cl.visitas||0)-1,0),
-              gasto:Math.max((cl.gasto||0)-cita.precio,0),
-              historial:nuevoHistorial,
-              ultimaVisita:nuevoHistorial.length>0?nuevoHistorial[nuevoHistorial.length-1].fecha:""
-            });
-          }
+          const nuevoHistorial=(cl.historial||[]).filter(h=>!(h.fecha===cita.fecha&&h.servicio===cita.servicio&&h.peluquero===cita.peluquero));
+          await updateDoc(clienteRef,{
+            visitas:Math.max((cl.visitas||0)-1,0),
+            gasto:Math.max((cl.gasto||0)-cita.precio,0),
+            historial:nuevoHistorial,
+            ultimaVisita:nuevoHistorial.length>0?nuevoHistorial[nuevoHistorial.length-1].fecha:""
+          });
+        } else if(cita.estado==="no-show"){
+          await updateDoc(clienteRef,{
+            noShows:Math.max((cl.noShows||0)-1,0)
+          });
+        }
+        // Si no tiene visitas ni gasto ni noshows, borrar la ficha
+        const clAct = (await getDoc(clienteRef)).data();
+        if((clAct.visitas||0)===0&&(clAct.gasto||0)===0&&(clAct.noShows||0)===0){
+          await deleteDoc(clienteRef);
         }
       }
     }
@@ -504,16 +497,24 @@ const STATS_SERVICIOS=[{nombre:"Corte",c:38},{nombre:"Fade",c:24},{nombre:"Corte
 })();
 
 function asignarPeluqueroAleatorio(servicioId, fecha, hora, citas, bloqueos, festivosSet, servicios) {
+  const svc = servicios.find(s => s.id === servicioId);
+  if (!svc) return null;
   const disponibles = CONFIG.peluqueros.filter(p => {
-    if (!p.horario[new Date(fecha+"T12:00:00").getDay()]) return false;
     if (peluqueroEstaBloqueado(p.id, fecha, bloqueos)) return false;
     if (festivosSet && festivosSet.has(fecha)) return false;
     const hp = p.horario[new Date(fecha+"T12:00:00").getDay()];
     if (!hp) return false;
-    const svc = servicios.find(s => s.id === servicioId);
-    if (!svc) return false;
-    const citasDelDia = citas.filter(c => c.fecha === fecha && c.peluqueroId === p.id && c.estado !== "no-show");
+    // Comprobar que la hora está dentro del horario del peluquero
     const sI = toMin(hora), sF = sI + svc.duracionMin;
+    if (sI < toMin(hp.entrada)) return false;
+    if (sF > toMin(hp.salida)) return false;
+    // Comprobar que no cae en el descanso
+    if (hp.descanso) {
+      const dI = toMin(hp.descanso.inicio), dF = toMin(hp.descanso.fin);
+      if (sI < dF && sF > dI) return false;
+    }
+    // Comprobar que no choca con otras citas
+    const citasDelDia = citas.filter(c => c.fecha === fecha && c.peluqueroId === p.id && c.estado !== "no-show");
     const libre = !citasDelDia.some(c => {
       const sv = servicios.find(s => s.id === c.servicioId) || {duracionMin:30};
       const cI = toMin(c.hora), cF = cI + sv.duracionMin;
@@ -2682,12 +2683,11 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       const cita=citaSnap.data();
       if(!cita.clienteTel) return;
       console.log("Buscando cliente:", cita.clienteNombre, cita.clienteTel);
-      const nuevoDocId=cita.clienteNombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+cita.clienteTel;
-      let clienteRef=doc(db,"clientes",nuevoDocId);
-      let clienteSnap=await getDoc(clienteRef);
-      // Si no lo encuentra por nombre_telefono, busca por teléfono (clientes antiguos)
+      const nuevoDocId = cita.clienteTel.replace(/\D/g,'');
+      let clienteRef = doc(db,"clientes",nuevoDocId);
+      let clienteSnap = await getDoc(clienteRef);
       if(!clienteSnap.exists()){
-        const q=query(collection(db,"clientes"),where("telefono","==",cita.clienteTel));
+        const q=query(collection(db,"clientes"),where("telefono","==",nuevoDocId));
         const snap=await getDocs(q);
         if(snap.empty) return;
         clienteRef=doc(db,"clientes",snap.docs[0].id);
