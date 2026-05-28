@@ -1913,7 +1913,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     return (
                       <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                         {idx === 1 && (
-                          <div style={{ width: "1px", height: "52px", background: "#E2E8F0", flexShrink: 0, marginBottom: "22px" }} />
+                          <div style={{ width: "1px", height: "52px", background: "#E2E8F0", flexShrink: 0, alignSelf: "flex-start", marginTop: "3px" }} />
                         )}
                         <div onClick={() => { setSelPeluquero(p); setSelHora(null); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer" }}>
                           <img src={p.foto} style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: `3px solid ${sel ? A : "#E2E8F0"}`, transition: "border 0.2s", boxShadow: sel ? `0 0 0 3px ${A}30` : "none" }} />
