@@ -1060,7 +1060,17 @@ function ClientePage({ sharedProps, startPaso=0 }){
     const ref = doc(db,"clientes",docId);
     const snap = await getDoc(ref);
     if(!snap.exists()){
-      await setDoc(ref,{nombre:form.nombre,telefono:docId,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
+      // Buscar ficha antigua con formato nombre_telefono
+      const q = query(collection(db,"clientes"), where("telefono","==",docId));
+      const viejas = await getDocs(q);
+      if(!viejas.empty){
+        // Migrar la ficha antigua al nuevo formato
+        const viejaData = viejas.docs[0].data();
+        await setDoc(ref, {...viejaData, telefono: docId, nombre: form.nombre});
+        await deleteDoc(doc(db,"clientes", viejas.docs[0].id));
+      } else {
+        await setDoc(ref,{nombre:form.nombre,telefono:docId,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
+      }
     } else {
       await updateDoc(ref,{nombre:form.nombre});
     }
@@ -2432,7 +2442,15 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         const ref = doc(db, "clientes", docId);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
-          await setDoc(ref, { nombre: form.nombre, telefono: docId, visitas: 0, gasto: 0, ultimaVisita: "", nota: "", historial: [] });
+          const q = query(collection(db,"clientes"), where("telefono","==",docId));
+          const viejas = await getDocs(q);
+          if(!viejas.empty){
+            const viejaData = viejas.docs[0].data();
+            await setDoc(ref, {...viejaData, telefono: docId, nombre: form.nombre});
+            await deleteDoc(doc(db,"clientes", viejas.docs[0].id));
+          } else {
+            await setDoc(ref, { nombre: form.nombre, telefono: docId, visitas: 0, gasto: 0, ultimaVisita: "", nota: "", historial: [] });
+          }
         } else {
           await updateDoc(ref, { nombre: form.nombre });
         }
