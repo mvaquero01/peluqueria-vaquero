@@ -471,14 +471,20 @@ async function borrarCita(id){
   await deleteDoc(doc(db,"citas",id));
 }
 async function crearOActualizarCliente(datos){
-  const docId=datos.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+datos.telefono;
-  const ref=doc(db,"clientes",docId);
-  const snap=await getDoc(ref);
+  const docId = datos.telefono.replace(/\D/g, '');
+  const ref = doc(db,"clientes",docId);
+  const snap = await getDoc(ref);
   if(snap.exists()){
-    const a=snap.data();
-    await updateDoc(ref,{visitas:(a.visitas||0)+1,gasto:(a.gasto||0)+datos.gasto,ultimaVisita:datos.ultimaVisita,historial:[...(a.historial||[]),...datos.historial]});
+    const a = snap.data();
+    await updateDoc(ref,{
+      nombre: datos.nombre,
+      visitas:(a.visitas||0)+1,
+      gasto:(a.gasto||0)+datos.gasto,
+      ultimaVisita:datos.ultimaVisita,
+      historial:[...(a.historial||[]),...datos.historial]
+    });
   } else {
-    await setDoc(ref,datos);
+    await setDoc(ref,{...datos, telefono: docId});
   }
 }
 
@@ -1050,11 +1056,13 @@ function ClientePage({ sharedProps, startPaso=0 }){
       pelFinal = asignado;
     }
     await crearCita({clienteNombre:form.nombre,clienteTel:form.telefono,servicio:selServicio.nombre,servicioId:selServicio.id,peluqueroId:pelFinal.id,peluquero:pelFinal.nombre,fecha:isoDate(selDia),hora:selHora,precio:selServicio.precio,estado:"pendiente",nota:""});
-    const docId=form.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+form.telefono;
-    const ref=doc(db,"clientes",docId);
-    const snap=await getDoc(ref);
+    const docId = form.telefono.replace(/\D/g, '');
+    const ref = doc(db,"clientes",docId);
+    const snap = await getDoc(ref);
     if(!snap.exists()){
-      await setDoc(ref,{nombre:form.nombre,telefono:form.telefono,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
+      await setDoc(ref,{nombre:form.nombre,telefono:docId,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
+    } else {
+      await updateDoc(ref,{nombre:form.nombre});
     }
     setPaso(5); scrollTop();
   };
@@ -1895,7 +1903,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
                     return (
                       <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                         {idx === 1 && (
-                          <div style={{ width: "1px", height: "36px", background: "#E2E8F0", flexShrink: 0 }} />
+                          <div style={{ width: "1px", height: "52px", background: "#E2E8F0", flexShrink: 0, marginBottom: "22px" }} />
                         )}
                         <div onClick={() => { setSelPeluquero(p); setSelHora(null); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer" }}>
                           <img src={p.foto} style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: `3px solid ${sel ? A : "#E2E8F0"}`, transition: "border 0.2s", boxShadow: sel ? `0 0 0 3px ${A}30` : "none" }} />
@@ -2079,7 +2087,7 @@ onChange={e => setForm({ ...form, telefono: e.target.value.replace(/\D/g, '') })
                         </div>
                         <div>
                           <label style={{ ...sty.lbl, marginBottom: "5px", display: "block" }}>Teléfono</label>
-                          <input type="tel" style={{ width: "100%", padding: "11px 14px", borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: "14px", fontWeight: 600, color: "#0A1F3D", outline: "none", background: "#FFF", boxSizing: "border-box" }} placeholder="Tu número de móvil" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} />
+                          <input type="tel" inputMode="numeric" pattern="[0-9]*" style={{ width: "100%", padding: "11px 14px", borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: "14px", fontWeight: 600, color: "#0A1F3D", outline: "none", background: "#FFF", boxSizing: "border-box" }} placeholder="Tu número de móvil" value={form.telefono} onKeyDown={e => { if(!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }} onChange={e => setForm({ ...form, telefono: e.target.value.replace(/\D/g, '') })} />
                         </div>
                       </div>
                     </div>
@@ -2420,11 +2428,13 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
         precio: svc.precio, estado: "pendiente", nota: form.nota,
       });
       if (form.telefono) {
-        const docId = form.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "_") + "_" + form.telefono;
+        const docId = form.telefono.replace(/\D/g, '');
         const ref = doc(db, "clientes", docId);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
-          await setDoc(ref, { nombre: form.nombre, telefono: form.telefono, visitas: 0, gasto: 0, ultimaVisita: "", nota: "", historial: [] });
+          await setDoc(ref, { nombre: form.nombre, telefono: docId, visitas: 0, gasto: 0, ultimaVisita: "", nota: "", historial: [] });
+        } else {
+          await updateDoc(ref, { nombre: form.nombre });
         }
       }
       onGuardada(null);
@@ -2833,19 +2843,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
       const pel=CONFIG.peluqueros.find(p=>p.id===Number(manForm.peluqueroId));
       await crearCita({clienteNombre:manForm.nombre,clienteTel:manForm.telefono,servicio:svc.nombre,servicioId:svc.id,peluqueroId:pel.id,peluquero:pel.nombre,fecha:manForm.fecha,hora:manForm.hora,precio:svc.precio,estado:"pendiente",nota:manForm.nota});
       if(manForm.telefono){
-        const docId=manForm.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/gi,"_")+"_"+manForm.telefono;
-        const ref=doc(db,"clientes",docId);
-        const snap=await getDoc(ref);
+        const docId = manForm.telefono.replace(/\D/g, '');
+        const ref = doc(db,"clientes",docId);
+        const snap = await getDoc(ref);
         if(!snap.exists()){
-          await setDoc(ref,{nombre:manForm.nombre,telefono:manForm.telefono,visitas:1,gasto:svc.precio,ultimaVisita:manForm.fecha,nota:"",historial:[{fecha:manForm.fecha,servicio:svc.nombre,peluquero:pel.nombre,precio:svc.precio}]});
+          await setDoc(ref,{nombre:manForm.nombre,telefono:docId,visitas:0,gasto:0,ultimaVisita:"",nota:"",historial:[]});
         } else {
-          const cl=snap.data();
-          await updateDoc(ref,{
-            visitas:(cl.visitas||0)+1,
-            gasto:(cl.gasto||0)+svc.precio,
-            ultimaVisita:manForm.fecha,
-            historial:[...(cl.historial||[]),{fecha:manForm.fecha,servicio:svc.nombre,peluquero:pel.nombre,precio:svc.precio}]
-          });
+          await updateDoc(ref,{nombre:manForm.nombre});
         }
       }
       setShowManual(false); setManForm({nombre:"",telefono:"",servicioId:"",peluqueroId:"",fecha:"",hora:"",nota:""});
