@@ -287,6 +287,7 @@ const haceNSemanas = n=>{ const d=new Date(); d.setDate(d.getDate()-n*7); return
 const HOY = new Date(); HOY.setHours(0,0,0,0);
 const HOY_ISO = isoDate(HOY);
 let _citaEliminadaTemp=null, _clienteEliminadoTemp=null, _valEliminadaTemp=null, _svcEliminadoTemp=null, _catEliminadaTemp=null;
+let _festivoEliminadoTemp=null, _bloqueoEliminadoTemp=null, _horarioEspEliminadoTemp=null;
 
 function levenshtein(a,b){
   const m=a.length,n=b.length;
@@ -369,6 +370,18 @@ async function crearBloqueo(nombreDocumento, data){
 }
 async function borrarBloqueo(id){
   await deleteDoc(doc(db,"bloqueos",id));
+}
+
+function suscribirHorariosEspeciales(cb){
+  return onSnapshot(collection(db,"horariosEspeciales"),snap=>{
+    cb(snap.docs.map(d=>({...d.data(),id:d.id})));
+  });
+}
+async function guardarHorarioEspecial(docId, data){
+  await setDoc(doc(db,"horariosEspeciales",docId), data);
+}
+async function borrarHorarioEspecial(id){
+  await deleteDoc(doc(db,"horariosEspeciales",id));
 }
 
 // ── Servicios en Firebase ──
@@ -496,23 +509,18 @@ const STATS_SERVICIOS=[{nombre:"Corte",c:38},{nombre:"Fade",c:24},{nombre:"Corte
   const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap";document.head.appendChild(l);
 })();
 
-function asignarPeluqueroAleatorio(servicioId, fecha, hora, citas, bloqueos, festivosSet, servicios) {
+function asignarPeluqueroAleatorio(servicioId, fecha, hora, citas, bloqueos, festivosSet, servicios, horariosEspeciales) {
   const svc = servicios.find(s => s.id === servicioId);
   if (!svc) return null;
   const disponibles = CONFIG.peluqueros.filter(p => {
     if (peluqueroEstaBloqueado(p.id, fecha, bloqueos)) return false;
     if (festivosSet && festivosSet.has(fecha)) return false;
-    const hp = p.horario[new Date(fecha+"T12:00:00").getDay()];
-    if (!hp) return false;
-    // Comprobar que la hora está dentro del horario del peluquero
+    const tramos = getTramosDia(p.id, fecha, horariosEspeciales || []);
+    if (tramos.length === 0) return false;
+    // Comprobar que la hora está dentro de algún tramo del peluquero
     const sI = toMin(hora), sF = sI + svc.duracionMin;
-    if (sI < toMin(hp.entrada)) return false;
-    if (sF > toMin(hp.salida)) return false;
-    // Comprobar que no cae en el descanso
-    if (hp.descanso) {
-      const dI = toMin(hp.descanso.inicio), dF = toMin(hp.descanso.fin);
-      if (sI < dF && sF > dI) return false;
-    }
+    const cabeEnAlgunTramo = tramos.some(t => sI >= toMin(t.entrada) && sF <= toMin(t.salida));
+    if (!cabeEnAlgunTramo) return false;
     // Comprobar que no choca con otras citas
     const citasDelDia = citas.filter(c => c.fecha === fecha && c.peluqueroId === p.id && c.estado !== "no-show");
     const libre = !citasDelDia.some(c => {
@@ -558,7 +566,7 @@ const WhatsAppIcon=()=>(
 // ─────────────────────────────────────────────
 // MINI CAL PICKER
 // ─────────────────────────────────────────────
-function MiniCalPicker({value,onChange,festivosSet,bloqueosPelId,bloqueos}){
+function MiniCalPicker({value,onChange,festivosSet,bloqueosPelId,bloqueos,horariosEspeciales}){
   const today=new Date(); today.setHours(0,0,0,0);
   const [nav,setNav]=useState(()=>{
     if(value){const d=new Date(value+"T12:00:00");return{y:d.getFullYear(),m:d.getMonth()};}
@@ -587,7 +595,7 @@ function MiniCalPicker({value,onChange,festivosSet,bloqueosPelId,bloqueos}){
           const isPast=d<today, isDom=d.getDay()===0, isFest=festivosSet.has(iso);
           const noBloq=bloqueosPelId?peluqueroEstaBloqueado(bloqueosPelId,iso,bloqueos):false;
           const noH=!CONFIG.horarioGeneral[d.getDay()];
-          const noHP=bloqueosPelId?(()=>{const p=CONFIG.peluqueros.find(x=>x.id===bloqueosPelId);return p?!p.horario[d.getDay()]:false;})():false;
+          const noHP=bloqueosPelId?getTramosDia(bloqueosPelId,iso,horariosEspeciales||[]).length===0:false;
           const disabled=isPast||isDom||isFest||noBloq||noH||noHP;
           const sel=value===iso, isToday=iso===HOY_ISO;
           let cls="mini-cal-cell";
@@ -887,7 +895,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
 
   // PEGA ESTA LÍNEA AQUÍ (Justo después de la llave de apertura)
   // Esto extrae todo lo necesario de sharedProps
-  const { valoraciones, citas, festivos, bloqueos, servicios, categorias, setCategorias, isMobile, sliderRef, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd } = sharedProps || {};
+  const { valoraciones, citas, festivos, bloqueos, servicios, categorias, setCategorias, isMobile, sliderRef, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd, horariosEspeciales } = sharedProps || {};
 
   if (!sharedProps) return null;
 
@@ -1022,8 +1030,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
       const slotsSet = new Set();
       CONFIG.peluqueros.forEach(p=>{
         if(peluqueroEstaBloqueado(p.id,isoDate(selDia),bloqueos)) return;
-        const hp=p.horario[selDia.getDay()]; if(!hp) return;
-        const todos=generarSlots(hp,selServicio.duracionMin);
+        const tramos=getTramosDia(p.id,isoDate(selDia),horariosEspeciales||[]);
+        if(tramos.length===0) return;
+        const todos=generarSlotsTramos(tramos,selServicio.duracionMin);
         const citasDelDia=citas.filter(c=>c.fecha===isoDate(selDia)&&c.peluqueroId===p.id&&c.estado!=="no-show");
         const disponibles=filtrarSlotsOcupados(todos,selServicio.duracionMin,citasDelDia);
         disponibles.forEach(h=>slotsSet.add(h));
@@ -1035,8 +1044,9 @@ function ClientePage({ sharedProps, startPaso=0 }){
       }
       return arr;
     }
-    const hp=selPeluquero.horario[selDia.getDay()]; if(!hp) return [];
-    const todos=generarSlots(hp,selServicio.duracionMin);
+    const tramos=getTramosDia(selPeluquero.id,isoDate(selDia),horariosEspeciales||[]);
+    if(tramos.length===0) return [];
+    const todos=generarSlotsTramos(tramos,selServicio.duracionMin);
     const citasDelDia=citas.filter(c=>c.fecha===isoDate(selDia)&&c.peluqueroId===selPeluquero.id&&c.estado!=="no-show");
     const disponibles=filtrarSlotsOcupados(todos,selServicio.duracionMin,citasDelDia);
     if(isoDate(selDia)===HOY_ISO){
@@ -1044,7 +1054,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
       return disponibles.filter(h=>toMin(h)>minAhora);
     }
     return disponibles;
-  },[selPeluquero,selDia,selServicio,citas,bloqueos]);
+  },[selPeluquero,selDia,selServicio,citas,bloqueos,horariosEspeciales]);
 
   const scrollTop=()=>window.scrollTo({top:0,behavior:"smooth"});
   const reset=()=>{ scrollTop(); navigate("/"); };
@@ -1052,7 +1062,7 @@ function ClientePage({ sharedProps, startPaso=0 }){
     if(!form.nombre||!form.telefono) return;
     let pelFinal = selPeluquero;
     if(selPeluquero.id === CUALQUIERA_ID){
-      const asignado = asignarPeluqueroAleatorio(selServicio.id, isoDate(selDia), selHora, citas, bloqueos, festivosSet, servicios);
+      const asignado = asignarPeluqueroAleatorio(selServicio.id, isoDate(selDia), selHora, citas, bloqueos, festivosSet, servicios, horariosEspeciales);
       if(!asignado) return; // no hay nadie disponible (no debería pasar)
       pelFinal = asignado;
     }
@@ -1940,16 +1950,18 @@ function ClientePage({ sharedProps, startPaso=0 }){
                 const slotsSet = new Set();
                 CONFIG.peluqueros.forEach(p => {
                   if(peluqueroEstaBloqueado(p.id, iso, bloqueos)) return;
-                  const hp = p.horario[fecha.getDay()]; if(!hp) return;
-                  const todos = generarSlots(hp, selServicio.duracionMin);
+                  const tramos = getTramosDia(p.id, iso, horariosEspeciales||[]);
+                  if(tramos.length===0) return;
+                  const todos = generarSlotsTramos(tramos, selServicio.duracionMin);
                   const citasDelDia = citas.filter(c => c.fecha === iso && c.peluqueroId === p.id && c.estado !== "no-show");
                   filtrarSlotsOcupados(todos, selServicio.duracionMin, citasDelDia).forEach(h => slotsSet.add(h));
                 });
                 count = slotsSet.size;
               } else {
                 if(peluqueroEstaBloqueado(selPeluquero.id, iso, bloqueos)) return null;
-                const hp = selPeluquero.horario[fecha.getDay()]; if(!hp) return null;
-                const todos = generarSlots(hp, selServicio.duracionMin);
+                const tramos = getTramosDia(selPeluquero.id, iso, horariosEspeciales||[]);
+                if(tramos.length===0) return null;
+                const todos = generarSlotsTramos(tramos, selServicio.duracionMin);
                 const citasDelDia = citas.filter(c => c.fecha === iso && c.peluqueroId === selPeluquero.id && c.estado !== "no-show");
                 count = filtrarSlotsOcupados(todos, selServicio.duracionMin, citasDelDia).length;
               }
@@ -2325,7 +2337,7 @@ onChange={e => setForm({ ...form, telefono: e.target.value.replace(/\D/g, '') })
 // ─────────────────────────────────────────────
 // MODAL UNIFICADO: NUEVA CITA / EDITAR CITA
 // ─────────────────────────────────────────────
-function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festivosSet, citaInicial, onGuardada }) {
+function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festivosSet, citaInicial, onGuardada, horariosEspeciales }) {
   const esEdicion = !!citaInicial;
 
   const [form, setForm] = useState({
@@ -2371,9 +2383,9 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
       const slotsSet = new Set();
       CONFIG.peluqueros.forEach(p=>{
         if(peluqueroEstaBloqueado(p.id,form.fecha,bloqueos)) return;
-        const fecha=new Date(form.fecha+"T12:00:00");
-        const hp=p.horario[fecha.getDay()]; if(!hp) return;
-        const todos=generarSlots(hp,svc.duracionMin);
+        const tramos = getTramosDia(p.id, form.fecha, horariosEspeciales||[]);
+        if(tramos.length===0) return;
+        const todos=generarSlotsTramos(tramos,svc.duracionMin);
         const citasDelDia=citas.filter(c=>c.fecha===form.fecha&&c.peluqueroId===p.id&&c.estado!=="no-show"&&(!esEdicion||c.id!==citaInicial?.id));
         filtrarSlotsOcupados(todos,svc.duracionMin,citasDelDia).forEach(h=>slotsSet.add(h));
       });
@@ -2383,12 +2395,11 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
     }
     const pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
     if (!pel || peluqueroEstaBloqueado(pel.id, form.fecha, bloqueos)) return [];
-    const fecha = new Date(form.fecha + "T12:00:00");
-    const hp = pel.horario[fecha.getDay()];
-    if (!hp) return [];
+    const tramos = getTramosDia(pel.id, form.fecha, horariosEspeciales||[]);
+    if (tramos.length===0) return [];
     const svc = servicios.find(s => s.id === Number(form.servicioId));
     if (!svc) return [];
-    const todos = generarSlots(hp, svc.duracionMin);
+    const todos = generarSlotsTramos(tramos, svc.duracionMin);
     const citasDelDia = citas.filter(c =>
       c.fecha === form.fecha &&
       c.peluqueroId === pel.id &&
@@ -2402,7 +2413,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
       return disponibles.filter(h => toMin(h) > m);
     }
     return disponibles;
-  }, [form.peluqueroId, form.fecha, form.servicioId, citas, bloqueos, festivosSet]);
+  }, [form.peluqueroId, form.fecha, form.servicioId, citas, bloqueos, festivosSet, horariosEspeciales]);
 
   const confirmar = async () => {
     if (!form.nombre || !form.servicioId || !form.peluqueroId || !form.fecha || !form.hora) return;
@@ -2410,7 +2421,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
     let pel = CONFIG.peluqueros.find(p => p.id === Number(form.peluqueroId));
     if(form.peluqueroId === "cualquiera"){
       const festivosSetLocal = new Set(festivos ? festivos.map(f=>f.fecha) : []);
-      pel = asignarPeluqueroAleatorio(svc.id, form.fecha, form.hora, citas, bloqueos, festivosSetLocal, servicios);
+      pel = asignarPeluqueroAleatorio(svc.id, form.fecha, form.hora, citas, bloqueos, festivosSetLocal, servicios, horariosEspeciales);
       if(!pel) return;
     }
 
@@ -2616,7 +2627,7 @@ function CitaModal({ show, onClose, citas, clientes, servicios, bloqueos, festiv
   );
 }
 
-function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios,categorias,setCategorias}){
+function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,setBloqueos,servicios,setServicios,categorias,setCategorias,horariosEspeciales,setHorariosEspeciales}){
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -3022,6 +3033,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           festivosSet={festivosSet}
           citaInicial={null}
           onGuardada={()=>setShowManual(false)}
+          horariosEspeciales={horariosEspeciales}
         />
 
         {/* Modal unificado: editar cita */}
@@ -3040,6 +3052,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             }
             setCitaEditando(null);
           }}
+          horariosEspeciales={horariosEspeciales}
         />
 
         {/* Modal confirmar borrado */}
@@ -4876,7 +4889,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
         {tab==="clientes"&&<TabClientes isMobile={isMobile} onClienteEliminado={(cliente)=>{ _clienteEliminadoTemp=cliente; setToastClienteVisible(true); if(toastClienteTimer)clearTimeout(toastClienteTimer); const t=setTimeout(()=>{setToastClienteVisible(false);_clienteEliminadoTemp=null;},6000); setToastClienteTimer(t); }}/>}
         {tab==="caja"&&<TabCaja/>}
         {tab==="stats"&&<TabStats/>}
-        {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile}/>}
+        {tab==="disponibilidad"&&<TabDisponibilidad isMobile={isMobile} horariosEspeciales={horariosEspeciales}/>}
         {tab==="config"&&<TabConfig valoraciones={valoraciones} setValoraciones={setValoraciones} servicios={servicios} setServicios={setServicios} categorias={categorias} setCategorias={setCategorias} isMobile={isMobile} onValEliminada={(val)=>{ _valEliminadaTemp=val; setToastValVisible(true); if(toastValTimer)clearTimeout(toastValTimer); const t=setTimeout(()=>{setToastValVisible(false);_valEliminadaTemp=null;},6000); setToastValTimer(t); }} onSvcEliminado={(svc)=>{ _svcEliminadoTemp=svc; setToastSvcVisible(true); if(toastSvcTimer)clearTimeout(toastSvcTimer); const t=setTimeout(()=>{setToastSvcVisible(false);_svcEliminadoTemp=null;},6000); setToastSvcTimer(t); }} onCatEliminada={(cat)=>{ _catEliminadaTemp=cat; setToastCatVisible(true); if(toastCatTimer)clearTimeout(toastCatTimer); const t=setTimeout(()=>{setToastCatVisible(false);_catEliminadaTemp=null;},6000); setToastCatTimer(t); }}/>}
         {tab==="comunicacion"&&<TabComunicacion/>}
       </div>
@@ -4947,6 +4960,7 @@ function AppData(){
   const [bloqueos,setBloqueos]=useState([]);
   const [servicios,setServicios]=useState([]);
   const [categorias,setCategorias]=useState([]);
+  const [horariosEspeciales,setHorariosEspeciales]=useState([]);
   const [cargando,setCargando]=useState(true);
   const [iniciado,setIniciado]=useState(false);
 
@@ -4981,8 +4995,9 @@ function AppData(){
     const u4=suscribirBloqueos(setBloqueos);
     const u5=suscribirServicios(data=>{ setServicios(data); });
     const u6=suscribirCategorias(data=>{ setCategorias(data); });
+    const u7=suscribirHorariosEspeciales(setHorariosEspeciales);
       const t=setTimeout(()=>setCargando(false),5000);
-      return()=>{ u1();u2();u3();u4();u5();u6();clearTimeout(t); };
+      return()=>{ u1();u2();u3();u4();u5();u6();u7();clearTimeout(t); };
   },[]);
 
   // 3. PANTALLA DE CARGA (El if debe ir DESPUÉS de todos los hooks)
@@ -4997,7 +5012,7 @@ function AppData(){
   );
 
   // ESTE ES EL FINAL DE TU FUNCIÓN AppData
-  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, categorias, setCategorias, sliderRef, isMobile, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd };
+  const sharedProps = { valoraciones, setValoraciones, citas, festivos, setFestivos, bloqueos, setBloqueos, servicios, setServicios, categorias, setCategorias, sliderRef, isMobile, scrollSlider, sliderAtStart, setSliderAtStart, sliderAtEnd, setSliderAtEnd, horariosEspeciales, setHorariosEspeciales };
 
   return (
     <Routes>
