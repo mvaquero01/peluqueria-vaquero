@@ -4078,7 +4078,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 <div style={{ display:"flex", flexDirection:"column", gap:"3px", alignItems:"flex-start" }}>
                   <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{toDMY(h.fecha)}</span>
                   <span style={{ fontSize:"11px", color:"#64748b" }}>
-                    {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).join("     |     ")}
+                    {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).reduce((acc, cur, i) => i === 0 ? [cur] : [...acc, <span key={i} style={{ margin:"0 8px", color:"#cbd5e1" }}>|</span>, cur], [])}
                   </span>
                 </div>
                 <button style={{ color:"#ef4444", background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"4px" }} onClick={async () => await borrarHorarioGeneral(h.id)}>✕</button>
