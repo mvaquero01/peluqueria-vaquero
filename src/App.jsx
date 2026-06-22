@@ -15,6 +15,8 @@ import {
   query, where, getDocs, updateDoc, getDoc, setDoc
 } from "firebase/firestore";
 import { CONFIG } from "./config.js";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "./firebase.js";
 
 // ─────────────────────────────────────────────
 // CSS GLOBAL
@@ -819,11 +821,15 @@ function RequirePeluquero({children}){
 function LoginPage(){
   const navigate=useNavigate();
   const [user,setUser]=useState(""), [pass,setPass]=useState(""), [error,setError]=useState(false);
-  const handleLogin=()=>{
-    if(user===CONFIG.adminUser&&pass===CONFIG.adminPass){
+  const handleLogin=async()=>{
+    // Intentar login como admin con Firebase Auth
+    try {
+      await signInWithEmailAndPassword(auth, user, pass);
       sessionStorage.setItem("authRole","admin");
       navigate("/admin");
       return;
+    } catch(e) {
+      // No es admin, probar con peluqueros
     }
     const pel=CONFIG.peluqueros.find(x=>normalize(x.nombre)===normalize(user)&&x.password===pass);
     if(pel){
