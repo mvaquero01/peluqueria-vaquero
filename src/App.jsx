@@ -320,6 +320,16 @@ function getTramosDia(pelId, fechaISO, horariosEspeciales){
   const diaSemana = fecha.getDay();
   const pel = CONFIG.peluqueros.find(p => p.id === pelId);
   if(!pel) return [];
+  // Comprobar si hay horario especial para este peluquero y fecha
+  if(horariosEspeciales && horariosEspeciales.length > 0){
+    const especial = horariosEspeciales.find(h => 
+      Number(h.peluqueroId) === pelId && h.fecha === fechaISO
+    );
+    if(especial){
+      if(especial.libre) return []; // día libre
+      if(especial.entrada && especial.salida) return [{ entrada: especial.entrada, salida: especial.salida, descanso: especial.descanso || null }];
+    }
+  }
   const hp = pel.horario[diaSemana];
   if(!hp) return [];
   return [hp];
@@ -3764,6 +3774,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
     const [showFestHastaCal, setShowFestHastaCal] = useState(false);
     const [showBloqDesdeCal, setShowBloqDesdeCal] = useState(false);
     const [showBloqHastaCal, setShowBloqHastaCal] = useState(false);
+    const [showHE, setShowHE] = useState(false);
+    const [showHECal, setShowHECal] = useState(false);
+    const [heForm, setHeForm] = useState({peluqueroId:"", fecha:"", libre:false, entrada:"", salida:""});
 
     // FORMATOS DE FECHA
     const toDMY = (iso) => iso ? iso.split("-").reverse().join("/") : "";
@@ -3960,7 +3973,80 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             );
           })}
         </div>
+      {/* COLUMNA 3: HORARIOS ESPECIALES */}
+      <div style={{...colStyle, gridColumn: isMobile ? "1" : "1 / -1"}}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
+          <h4 style={{ margin: 10, fontSize: "14px", fontWeight: "800", color: "#1e293b" }}>Horarios especiales</h4>
+          <button onClick={() => setShowHE(v => !v)} style={btnBlue}>{showHE ? "Cancelar" : "+ Añadir"}</button>
+        </div>
+
+        {showHE && (
+          <div className="anim" style={{ background: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "12px", border: "1px solid #cbd5e1" }}>
+            <select style={{...inputS, marginBottom: "8px"}} value={heForm.peluqueroId} onChange={e => setHeForm({...heForm, peluqueroId: e.target.value})}>
+              <option value="">¿Peluquero?</option>
+              {CONFIG.peluqueros.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+            <div style={{ position: "relative", marginBottom: "8px" }}>
+              <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Fecha</label>
+              <button style={inputS} onClick={() => setShowHECal(v => !v)}>{heForm.fecha ? toDMY(heForm.fecha) : "Seleccionar fecha..."}</button>
+              {showHECal && (
+                <div style={{ position: "absolute", zIndex: 200, marginTop: "4px" }}>
+                  <MiniCalPicker value={heForm.fecha} onChange={d => { setHeForm({...heForm, fecha: d}); setShowHECal(false); }} festivosSet={festivosSet} bloqueosPelId={null} bloqueos={[]} />
+                </div>
+              )}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+              <input type="checkbox" checked={heForm.libre} onChange={e => setHeForm({...heForm, libre: e.target.checked})} id="heLibre"/>
+              <label htmlFor="heLibre" style={{fontSize:12, color:"#64748b", fontWeight:700}}>Día libre (no disponible)</label>
+            </div>
+            {!heForm.libre && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                <div>
+                  <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Entrada</label>
+                  <input style={inputS} type="time" value={heForm.entrada} onChange={e => setHeForm({...heForm, entrada: e.target.value})} />
+                </div>
+                <div>
+                  <label style={{fontSize:10, fontWeight:700, color:"#64748b"}}>Salida</label>
+                  <input style={inputS} type="time" value={heForm.salida} onChange={e => setHeForm({...heForm, salida: e.target.value})} />
+                </div>
+              </div>
+            )}
+            <button style={{...btnBlue, width:"100%", padding:"10px", background:"#10b981", fontSize:"12px"}} onClick={async () => {
+              const pel = CONFIG.peluqueros.find(p => String(p.id) === String(heForm.peluqueroId));
+              if(!pel || !heForm.fecha) return;
+              const docId = `${pel.nombre}-${heForm.fecha}`;
+              await guardarHorarioEspecial(docId, {
+                peluqueroId: pel.id,
+                fecha: heForm.fecha,
+                libre: heForm.libre,
+                entrada: heForm.libre ? null : heForm.entrada,
+                salida: heForm.libre ? null : heForm.salida,
+              });
+              setHeForm({peluqueroId:"", fecha:"", libre:false, entrada:"", salida:""});
+              setShowHE(false);
+            }}>Guardar horario especial</button>
+          </div>
+        )}
+
+        {[...horariosEspeciales].sort((a,b) => a.fecha.localeCompare(b.fecha)).map((h, i) => {
+          const pel = CONFIG.peluqueros.find(p => String(p.id) === String(h.peluqueroId));
+          return (
+            <div key={i} style={{ background: "#fff", padding: "8px 12px", borderRadius: "10px", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                <img src={pel?.foto} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover" }} />
+                <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{pel?.nombre}</span>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>{toDMY(h.fecha)}</span>
+                {h.libre 
+                  ? <span style={{ fontSize: "11px", background: "#fee2e2", color: "#dc2626", padding: "2px 8px", borderRadius: "10px", fontWeight: 700 }}>Día libre</span>
+                  : <span style={{ fontSize: "11px", background: "#d1fae5", color: "#059669", padding: "2px 8px", borderRadius: "10px", fontWeight: 700 }}>{h.entrada} - {h.salida}</span>
+                }
+              </div>
+              <button style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontSize: "15px", padding: "4px" }} onClick={async () => await borrarHorarioEspecial(h.id)}>✕</button>
+            </div>
+          );
+        })}
       </div>
+    </div>
     );
   };
 
