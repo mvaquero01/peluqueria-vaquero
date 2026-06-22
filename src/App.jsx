@@ -3946,8 +3946,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           )}
 
           {agruparItems(festivos).map((f, i) => (
-            <div key={i} style={{ background:"#fff", padding:"10px 14px", borderRadius:"8px", marginBottom:"8px", display:"flex", justifyContent:"space-between", alignItems:"center", border:"1px solid #e2e8f0" }}>
-              <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+            <div key={i} style={{ background:"#fff", padding:"10px 14px", borderRadius:"8px", marginBottom:"8px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", border:"1px solid #e2e8f0" }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:"2px", alignItems:"flex-start" }}>
                 <span style={{ fontSize:"13px", fontWeight:"700", color:"#1e293b" }}>{f.motivo}</span>
                 <span style={{ fontSize:"11px", color:"#64748b" }}>{toDMY(f.inicio)}{f.inicio !== f.fin ? ` — ${toDMY(f.fin)}` : ""}</span>
               </div>
@@ -4008,8 +4008,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             const pel = CONFIG.peluqueros.find(p => String(p.id) === String(b.peluqueroId));
             return (
               <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", display:"flex", alignItems:"center", justifyContent:"space-between", border:"1px solid #e2e8f0" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:"10px", flex:1 }}>
-                  <img src={pel?.foto} alt="" style={{ width:"28px", height:"28px", borderRadius:"50%", objectFit:"cover" }} />
+                <div style={{ display:"flex", alignItems:"flex-start", gap:"10px", flex:1 }}>
+                  <img src={pel?.foto} alt="" style={{ width:"28px", height:"28px", borderRadius:"50%", objectFit:"cover", marginTop:"1px", flexShrink:0 }} />
                   <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
                       <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
