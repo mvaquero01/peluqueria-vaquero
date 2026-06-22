@@ -4075,7 +4075,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           {[...(horariosGenerales||[])].sort((a,b) => a.fecha.localeCompare(b.fecha)).map((h, i) => (
             <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", border:"1px solid #e2e8f0" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                <div style={{ display:"flex", flexDirection:"column", gap:"8px", alignItems:"flex-start" }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:"14px", alignItems:"flex-start" }}>
                   <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{toDMY(h.fecha)}</span>
                   <span style={{ fontSize:"11px", color:"#64748b" }}>
                     {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).reduce((acc, cur, i) => i === 0 ? [cur] : [...acc, <span key={i} style={{ margin:"0 8px", color:"#cbd5e1" }}>|</span>, cur], [])}
