@@ -4010,7 +4010,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", display:"flex", alignItems:"center", justifyContent:"space-between", border:"1px solid #e2e8f0" }}>
                 <div style={{ display:"flex", alignItems:"flex-start", gap:"10px", flex:1 }}>
                   <img src={pel?.foto} alt="" style={{ width:"28px", height:"28px", borderRadius:"50%", objectFit:"cover", flexShrink:0, marginTop:"1px" }} />
-                  <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+                  <div style={{ display:"flex", flexDirection:"column", gap:"2px", alignItems:"flex-start" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
                       <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
                       <span style={{ fontSize:"12px", color:"#64748b" }}>{b.motivo}</span>
