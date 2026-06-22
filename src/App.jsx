@@ -4144,20 +4144,18 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             const pel = CONFIG.peluqueros.find(p => String(p.id) === String(h.peluqueroId));
             return (
               <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", border:"1px solid #e2e8f0" }}>
-                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"4px" }}>
-                  <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                  <div style={{ display:"flex", flexDirection:"column", gap:"3px", alignItems:"flex-start" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                      <img src={pel?.foto} alt="" style={{ width:"24px", height:"24px", borderRadius:"50%", objectFit:"cover" }} />
+                      <img src={pel?.foto} alt="" style={{ width:"24px", height:"24px", borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
                       <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
                     </div>
-                    <span style={{ fontSize:"11px", color:"#64748b", paddingLeft:"32px" }}>{toDMY(h.fecha)}</span>
+                    <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{toDMY(h.fecha)}</span>
+                    <span style={{ fontSize:"11px", color:"#64748b" }}>
+                      {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).reduce((acc, cur, i) => i === 0 ? [cur] : [...acc, <span key={i} style={{ margin:"0 8px", color:"#cbd5e1" }}>|</span>, cur], [])}
+                    </span>
                   </div>
                   <button style={{ color:"#ef4444", background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"4px" }} onClick={async () => await borrarHorarioEspecial(h.id)}>✕</button>
-                </div>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:"4px" }}>
-                  {(h.tramos||[]).map((t, ti) => (
-                    <span key={ti} style={{ fontSize:"11px", background:"#e0e7ff", color:"#4f46e5", padding:"2px 8px", borderRadius:"10px", fontWeight:700 }}>{t.entrada} - {t.salida}</span>
-                  ))}
                 </div>
               </div>
             );
