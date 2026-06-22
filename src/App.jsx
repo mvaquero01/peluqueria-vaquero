@@ -4075,13 +4075,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
           {[...(horariosGenerales||[])].sort((a,b) => a.fecha.localeCompare(b.fecha)).map((h, i) => (
             <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", border:"1px solid #e2e8f0" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{toDMY(h.fecha)}</span>
+                <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+                  <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{toDMY(h.fecha)}</span>
+                  <span style={{ fontSize:"11px", color:"#64748b" }}>
+                    {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).join("  ·  ")}
+                  </span>
+                </div>
                 <button style={{ color:"#ef4444", background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"4px" }} onClick={async () => await borrarHorarioGeneral(h.id)}>✕</button>
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"4px", marginTop:"4px" }}>
-                {(h.tramos||[]).map((t, ti) => (
-                  <span key={ti} style={{ fontSize:"11px", background:"#d1fae5", color:"#059669", padding:"2px 8px", borderRadius:"10px", fontWeight:700 }}>{t.entrada} - {t.salida}</span>
-                ))}
               </div>
             </div>
           ))}
