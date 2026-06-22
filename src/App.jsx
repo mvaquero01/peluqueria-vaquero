@@ -4151,7 +4151,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
                     </div>
                     <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b", marginTop:"6px" }}>{toDMY(h.fecha)}</span>
-                    <span style={{ fontSize:"11px", color:"#64748b", marginTop:"2px" }}>
+                    <span style={{ fontSize:"11px", color:"#64748b", marginTop:"0px" }}>
                       {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).reduce((acc, cur, i) => i === 0 ? [cur] : [...acc, <span key={i} style={{ margin:"0 8px", color:"#cbd5e1" }}>|</span>, cur], [])}
                     </span>
                   </div>
