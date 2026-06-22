@@ -4145,12 +4145,12 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             return (
               <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", border:"1px solid #e2e8f0" }}>
                 <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-                  <div style={{ display:"flex", flexDirection:"column", gap:"6px", alignItems:"flex-start" }}>
+                  <div style={{ display:"flex", flexDirection:"column", gap:"0px", alignItems:"flex-start" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
                       <img src={pel?.foto} alt="" style={{ width:"28px", height:"28px", borderRadius:"50%", objectFit:"cover", flexShrink:0, marginTop:"1px" }} />
                       <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
                     </div>
-                    <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b", marginTop:"6px" }}>{toDMY(h.fecha)}</span>
+                    <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b", marginTop:"8px" }}>{toDMY(h.fecha)}</span>
                     <span style={{ fontSize:"11px", color:"#64748b", marginTop:"0px" }}>
                       {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).reduce((acc, cur, i) => i === 0 ? [cur] : [...acc, <span key={i} style={{ margin:"0 8px", color:"#cbd5e1" }}>|</span>, cur], [])}
                     </span>
