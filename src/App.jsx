@@ -3947,9 +3947,9 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
 
           {agruparItems(festivos).map((f, i) => (
             <div key={i} style={{ background:"#fff", padding:"10px 14px", borderRadius:"8px", marginBottom:"8px", display:"flex", justifyContent:"space-between", alignItems:"center", border:"1px solid #e2e8f0" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
                 <span style={{ fontSize:"13px", fontWeight:"700", color:"#1e293b" }}>{f.motivo}</span>
-                <span style={{ fontSize:"12px", color:"#64748b" }}>{toDMY(f.inicio)}{f.inicio !== f.fin ? ` - ${toDMY(f.fin)}` : ""}</span>
+                <span style={{ fontSize:"11px", color:"#64748b" }}>{toDMY(f.inicio)}{f.inicio !== f.fin ? ` — ${toDMY(f.fin)}` : ""}</span>
               </div>
               <button style={{ color:"#ef4444", background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"4px" }} onClick={async () => { for(const id of f.ids) await borrarFestivo(id); }}>✕</button>
             </div>
@@ -4010,9 +4010,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
               <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", display:"flex", alignItems:"center", justifyContent:"space-between", border:"1px solid #e2e8f0" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:"10px", flex:1 }}>
                   <img src={pel?.foto} alt="" style={{ width:"28px", height:"28px", borderRadius:"50%", objectFit:"cover" }} />
-                  <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
-                  <span style={{ fontSize:"13px", color:"#64748b" }}>{b.motivo}</span>
-                  <span style={{ fontSize:"12px", color:"#94a3b8" }}>{toDMY(b.inicio)}{b.inicio !== b.fin ? ` - ${toDMY(b.fin)}` : ""}</span>
+                  <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                      <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
+                      <span style={{ fontSize:"12px", color:"#64748b" }}>{b.motivo}</span>
+                    </div>
+                    <span style={{ fontSize:"11px", color:"#94a3b8" }}>{toDMY(b.inicio)}{b.inicio !== b.fin ? ` — ${toDMY(b.fin)}` : ""}</span>
+                  </div>
                 </div>
                 <button style={{ color:"#ef4444", background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"4px" }} onClick={async () => { for(const id of b.ids) await borrarBloqueo(id); }}>✕</button>
               </div>
@@ -4062,7 +4066,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 if(!hgForm.fecha || hgForm.tramos.some(t => !t.entrada || !t.salida)) return;
                 const docId = `general-${hgForm.fecha}`;
                 await guardarHorarioGeneral(docId, { fecha: hgForm.fecha, tramos: hgForm.tramos });
-                setHgForm({fecha:"", tramos:[{entrada:"", salida:""}]}); setShowHG(false);
+                setHgForm({fecha:"", tramos:[{entrada:"", salida:""}]});
+                setTimeout(() => setShowHG(false), 300);
               }}>Guardar horario general</button>
             </div>
           )}
@@ -4129,7 +4134,8 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                 if(!pel || !heForm.fecha || heForm.tramos.some(t => !t.entrada || !t.salida)) return;
                 const docId = `${pel.nombre}-${heForm.fecha}`;
                 await guardarHorarioEspecial(docId, { peluqueroId: pel.id, fecha: heForm.fecha, tramos: heForm.tramos });
-                setHeForm({peluqueroId:"", fecha:"", tramos:[{entrada:"", salida:""}]}); setShowHE(false);
+                setHeForm({peluqueroId:"", fecha:"", tramos:[{entrada:"", salida:""}]});
+                setTimeout(() => setShowHE(false), 300);
               }}>Guardar horario peluquero</button>
             </div>
           )}
@@ -4138,11 +4144,13 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
             const pel = CONFIG.peluqueros.find(p => String(p.id) === String(h.peluqueroId));
             return (
               <div key={i} style={{ background:"#fff", padding:"8px 12px", borderRadius:"10px", marginBottom:"8px", border:"1px solid #e2e8f0" }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"4px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                    <img src={pel?.foto} alt="" style={{ width:"24px", height:"24px", borderRadius:"50%", objectFit:"cover" }} />
-                    <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
-                    <span style={{ fontSize:"12px", color:"#64748b" }}>{toDMY(h.fecha)}</span>
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"4px" }}>
+                  <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                      <img src={pel?.foto} alt="" style={{ width:"24px", height:"24px", borderRadius:"50%", objectFit:"cover" }} />
+                      <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
+                    </div>
+                    <span style={{ fontSize:"11px", color:"#64748b", paddingLeft:"32px" }}>{toDMY(h.fecha)}</span>
                   </div>
                   <button style={{ color:"#ef4444", background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"4px" }} onClick={async () => await borrarHorarioEspecial(h.id)}>✕</button>
                 </div>
