@@ -4150,7 +4150,7 @@ function AdminPage({valoraciones,setValoraciones,festivos,setFestivos,bloqueos,s
                       <img src={pel?.foto} alt="" style={{ width:"28px", height:"28px", borderRadius:"50%", objectFit:"cover", flexShrink:0, marginTop:"1px" }} />
                       <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{pel?.nombre}</span>
                     </div>
-                    <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b", paddingLeft:"38px" }}>{toDMY(h.fecha)}</span>
+                    <span style={{ fontSize:"13px", fontWeight:"800", color:"#1e293b" }}>{toDMY(h.fecha)}</span>
                     <span style={{ fontSize:"11px", color:"#64748b" }}>
                       {(h.tramos||[]).map((t, ti) => `${t.entrada} - ${t.salida}`).reduce((acc, cur, i) => i === 0 ? [cur] : [...acc, <span key={i} style={{ margin:"0 8px", color:"#cbd5e1" }}>|</span>, cur], [])}
                     </span>
