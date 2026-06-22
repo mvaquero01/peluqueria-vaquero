@@ -822,10 +822,14 @@ function LoginPage(){
   const navigate=useNavigate();
   const [user,setUser]=useState(""), [pass,setPass]=useState(""), [error,setError]=useState(false);
   const handleLogin=async()=>{
-    if(user==="admin" && pass==="admin123"){
+    // Intentar login como admin con Firebase Auth
+    try {
+      await signInWithEmailAndPassword(auth, user, pass);
       sessionStorage.setItem("authRole","admin");
       navigate("/admin");
       return;
+    } catch(e) {
+      // No es admin, probar con peluqueros
     }
     const pel=CONFIG.peluqueros.find(x=>normalize(x.nombre)===normalize(user)&&x.password===pass);
     if(pel){
