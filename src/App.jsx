@@ -315,6 +315,23 @@ function generarSlots(hp,durMin){
   }
   return slots;
 }
+function getTramosDia(pelId, fechaISO, horariosEspeciales){
+  const fecha = new Date(fechaISO+"T12:00:00");
+  const diaSemana = fecha.getDay();
+  const pel = CONFIG.peluqueros.find(p => p.id === pelId);
+  if(!pel) return [];
+  const hp = pel.horario[diaSemana];
+  if(!hp) return [];
+  return [hp];
+}
+function generarSlotsTramos(tramos, durMin){
+  const slots = [];
+  for(const hp of tramos){
+    const s = generarSlots(hp, durMin);
+    s.forEach(h => { if(!slots.includes(h)) slots.push(h); });
+  }
+  return slots;
+}
 function filtrarSlotsOcupados(slots,durMin,citasDelDia){
   return slots.filter(slot=>{
     const sI=toMin(slot),sF=sI+durMin;
