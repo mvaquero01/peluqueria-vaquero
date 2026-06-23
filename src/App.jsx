@@ -5215,11 +5215,11 @@ function AppData(){
 
   // 2. SUSCRIPCIONES FIREBASE
   useEffect(()=>{
-    const u1=suscribirCitas(data=>{setCitas(data);setCargando(false);});
+    const u1=suscribirCitas(data=>{setCitas(data);});
     const u2=suscribirValoracionesFB(setValoraciones);
     const u3=suscribirFestivos(setFestivos);
     const u4=suscribirBloqueos(setBloqueos);
-    const u5=suscribirServicios(data=>{ setServicios(data); });
+    const u5=suscribirServicios(data=>{ setServicios(data); setCargando(false); });
     const u6=suscribirCategorias(data=>{ setCategorias(data); });
     const u7=suscribirHorariosEspeciales(setHorariosEspeciales);
     const u8=suscribirHorariosGenerales(setHorariosGenerales);
